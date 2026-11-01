@@ -1,8 +1,9 @@
+import { Link } from 'react-router-dom';
 import { InfoTip } from '../../components/InfoTip';
 import { PageSkeleton } from '../../components/PageSkeleton';
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Headphones, Plus, ChevronDown, ChevronUp, MessageSquare,
+  Headphones, Plus, ChevronDown, ChevronUp, MessageSquare, Bot, HelpCircle,
   Clock, CheckCircle2, AlertCircle, Send, LifeBuoy, Loader2, Mail,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -180,6 +181,11 @@ export default function SupportTicketsPage() {
   }
 
   const isFreelancer = user?.role === 'freelancer';
+  // Free freelancers get IN-APP support only: the AI assistant and the Help
+  // Center. Priority tickets are a Premium benefit, and the database enforces
+  // the same rule on insert (20270306_support_tier_derive_role), so this is the
+  // visible half of one decision — not a client-side gate that can be bypassed.
+  const ticketSupportLocked = isFreelancer && !isPro;
 
   return (
     <div className="space-y-4">
@@ -199,17 +205,70 @@ export default function SupportTicketsPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          New Ticket
-        </button>
+        {ticketSupportLocked ? (
+          <Link
+            to="/dashboard/ai-assistant"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 transition-all"
+          >
+            <Bot className="w-4 h-4" />
+            Ask the AI assistant
+          </Link>
+        ) : (
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            New Ticket
+          </button>
+        )}
       </div>
 
+      {/* Free plan: say what IS included, instead of a form that the database
+          would refuse. Pro is never upsold as a requirement for working — only
+          for ticket support. */}
+      {ticketSupportLocked && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+              <LifeBuoy className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="font-display font-bold text-slate-900">
+                In-app support is included on the free plan
+              </h2>
+              <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+                Ask the AI assistant — it answers immediately and can see your contracts, milestones and
+                wallet. The Help Center covers the rest. Priority support tickets are part of Freelancer
+                Premium (₹199/month).
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <Link
+                  to="/dashboard/ai-assistant"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 transition-all"
+                >
+                  <Bot className="w-4 h-4" /> Ask the AI assistant
+                </Link>
+                <Link
+                  to="/dashboard/help-center"
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4" /> Open Help Center
+                </Link>
+                <Link
+                  to="/dashboard/pro"
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                  See Premium
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Form */}
-      {showForm && (
+      {showForm && !ticketSupportLocked && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-lg font-bold text-slate-900">Create Support Ticket</h2>
@@ -317,16 +376,20 @@ export default function SupportTicketsPage() {
           </div>
           <h3 className="font-display text-lg font-bold text-slate-900 mb-1">No tickets yet</h3>
           <p className="text-slate-500 text-xs mb-4 max-w-sm mx-auto">
-            {isFreelancer
-              ? "You haven't submitted any support tickets. If you need help, click 'New Ticket' above."
-              : "You haven't submitted any support tickets. We're here to help — just click 'New Ticket'."}
+            {ticketSupportLocked
+              ? "Nothing filed here — on the free plan, questions are answered in the AI assistant and the Help Center, both included."
+              : isFreelancer
+                ? "You haven't submitted any support tickets. If you need help, click 'New Ticket' above."
+                : "You haven't submitted any support tickets. We're here to help — just click 'New Ticket'."}
           </p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-3 px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-all"
-          >
-            <Plus className="w-4 h-4" /> Create Your First Ticket
-          </button>
+          {!ticketSupportLocked && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center gap-3 px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Create Your First Ticket
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

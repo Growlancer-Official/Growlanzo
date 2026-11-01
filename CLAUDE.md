@@ -1081,3 +1081,18 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   trigger only blocks escalation to `admin`, so a freelancer can set their own role to `client`. Ticket
   gating is not the weakest link there, and closing it changes onboarding (OnboardingPage writes
   `profiles.role` directly) — founder decision.
+
+- **2026-11-01 (4) — the free/Pro split is now visible, and the icon mismatch was real**: the gate from
+  `20270306` was enforced only in the database, so a free freelancer still saw a working-looking "New
+  Ticket" form that would fail on submit. `SupportTicketsPage` now hides the form and the empty-state
+  button for `freelancer && !isPro` and shows what the free plan actually includes — AI assistant, Help
+  Center, and where Premium sits — while clients and Pro are untouched and existing tickets stay readable.
+  **Icon defect found, not guessed**: `ClientMatchesPage` has three headers, and the project-detail one
+  used `w-8 h-8 rounded-lg … emerald-500→600 shadow-md` with a `w-4` icon while the landing state and
+  Team Projects use `w-10 h-10 rounded-xl … emerald-500→700 shadow-lg`. Opening one project's matches
+  changed the icon — that is the inconsistency reported. All three now share the 40px tile.
+  **Routing checked, not assumed**: `docs/UI-ELEMENT-AUDIT-REPORT.md` still claims the tickets page is an
+  unrouted orphan; `App.tsx:358` (freelancer) and `:405` (client) both mount it, so the doc is stale and
+  nothing was changed. Login landing left alone: `/auth/callback` already calls `redirectAfterAuth` →
+  role dashboard with no intermediate hop, and the provider page itself cannot be removed from OAuth.
+  Verify: typecheck 0, lint 0, full suite, build 0.
