@@ -17,8 +17,9 @@ alerts**, and `20270130000000` + `20270129000000` + `20270201000000` applied. Th
 still **red at the whole-surface audit's teardown** (probe leftovers), not at a migration or money
 check. The last fully green browser layer was run `36237099675` (Sep 26); the 20 Oct referral
 commits did **not** get an authenticated browser pass (CI was red on lint/guards first).
-**New blocker A12 (commission is charged twice) was found on 20 Oct and needs your decision
-before any real payment.**
+**A12 (commission charged twice) is resolved:** Option B shipped and is recorded in §A12 — the
+client now pays exactly the contract amount and the flat 5% is withheld from the freelancer at
+release.
 
 > Honest scope: this lists what is *proven to work* and what is *still unproven*. Nobody can promise
 > "no error, anywhere, ever" — the same pass that wrote this found four defects in its own probes.
@@ -328,7 +329,7 @@ a coin redemption moves a real subscription row to `payment_provider = 'grow_coi
 
 **Decision:** Option B — the client pays exactly the agreed contract amount; the flat 5% is
 withheld from the freelancer at release. Commit `d45b388` and migration
-`20270203000000_commission_model_option_a.sql` implement it, and the pricing/terms/refund copy
+`20270203000000_commission_freelancer_side.sql` implement it, and the pricing/terms/refund copy
 now states the freelancer-side model.
 
 **What to verify before taking real money:** for a released contract,
@@ -337,9 +338,12 @@ now states the freelancer-side model.
 with no commission. `scripts/e2e/pentest-privileges.mjs` now asserts both legs as hard gates
 (103 checks, 0 failures).
 
-**Still to do (doc only, no code):** `CLAUDE.md` §Business Model still says the client pays 5% on
-top. Update that paragraph to Option B so the next change does not “fix” the money path back to
-the retired model.
+**Doc follow-through (done 2026-11-01):** `CLAUDE.md` §Business Model already states the
+freelancer-side model, and `docs/PROJECT-BLUEPRINT.md` (§1 table, §7 money path, §14.1),
+`docs/blueprint/DATABASE.md` (§11.2 conflict row) and this file's §A12 migration filename now all
+describe Option B and mark the double-charge finding resolved. That matters because §14.1 used to
+read "CRITICAL — decision required", which is an invitation for the next change to re-break the
+money path.
 
 ### Recommended order
 

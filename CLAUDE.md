@@ -1020,3 +1020,17 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   **Verified**: typecheck 0, lint 0, build 0 (34.8s), focused 110/110, full suite 856/857 — bacha hua `projectMap` sirf
   stale INVENTORY tha, `npm run docs:map` ke baad us file par 2/2 green. **Pending**: `supabase db push` (live DB par
   migration apply hone tak realtime/quota fix live nahi hoga) + real Razorpay/KYC keys + two-account E2E (credentials nahi).
+
+- **2026-11-01 — commission docs reconciled + coin ledger CHECK restored**: `PROJECT-BLUEPRINT.md`
+  (§1 table, §7 money path, §14.1), `docs/blueprint/DATABASE.md` §11.2 and `LAUNCH-READINESS` A12 still
+  described the retired client-side 5% and called the double charge "open". Verified against
+  `20270203000000_commission_freelancer_side.sql` that Option B is what actually runs: order =
+  `contract.amount` (no fee on top), `platform_commission()` withholds 5% at release, invoice
+  `platform_fee = 0`. Docs corrected, incl. the wrong migration filename A12 cited.
+  **Real defect fixed:** `20270302`'s rebuilt `grow_coin_ledger` reason CHECK dropped
+  `referee_referral_bonus`; `ALTER TABLE ADD CONSTRAINT` validates existing rows, so one historical
+  row would hard-fail `db push`. Value restored + guard in `src/test/growCoins.test.ts`.
+  **Verified:** typecheck 0, lint 0, full suite **858/858** on Node 24.22.2 (VM default is Node 26,
+  where jsdom `localStorage` is undefined and 69 storage/DOM tests fail — environment, not code),
+  build clean, `docs:check` current. **Not pushed / not deployed:** no Supabase credentials in this
+  environment, so the migration could not be dry-run; §8 forbids deploying an unverified migration.

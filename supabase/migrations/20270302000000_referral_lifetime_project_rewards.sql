@@ -58,6 +58,10 @@ ALTER TABLE public.grow_coin_ledger
   ADD CONSTRAINT grow_coin_ledger_reason_check CHECK (
     reason = ANY (ARRAY[
       'referral_bonus',
+      -- Retired by 20270303, but a row written while 20270207 was live still
+      -- has to satisfy the constraint: ALTER TABLE ADD CONSTRAINT validates
+      -- every existing row, so dropping this value can hard-fail `db push`.
+      'referee_referral_bonus',
       'kyc_bonus',
       'first_project_bonus',
       'referral_project_reward',

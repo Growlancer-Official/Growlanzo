@@ -272,6 +272,16 @@ describe('referral pays BOTH sides, in real time', () => {
     }
   });
 
+  it('keeps the retired referee reason valid when the 5+5 economy rebuilds the CHECK', () => {
+    // 20270303 retires the 10+10 shape, but 20270302 rebuilds the ledger reason
+    // constraint. ALTER TABLE ADD CONSTRAINT validates existing rows, so a row
+    // written under 20270207 whose reason no longer appears here would make
+    // `db push` fail on a real database. Historical reasons must survive.
+    const LIFETIME = read('supabase/migrations/20270302000000_referral_lifetime_project_rewards.sql');
+    expect(LIFETIME).toContain("'referee_referral_bonus'");
+    expect(LIFETIME).toMatch(/referee_referral_bonus[\s\S]{0,400}\]::text\[\]/);
+  });
+
   it('pays the referee in the same transaction, idempotently', () => {
     // The referee's ledger row is written inside the award function itself.
     expect(BOTH).toMatch(/INSERT INTO public\.grow_coin_ledger/);
