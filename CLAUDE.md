@@ -1065,3 +1065,19 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   provider round-trip cannot be removed; needs a real URL trace. Client AI Matches / Team Projects tiles
   were already identical, so only the wrapper was aligned earlier. Coin cash redemption stays blocked.
   **Verified:** docs:map/check, typecheck 0, lint 0, full suite, build — see commit.
+
+- **2026-11-01 (3) — closed a bypass in my own support-tier guard**: `20270305` gated on `NEW.user_role`,
+  a browser-supplied field the insert policy does not constrain (`user_id = auth.uid()` only), so a free
+  freelancer could POST `user_role:'client'` and never meet the Pro requirement. `20270306` replaces the
+  decision input with `profiles.role` (the same source ProtectedRoute and the admin RPCs use), corrects the
+  stored label when the derived role is one the CHECK accepts, fails closed when the profile row is missing,
+  and asserts at deploy time that the trigger exists, is enabled, and that its body reads `public.profiles`.
+  **Verified in WASM Postgres (PGlite), not live**: 20270304 → 20270305 → 20270306 apply in order and an
+  11-case decision table passes with the *expected rejection reason* asserted — spoofed label, expired
+  trial, cross-user insert, missing profile, service-role path, and label auto-correction. The first run of
+  that harness reported 5/11 "passing" for the wrong reason (a missing SELECT grant, not the guard), which
+  is exactly why each rejection now matches on message. Live DB unverified: no credentials in this sandbox.
+  **Open finding, not fixed:** `authenticated` still holds table-level UPDATE on `profiles` and the privilege
+  trigger only blocks escalation to `admin`, so a freelancer can set their own role to `client`. Ticket
+  gating is not the weakest link there, and closing it changes onboarding (OnboardingPage writes
+  `profiles.role` directly) — founder decision.
