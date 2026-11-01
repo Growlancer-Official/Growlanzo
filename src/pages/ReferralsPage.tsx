@@ -374,7 +374,7 @@ export function ReferralsPage() {
                   <Award className="w-5 h-5" />
                 </div>
                 <h4 className="font-bold mb-2">Points &amp; Levels</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">Every completed referral adds 10 points and moves you up the Starter → Growth → Pro → Elite tiers.</p>
+                <p className="text-xs text-slate-500 leading-relaxed">Every confirmed referral counts once toward the Starter → Growth → Pro → Elite tiers (3, 10 and 25 referrals).</p>
               </div>
               <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-100">
                 <div className="h-10 w-10 rounded-xl bg-amber-600 text-white flex items-center justify-center mb-2">
@@ -415,8 +415,8 @@ export function ReferralsPage() {
                 <li className="flex items-start gap-3 text-sm">
                   <CheckCircle className="text-emerald-500 mt-0.5 w-5 h-5" />
                   <div>
-                    <p className="font-bold">First Project Completed</p>
-                    <p className="text-xs text-slate-400">Their first contract must be completed as a freelancer — a signup alone pays nothing.</p>
+                    <p className="font-bold">A Real Milestone — Not a Signup</p>
+                    <p className="text-xs text-slate-400">5 coins land for both of you when their identity is approved, and again for every project they complete — a signup alone pays nothing.</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3 text-sm">
@@ -574,7 +574,7 @@ export function ReferralsPage() {
             </div>
             <h4 className="text-lg font-semibold text-slate-900 mb-2">No referrals yet</h4>
             <p className="text-slate-500 max-w-md mx-auto text-sm">
-              Share your unique referral link with other freelancers. When they join and complete their first project, they'll be listed here and you'll earn rewards.
+              Share your unique referral link with other freelancers. Once their identity is approved they appear here — and every project they complete keeps paying you both.
             </p>
           </div>
         )}

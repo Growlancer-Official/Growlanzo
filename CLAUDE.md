@@ -1096,3 +1096,16 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   nothing was changed. Login landing left alone: `/auth/callback` already calls `redirectAfterAuth` →
   role dashboard with no intermediate hop, and the provider page itself cannot be removed from OAuth.
   Verify: typecheck 0, lint 0, full suite, build 0.
+
+- **2026-11-01 (5) — two stale money promises removed from the referral surface**: the shipped programme is
+  5 + 5 (KYC approval, once per relationship) and 5 + 5 again for every project the referred user completes,
+  with no cap (`20270303000000`). Two places still described the retired one-shot economy. (a)
+  `ReferralsPage` listed a "First Project Completed" validation rule and a "first project → rewards" empty
+  state, and credited "10 points" per referral — tiers actually count confirmed referrals at 3 / 10 / 25.
+  (b) `TermsPage` §14 — a **legal** document — promised "10 coins when your identity is verified", "20 coins
+  when your first project completes" and "capped at 20 paid bonuses per month". All three are retired, so the
+  terms described payouts the code cannot make. Rewritten to state the 5 + 5 / no-cap rule and the real
+  verification gate; nothing else in §14 (Premium at 199 coins, client checkout discount from 100, cash
+  withdrawal still closed, no-expiry, no-ranking-influence, clawback) was changed. **Founder review wanted**
+  on the Terms wording — it is legal copy, but it now matches the implemented rule instead of contradicting it.
+  Verify: typecheck 0, lint 0, 858/858 tests, build 0.
