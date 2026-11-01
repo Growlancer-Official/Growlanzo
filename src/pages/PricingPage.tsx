@@ -98,11 +98,11 @@ export function PricingPage() {
         <div className="mx-auto max-w-[100rem] px-4 sm:px-6 lg:px-8 2xl:px-12">
           <div className="text-center mb-2">
             <h2 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
-              For Clients — One Flat Fee
+              For Clients — ₹0 Platform Fee
             </h2>
             <p className="text-slate-600 max-w-xl mx-auto text-sm sm:text-base">
-              No tiers, no surprises. Every client pays the same simple rate, and your freelancer
-              always gets the full project amount.
+              No tiers, no surprises. You fund the agreed project amount and nothing else — the
+              freelancer&apos;s flat 5% commission is withheld from their payout.
             </p>
           </div>
 
@@ -110,15 +110,15 @@ export function PricingPage() {
             <div className="rounded-xl p-4 bg-slate-900 text-white shadow-xl">
               <div className="inline-flex items-center gap-1 text-xs font-bold bg-emerald-500 text-slate-900 px-3 py-1 rounded-full mb-2">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                ONE FLAT RATE FOR EVERYONE
+                NO CLIENT FEE
               </div>
-              <h3 className="font-display text-2xl font-bold mb-2">Platform Fee</h3>
+              <h3 className="font-display text-2xl font-bold mb-2">You Pay</h3>
               <p className="text-sm text-slate-400 mb-3">
-                Paid by the client on successful payments only
+                The agreed project amount — nothing added at checkout
               </p>
               <div className="mb-3">
-                <span className="font-display text-4xl sm:text-5xl font-bold">5%</span>
-                <p className="text-sm mt-1 text-slate-400">of the project amount, per payment</p>
+                <span className="font-display text-4xl sm:text-5xl font-bold">₹0</span>
+                <p className="text-sm mt-1 text-slate-400">platform fee, on every payment</p>
               </div>
               <ul className="space-y-3 mb-2">
                 {clientFeatures.map((feature, fIndex) => (
@@ -154,7 +154,7 @@ export function PricingPage() {
               Growlanzo Premium — Optional Upgrade
             </h2>
             <p className="text-slate-600 max-w-xl mx-auto text-sm sm:text-base">
-              Join free, earn 100% of every payment, and build services with <strong>3 package
+              Join free, keep 95% of every payment, and build services with <strong>3 package
               tiers (Basic / Standard / Premium)</strong> — completely free for every freelancer.
               Upgrade to <strong>Premium ({formatCurrency(199)}/month, optional)</strong> for higher AI writing
               limits, unlimited AI assistant messages and a Premium badge. Packages, visibility and matching stay
@@ -365,7 +365,7 @@ export function PricingPage() {
               <h3 className="font-bold text-slate-900 mb-1">Do freelancers pay anything to use Growlanzo?</h3>
               <p className="text-sm text-slate-600">
                 No. Creating a profile, building 3-tier packages, applying to projects, and
-                receiving payments are completely free — including <strong>5 free AI-written
+                getting paid carries one flat 5% commission — and includes <strong>5 free AI-written
                 titles, descriptions and cover messages every day</strong>. The optional{' '}
                 <strong>Premium plan ({formatCurrency(199)}/month, flat)</strong> raises AI writing to{' '}
                 <strong>100 generations per day</strong> and removes the monthly cap on AI assistant

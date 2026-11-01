@@ -30,8 +30,8 @@ must preserve:
 
 | Rule | Value |
 | --- | --- |
-| Platform commission | **Flat 5%**, charged to the client above the contract price. No hidden fee. |
-| Freelancer Premium | **₹299/month**, one plan, optional. Never gate packaging behind it. |
+| Platform commission | **Flat 5%**, withheld from the freelancer's released payout. The client pays exactly the agreed amount — nothing added at checkout. |
+| Freelancer Premium | **₹199/month**, one plan, optional. Never gate packaging behind it. |
 | Packaging (Basic/Standard/Premium) | Free for every freelancer, always. |
 | Client AI | Free for life; protect with fair-use rate limits, never a paywall. |
 | Ranking / matching / search | **100% merit-based.** No `is_pro`, subscription or payment flag may influence score or sort order. |

@@ -28,15 +28,19 @@ import {
   getReferralBonusDescription,
   getKycBonusDescription,
   newCoinRequestKey,
-  redeemGrowCoinsForCash,
   redeemGrowCoinsForPremium,
 } from '../lib/growCoins';
+
+// Coin cash-out is intentionally not wired to the UI yet: the founder is
+// keeping withdrawal "coming soon" for BOTH roles until payouts are live. The
+// server RPC stays in place so enabling it later is a one-line change, and no
+// visitor is ever shown a button that cannot pay out.
 
 export function ReferralsPage() {
   const { user } = useAuth();
   const toast = useToast();
   const [page, setPage] = useState(1);
-  const [redeemTarget, setRedeemTarget] = useState<'cash' | 'premium' | null>(null);
+  const [redeemTarget, setRedeemTarget] = useState<'premium' | null>(null);
   const [redeeming, setRedeeming] = useState(false);
   const pageSize = 5;
   // The code and stats come from the live hook for BOTH roles, so a code issued
@@ -48,9 +52,9 @@ export function ReferralsPage() {
   );
   const { state: coins, loading: coinsLoading, error: coinsError, refresh: refreshCoins } = useGrowCoinBalance(user?.id);
 
-  const canRedeem = coins.available >= GROW_COIN.minRedemption;
-  const progressToFirstRedemption = Math.min(
-    Math.round((coins.available / GROW_COIN.minRedemption) * 100),
+  const canRedeemPremium = coins.available >= GROW_COIN.premiumCost;
+  const progressToPremium = Math.min(
+    Math.round((coins.available / GROW_COIN.premiumCost) * 100),
     100
   );
 
@@ -58,22 +62,11 @@ export function ReferralsPage() {
     if (!redeemTarget) return;
     setRedeeming(true);
     try {
-      if (redeemTarget === 'cash') {
-        // Redeem the full 100-coin step (or the whole balance if it is larger)
-        // so the action always leaves a usable amount and never strands coins.
-        const amount = coins.available;
-        const result = await redeemGrowCoinsForCash(amount, newCoinRequestKey());
-        toast.success(
-          'Coins redeemed',
-          `${amount} Grow Coins were added to your wallet as ₹${Number(result?.credited_inr ?? amount).toLocaleString('en-IN')}. Withdraw it with your normal payout method.`
-        );
-      } else {
-        const result = await redeemGrowCoinsForPremium(newCoinRequestKey());
-        toast.success(
-          'Premium unlocked',
-          `${result?.coins ?? GROW_COIN.premiumCost} Grow Coins paid for one month of Premium.`
-        );
-      }
+      const result = await redeemGrowCoinsForPremium(newCoinRequestKey());
+      toast.success(
+        'Premium unlocked',
+        `${result?.coins ?? GROW_COIN.premiumCost} Grow Coins paid for one month of Premium.`
+      );
       await refreshCoins();
       setRedeemTarget(null);
     } catch (err) {
@@ -170,14 +163,12 @@ export function ReferralsPage() {
       <div className="flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 px-4 py-3">
         <GrowCoinIcon size={22} className="mt-0.5 shrink-0" />
         <p className="text-xs sm:text-sm leading-relaxed text-amber-950/85">
-          <span className="font-bold">When do you get paid?</span> A referral pays{' '}
-          <span className="font-bold">10 Grow Coins</span> only after your referred freelancer's{' '}
-          <span className="font-bold">first project is completed</span> (or their identity verification is approved) —
-          never at signup. Your referral is paid too — the moment that criteria completes, both of you receive 10 coins in the same transaction, live on both screens. Nothing is paid for empty or fake accounts, which is what keeps the programme honest.
-          You also earn <span className="font-bold">milestones yourself</span>:{' '}
-          <span className="font-bold">10 coins</span> when your own identity is verified and{' '}
-          <span className="font-bold">20 coins</span> when your first project completes — each paid once, whether you work
-          as a freelancer or hire as a client.
+          <span className="font-bold">When do you get paid?</span> Approved identity verification pays{' '}
+          <span className="font-bold">5 Grow Coins to you and 5 to them</span> — once per referral, never at signup.
+          Then every project your referred user completes keeps paying{' '}
+          <span className="font-bold">5 coins to them and 5 coins to you</span>, for as long as the referral
+          relationship exists — no lifetime cap. Nothing is paid for empty, fake, cancelled or unpaid work, which is
+          what keeps the programme honest.
         </p>
       </div>
 
@@ -317,17 +308,17 @@ export function ReferralsPage() {
                   ? 'We could not load your coin balance right now. Refresh the page to try again.'
                   : coins.reserved > 0
                     ? `${formatCoinAmount(coins.available)} available · ${formatCoinAmount(coins.reserved)} held for an unpaid order`
-                    : `${formatCoinAmount(coins.available)} available to redeem`}
+                    : `${formatCoinAmount(coins.available)} available`}
               </p>
 
               {!coinsLoading && !coinsError && (
                 <div className="mt-3 max-w-sm">
                   <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-amber-800/70">
-                    <span>{canRedeem ? 'Redemption unlocked' : `First redemption at ${GROW_COIN.minRedemption}`}</span>
-                    <span>{Math.min(coins.available, GROW_COIN.minRedemption)}/{GROW_COIN.minRedemption}</span>
+                    <span>{canRedeemPremium ? 'Premium unlocked' : `Premium at ${GROW_COIN.premiumCost} coins`}</span>
+                    <span>{Math.min(coins.available, GROW_COIN.premiumCost)}/{GROW_COIN.premiumCost}</span>
                   </div>
                   <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-amber-900/10">
-                    <div className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4E285] transition-all duration-500" style={{ width: `${progressToFirstRedemption}%` }} />
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4E285] transition-all duration-500" style={{ width: `${progressToPremium}%` }} />
                   </div>
                 </div>
               )}
@@ -335,19 +326,25 @@ export function ReferralsPage() {
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+            {/* Cash-out stays visibly "coming soon" for both roles — a
+                disabled control that explains itself beats a button that
+                credits a wallet nobody can withdraw from yet. */}
             <button
               type="button"
-              onClick={() => setRedeemTarget('cash')}
-              disabled={!canRedeem || redeeming}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-900 px-5 py-3 text-sm font-bold text-amber-50 shadow-sm transition-all hover:bg-amber-950 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled
+              title="Coin withdrawals are coming soon — your coins stay safe in your account and can already pay for Premium."
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-900/70 px-5 py-3 text-sm font-bold text-amber-50 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Wallet className="h-4 w-4" />
-              Redeem to wallet
+              Withdraw to bank
+              <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
+                Coming soon
+              </span>
             </button>
             <button
               type="button"
               onClick={() => setRedeemTarget('premium')}
-              disabled={coins.available < GROW_COIN.premiumCost || redeeming}
+              disabled={!canRedeemPremium || redeeming}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white/80 px-5 py-3 text-sm font-bold text-amber-900 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Sparkles className="h-4 w-4" />
@@ -356,7 +353,7 @@ export function ReferralsPage() {
           </div>
         </div>
 
-        <p className="relative mt-4 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-900/70">Redeeming to your wallet converts coins at ₹1 each and credits the same wallet used for escrow payouts — withdraw it through your normal payout method. Coins can also pay for one month of Premium instead. Minimum redemption is {GROW_COIN.minRedemption} coins.
+        <p className="relative mt-4 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-900/70">Coins are worth ₹1 each. Right now they can pay for one month of Premium ({GROW_COIN.premiumCost} coins), and cash withdrawal is coming soon for freelancers and clients alike — nothing expires, so your balance keeps growing until it opens. Redeeming coins for Premium needs {GROW_COIN.premiumCost} coins.
         {getReferralBonusDescription(user?.role ?? 'freelancer')}
         </p>
       </section>
@@ -384,7 +381,7 @@ export function ReferralsPage() {
                   <GrowCoinIcon size={22} />
                 </div>
                 <h4 className="font-bold mb-2">Grow Coins (₹ value)</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">Each successful referral pays 10 Grow Coins to you and 10 Grow Coins to your referral, at the same instant — real ₹1-each value you can redeem to your wallet or use for Premium. Your own milestones pay too: 10 coins on verified KYC, 20 on your first completed project. Up to 20 referral bonuses per month.</p>
+                <p className="text-xs text-slate-500 leading-relaxed">Every approved referral pays 5 Grow Coins to you and 5 Grow Coins to your referral at the same instant, and every project that referral completes pays 5 + 5 again — no lifetime cap. Premium is live today; cash withdrawal is coming soon for both roles.</p>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center mb-2">
@@ -589,13 +586,9 @@ export function ReferralsPage() {
         onConfirm={confirmRedemption}
         loading={redeeming}
         variant="warning"
-        title={redeemTarget === 'premium' ? 'Use coins for Premium?' : 'Redeem Grow Coins to your wallet?'}
-        message={
-          redeemTarget === 'premium'
-            ? `${coins.available} coins available. One month of Premium costs ${GROW_COIN.premiumCost} coins and is applied immediately — the same Premium a card payment would unlock.`
-            : `This converts ${coins.available} Grow Coins into ₹${coins.available.toLocaleString('en-IN')} in your wallet. The coins are debited once and cannot be reversed.`
-        }
-        confirmLabel={redeemTarget === 'premium' ? 'Unlock Premium' : 'Redeem coins'}
+        title="Use coins for Premium?"
+        message={`${coins.available} coins available. One month of Premium costs ${GROW_COIN.premiumCost} coins and is applied immediately — the same Premium a card payment would unlock.`}
+        confirmLabel="Unlock Premium"
         cancelLabel="Not now"
       />
     </div>

@@ -32,11 +32,11 @@ describe('Grow Coin formatting', () => {
 
   it('matches the server constants exactly', () => {
     expect(GROW_COIN.valueInr).toBe(1);
-    expect(GROW_COIN.referralBonus).toBe(10);
-    expect(GROW_COIN.kycBonus).toBe(10);
-    expect(GROW_COIN.firstProjectBonus).toBe(20);
+    expect(GROW_COIN.referralBonus).toBe(5);
+    expect(GROW_COIN.kycBonus).toBe(5);
+    expect(GROW_COIN.firstProjectBonus).toBe(0);
     expect(GROW_COIN.minRedemption).toBe(100);
-    expect(GROW_COIN.monthlyBonusCap).toBe(20);
+    expect(GROW_COIN.monthlyBonusCap).toBe(0);
   });
 });
 
@@ -173,10 +173,12 @@ describe('milestone bonuses — KYC 10, first project 20', () => {
   });
 
   it('announces the milestone rules on both referral surfaces', () => {
-    expect(REFERRALS_PAGE).toMatch(/10 coins.*when your own identity is verified/si);
-    expect(REFERRALS_PAGE).toMatch(/20 coins.*first project completes/si);
-    expect(CLIENT_REFERRALS_PAGE).toMatch(/10 coins when your\s+identity is verified/);
-    expect(CLIENT_REFERRALS_PAGE).toMatch(/20 coins when your first project completes/);
+    expect(REFERRALS_PAGE).toMatch(/5 Grow Coins to you and 5 to them/si);
+    expect(REFERRALS_PAGE).toMatch(/5 coins to them and 5 coins to you/si);
+    expect(REFERRALS_PAGE).not.toMatch(/20 coins/);
+    expect(CLIENT_REFERRALS_PAGE).toMatch(/when a client you referred passes identity verification/i);
+    expect(CLIENT_REFERRALS_PAGE).toMatch(/5 coins to them and 5 coins to you/si);
+    expect(CLIENT_REFERRALS_PAGE).not.toMatch(/20 coins/);
   });
 });
 
@@ -238,7 +240,7 @@ describe('payment integration — coin count only, debit on capture', () => {
 
 describe('honest referral copy', () => {
   it('states the real trigger and never promises a signup bonus', () => {
-    expect(REFERRALS_PAGE).toMatch(/first project is completed/i);
+    expect(REFERRALS_PAGE).toMatch(/every project your referred user completes/i);
     expect(REFERRALS_PAGE).toMatch(/never at signup/i);
     expect(REFERRALS_PAGE).not.toMatch(/Referral counts after their first proposal/i);
   });

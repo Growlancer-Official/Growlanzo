@@ -46,7 +46,7 @@ export function ClientTeamProjectsPage() {
             <Users className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">Team Projects <InfoTip title="How team projects work" text="Each role gets its own independent contract (own escrow / milestones / dispute). One member's issue never affects the rest of the team. Commission (5%) applies per contract — no separate team fee." /></h1>
+            <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">Team Projects <InfoTip title="How team projects work" text="Each role gets its own independent contract (own escrow / milestones / dispute). One member's issue never affects the rest of the team. Commission (5%) is withheld from each freelancer's payout per contract — never added to your total, and there is no separate team fee." /></h1>
           <p className="text-slate-600 mt-1">
             Hire a whole team for bigger projects — each freelancer has their own protected escrow.
           </p>

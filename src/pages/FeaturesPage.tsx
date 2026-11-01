@@ -35,7 +35,7 @@ export function FeaturesPage() {
     {
       icon: Wallet,
       title: 'Flat 5% Platform Fee',
-      description: 'Zero complicated tier scales. See exactly what you are paying with transparent invoicing and no extra markups.',
+      description: 'One flat 5% commission, withheld from the freelancer payout at release. Clients pay exactly the project amount — no tiers, no markups.',
       color: 'from-emerald-400 to-teal-500',
       badge: 'Pricing'
     },

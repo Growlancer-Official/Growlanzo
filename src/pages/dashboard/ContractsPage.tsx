@@ -1041,12 +1041,13 @@ export function ContractsPage() {
                   </div>
                 </div>
 
-                {/* Full-payout note — the 5% fee is the client's, never yours */}
+                {/* Commission note — withheld from the payout, never added to the client */}
                 <div className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
                   <Shield className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                   <p className="text-xs text-emerald-700 leading-relaxed">
-                    <strong>100% of your contract value goes to your wallet.</strong> The 5% platform fee is paid by the
-                    client at checkout — it is never deducted from your earnings.
+                    <strong>You keep 95% of your contract value.</strong> Growlanzo&apos;s flat 5% commission is deducted
+                    once, when the payment is released to your wallet. The client pays exactly the agreed
+                    amount — nothing is added to their invoice.
                   </p>
                 </div>
 
@@ -1222,12 +1223,13 @@ export function ContractsPage() {
                   </div>
                 </div>
 
-                {/* Full-payout note — the 5% fee is the client's, never yours */}
+                {/* Commission note — withheld from the payout, never added to the client */}
                 <div className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl mb-2.5">
                   <Shield className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                   <p className="text-xs text-emerald-700 leading-relaxed">
-                    <strong>100% of your contract value goes to your wallet.</strong> The 5% platform fee is paid by the
-                    client at checkout — it is never deducted from your earnings.
+                    <strong>You keep 95% of your contract value.</strong> Growlanzo&apos;s flat 5% commission is deducted
+                    once, when the payment is released to your wallet. The client pays exactly the agreed
+                    amount — nothing is added to their invoice.
                   </p>
                 </div>
 

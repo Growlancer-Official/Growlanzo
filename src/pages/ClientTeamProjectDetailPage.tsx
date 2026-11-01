@@ -193,7 +193,7 @@ export function ClientTeamProjectDetailPage() {
   const rows = roles.map((role) => {
     const amount = role.budget_range_max ?? role.budget_range_min ?? 0;
     const commission = Math.round(amount * TEAM_COMMISSION_RATE * 100) / 100;
-    return { role, amount, commission, total: amount + commission };
+    return { role, amount, commission, total: amount };
   });
   const totals = rows.reduce(
     (acc, r) => ({ amount: acc.amount + r.amount, commission: acc.commission + r.commission, total: acc.total + r.total }),
@@ -334,7 +334,8 @@ export function ClientTeamProjectDetailPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <h2 className="font-semibold text-slate-900 mb-1">Spend Breakdown</h2>
         <p className="text-xs text-slate-500 mb-2">
-          Har contract independent — 5% commission har contract par, koi alag team fee nahi.
+          Har contract independent hai. Growlanzo ka flat 5% commission freelancer ke payout se katta hai —
+          aapke total mein kuch add nahi hota, aur koi alag team fee nahi hai.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -343,7 +344,7 @@ export function ClientTeamProjectDetailPage() {
                 <th className="py-2 pr-4">Role</th>
                 <th className="py-2 pr-4">Freelancer</th>
                 <th className="py-2 pr-4 text-right">Amount</th>
-                <th className="py-2 pr-4 text-right">+5% Commission</th>
+                <th className="py-2 pr-4 text-right">Growlanzo fee (5%, from freelancer)</th>
                 <th className="py-2 pr-4 text-right">Total</th>
                 <th className="py-2">Status</th>
               </tr>
@@ -397,7 +398,7 @@ export function ClientTeamProjectDetailPage() {
           setHireRoleData(null);
         }}
         title="Create Contract"
-        message={hireRoleData ? `Create the contract for "${hireRoleData.role.role_title}" at ${formatCurrency(hireRoleData.amount)} + ${formatCurrency(Math.round(hireRoleData.amount * TEAM_COMMISSION_RATE * 100) / 100)} (5% commission)?` : ''}
+        message={hireRoleData ? `Create the contract for "${hireRoleData.role.role_title}" at ${formatCurrency(hireRoleData.amount)}? Growlanzo's 5% commission is deducted from the freelancer's payout — nothing is added to your total.` : ''}
         confirmLabel="Create contract"
         variant="info"
       />

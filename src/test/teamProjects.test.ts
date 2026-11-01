@@ -91,17 +91,17 @@ beforeEach(() => {
 // ─── Commission math ────────────────────────────────────────────────────────
 
 describe('team projects commission math', () => {
-  it('TEAM_COMMISSION_RATE is exactly 0.05 (flat 5% client fee)', async () => {
+  it('TEAM_COMMISSION_RATE is exactly 0.05 (flat 5% platform commission)', async () => {
     const { TEAM_COMMISSION_RATE } = await import('../lib/teamProjects');
     expect(TEAM_COMMISSION_RATE).toBe(0.05);
   });
 
-  it('breakdownRow uses budget_range_max and adds 5% on top', async () => {
+  it('breakdownRow uses budget_range_max and keeps the fee off the client total', async () => {
     const { teamProjectsService } = await import('../lib/teamProjects');
     const row = teamProjectsService.breakdownRow(role());
     expect(row.amount).toBe(20000);
     expect(row.commission).toBe(1000);
-    expect(row.total).toBe(21000);
+    expect(row.total).toBe(20000);
   });
 
   it('breakdownRow falls back to budget_range_min when max is null', async () => {
@@ -109,7 +109,7 @@ describe('team projects commission math', () => {
     const row = teamProjectsService.breakdownRow(role({ budget_range_max: null }));
     expect(row.amount).toBe(15000);
     expect(row.commission).toBe(750);
-    expect(row.total).toBe(15750);
+    expect(row.total).toBe(15000);
   });
 
   it('breakdownRow yields zero when no budget is set', async () => {
@@ -134,7 +134,7 @@ describe('team projects commission math', () => {
     const totals = teamProjectsService.projectTotal([r1, r2]);
     expect(totals.amount).toBe(15000);
     expect(totals.commission).toBe(750);
-    expect(totals.total).toBe(15750);
+    expect(totals.total).toBe(15000);
   });
 });
 

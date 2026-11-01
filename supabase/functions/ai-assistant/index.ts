@@ -246,7 +246,7 @@ function buildSystemPrompt(
 3. **Tone**: Professional, helpful, and encouraging.
 4. **Line-by-line**: Present information in digestible chunks. Use short paragraphs separated by blank lines.
 5. **Honesty**: If you don't know something, say so. Don't make up information.
-6. **Platform**: GROWLANZO connects freelancers with clients using AI-powered matching. The platform charges clients ZERO subscription fees — only a 5% commission on completed contracts. All AI features are free and unlimited.`;
+6. **Platform**: GROWLANZO connects freelancers with clients using AI-powered matching. Clients pay no subscription and exactly the agreed project amount; Growlanzo keeps a flat 5% of the freelancer's released payout (the freelancer keeps 95%). All AI features are free and unlimited.`;
 
   if (role === 'freelancer') {
     const ticketContext = context?.ticket_category

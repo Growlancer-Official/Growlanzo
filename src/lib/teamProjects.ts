@@ -54,7 +54,7 @@ export interface TeamRoleSuggestion {
   rating: number | null;
 }
 
-/** 5% flat client-side commission — same constant used everywhere. */
+/** 5% flat platform commission — withheld from the freelancer's payout at release. */
 export const TEAM_COMMISSION_RATE = PLATFORM_CONFIG.fees.platform_percentage / 100; // 0.05
 
 export const teamProjectsService = {
@@ -192,8 +192,9 @@ export const teamProjectsService = {
   // ── Transparency helpers ────────────────────────────────────────────────
   /**
    * Row for the transparency breakdown table:
-   *   Role | Freelancer | Amount | +5% Commission | Total | Status
-   * commission is charged client-side on top (matches the single-contract model).
+   *   Role | Freelancer | Amount | Platform fee (5%) | Total | Status
+   * `total` is what the CLIENT pays — the agreed amount. `commission` is the
+   * freelancer-side 5% withheld at release, shown for transparency only.
    */
   breakdownRow(role: TeamRole) {
     const amount = role.budget_range_max ?? role.budget_range_min ?? 0;
@@ -204,7 +205,7 @@ export const teamProjectsService = {
       freelancerId: role.matched_freelancer_id,
       amount,
       commission,
-      total: Math.round((amount + commission) * 100) / 100,
+      total: Math.round(amount * 100) / 100,
       status: role.status,
     };
   },

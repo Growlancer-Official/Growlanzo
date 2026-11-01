@@ -77,6 +77,11 @@ describe('commission model — freelancer-side 5%', () => {
       'src/pages/HomePage.tsx',
       'src/pages/TermsPage.tsx',
       'src/pages/EscrowPolicyPage.tsx',
+      'src/pages/ServiceDetailPage.tsx',
+      'src/pages/ClientTeamProjectDetailPage.tsx',
+      'src/pages/dashboard/ContractsPage.tsx',
+      'src/pages/dashboard/WorkspacePage.tsx',
+      'src/pages/dashboard/CreateServicePage.tsx',
       'src/lib/supportTopics.ts',
     ].map(read).join('\n');
 
@@ -85,6 +90,10 @@ describe('commission model — freelancer-side 5%', () => {
     expect(pages).not.toContain('100% of the package price');
     expect(pages).not.toContain('5% platform fee is charged on each successful payment');
     expect(pages).not.toContain('paid by the client, never from your earnings');
+    expect(pages).not.toContain('100% of your contract value goes to your wallet');
+    expect(pages).not.toContain('you receive 100% of the package price');
+    expect(pages).not.toContain('The 5% platform fee is paid by the client');
+    expect(pages).not.toContain('total: amount + commission');
   });
 });
 

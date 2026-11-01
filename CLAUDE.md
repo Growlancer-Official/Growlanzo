@@ -16,9 +16,9 @@ for payments, RazorpayX for payouts.
 
 ## Business Model (FINAL — ye badalna nahi hai bina explicit confirmation ke)
 
-- **Platform commission: flat 5%** — client se liya jaata hai, package/contract price ke upar.
-  Koi doosra hidden fee nahi. Ye kabhi bhi badalna nahi hai bina explicit instruction ke.
-- **Freelancer subscription: ₹299/month, single flat plan** — no yearly, no team plans, no
+- **Platform commission: flat 5%** — freelancer ke released payout se kati jaati hai; client
+  exactly agreed amount deta hai, checkout par kuch add nahi hota. Koi doosra hidden fee nahi.
+- **Freelancer subscription: ₹199/month, single flat plan** — no yearly, no team plans, no
   separate AI-only plan. Purely optional.
 - **Packaging (3-tier: Basic/Standard/Premium)** — sabhi freelancers ke liye FREE, kabhi bhi
   subscription ke peeche gate mat karna.

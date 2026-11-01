@@ -6,11 +6,12 @@ import { supabase } from './supabase';
 // Mirrors the server contract in
 // supabase/migrations/20270129000000_grow_coin_referral_rewards.sql:
 //   • 1 Grow Coin = ₹1, whole coins only.
-//   • A referral pays 10 coins, only after the referred user's first completed
-//     contract or verified KYC — never on signup.
-//   • Milestones pay the USER directly: 10 coins on verified KYC (real
-//     provider), 20 coins on their first completed project (freelancer or
-//     client). Each pays once per user.
+//   • Approved KYC pays 5 coins to the referrer AND 5 to the referred user —
+//     once per referral relationship, never on signup.
+//   • EVERY successful project completed by the referred user pays 5 + 5,
+//     repeating for life with no cap (20270302000000).
+//   • No registration reward, personal KYC milestone, first-project bonus or
+//     monthly cap (20270303000000).
 //   • Minimum redemption is 100 coins.
 //   • The balance is derived from the ledger server-side; this file never
 //     "computes" a stored balance.
@@ -19,13 +20,15 @@ import { supabase } from './supabase';
 export const GROW_COIN = {
   /** ₹ value of one coin. Used for display only; the server owns the math. */
   valueInr: 1,
-  /** Role-aware: freelancer gets 10 coins when their referral completes a contract; client gets 10 coins when their referral passes KYC. Both pay only after real engagement, never on signup. */
-  referralBonus: 10,
-  /** Milestone bonuses (once per user each, server-enforced). */
-  kycBonus: 10,
-  firstProjectBonus: 20,
+  /** KYC referral reward: 5 coins to each side, once per referral relationship. */
+  referralBonus: 5,
+  /** Same 5-coin KYC reward, named for the KYC surface. */
+  kycBonus: 5,
+  /** Retired: the one-shot 20-coin first-project bonus no longer exists. */
+  firstProjectBonus: 0,
   minRedemption: 100,
-  monthlyBonusCap: 20,
+  /** Retired: the programme has no monthly cap. */
+  monthlyBonusCap: 0,
   /** Premium (₹199/month) is priced in coins 1:1. Display fallback only. */
   premiumCost: 199,
 } as const;
@@ -128,25 +131,21 @@ export function previewCoinDiscount(
  * transaction (reason 'referee_referral_bonus').
  */
 export function getReferralBonusDescription(role: 'freelancer' | 'client' | 'admin'): string {
-  if (role === 'freelancer') {
-    return '10 Grow Coins when a freelancer you refer completes their first contract (or passes KYC verification) — never at signup. Your referral earns 10 coins too, at the same moment. Codes are same-side: you can only refer other freelancers.';
-  }
-  if (role === 'client') {
-    return '10 Grow Coins when a client you refer passes KYC verification — never at signup. Your referral earns 10 coins too, at the same moment. Codes are same-side: you can only refer other clients.';
-  }
-  // admin
-  return '10 Grow Coins when your referral completes their first contract as a freelancer (or passes KYC verification) — never at signup. Your referral earns 10 coins too, at the same moment.';
+  const sameSide = role === 'client'
+    ? 'Codes are same-side: you can only refer other clients.'
+    : 'Codes are same-side: you can only refer other freelancers.';
+  return 'Approved identity verification pays 5 Grow Coins to you and 5 to your referral — once per referral, never at signup. Then every project your referred user completes keeps paying 5 coins to them and 5 coins to you, with no lifetime cap. ' + sameSide;
 }
 
 /**
  * Returns the first-project bonus description for the given role.
- * Both freelancer and client earn 20 coins on their first completed project;
- * the wording names the side of the marketplace the reader works on.
+ * Retired: there is no one-shot 20-coin bonus. Every completed project now pays
+ * the referral pair 5 + 5, so this helper describes the current rule.
  */
 export function getFirstProjectBonusDescription(role: 'freelancer' | 'client' | 'admin'): string {
   return role === 'client'
-    ? '20 Grow Coins when your first project completes as a client (paid once per account).'
-    : '20 Grow Coins when your first project completes as a freelancer (paid once per account).';
+    ? 'Every project you complete as a client pays 5 Grow Coins to you and 5 to whoever referred you — no lifetime cap.'
+    : 'Every project you complete as a freelancer pays 5 Grow Coins to you and 5 to whoever referred you — no lifetime cap.';
 }
 
 /**
@@ -155,8 +154,8 @@ export function getFirstProjectBonusDescription(role: 'freelancer' | 'client' | 
  */
 export function getKycBonusDescription(role: 'freelancer' | 'client' | 'admin'): string {
   return role === 'client'
-    ? '10 Grow Coins when your business identity verification is approved by a real provider.'
-    : '10 Grow Coins when your identity verification is approved by a real provider.';
+    ? 'Approved business identity verification pays 5 Grow Coins to you and 5 to your referral — once per referral.'
+    : 'Approved identity verification pays 5 Grow Coins to you and 5 to your referral — once per referral.';
 }
 
 /** Stable per-action key so a double click cannot debit twice. */

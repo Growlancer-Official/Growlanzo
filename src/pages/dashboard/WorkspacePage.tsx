@@ -1081,9 +1081,9 @@ export function WorkspacePage() {
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
             </div>
             <p className="text-xs text-slate-700 leading-relaxed">
-              <span className="font-bold text-slate-900">You keep 100%.</span> The 5% platform fee is paid by the client
-              at checkout — the full contract value goes into escrow and is released to your wallet. Growlanzo never
-              deducts from your earnings.
+              <span className="font-bold text-slate-900">You keep 95%.</span> Growlanzo&apos;s flat 5% commission is
+              deducted once, when escrow is released — the client pays exactly the agreed amount, with nothing added at
+              checkout. No other platform fee touches your payout.
             </p>
           </div>
         </div>

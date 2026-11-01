@@ -825,8 +825,9 @@ export function WalletPage() {
           </div>
 
           {/* Grow Coins — separate from wallet money, same page so the two
-              earnings streams are never confused. Redemption happens on the
-              referral page (server-validated, idempotent). */}
+              earnings streams are never confused. Spending happens on the
+              referral page (server-validated, idempotent); cash withdrawal is
+              not open yet and is labelled "coming soon" there. */}
           <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <GrowCoinIcon size={40} />
@@ -837,9 +838,9 @@ export function WalletPage() {
                   <span className="text-xs font-semibold text-amber-800/60">= ₹{formatCoinAmount(growCoins.balance)}</span>
                 </p>
                 <p className="text-xs text-amber-900/70">
-                  {growCoins.available >= GROW_COIN.minRedemption
-                    ? `${formatCoinAmount(growCoins.available)} available — redeem into this wallet from Referrals.`
-                    : `Earn 10 per successful referral · ${GROW_COIN.minRedemption} needed to redeem.`}
+                  {growCoins.available >= GROW_COIN.premiumCost
+                    ? `${formatCoinAmount(growCoins.available)} available — Premium costs ${GROW_COIN.premiumCost} coins; cash withdrawal is coming soon.`
+                    : `Earn 10 per successful referral · Premium costs ${GROW_COIN.premiumCost} coins · cash withdrawal coming soon.`}
                 </p>
               </div>
             </div>

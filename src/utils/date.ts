@@ -252,8 +252,8 @@ export function formatBudgetRange(min?: number | null, max?: number | null): str
  * Calculate platform fee
  * @deprecated Use the shared helpers from src/lib/config.ts instead:
  *   - calculatePlatformFee(amount) — returns the 5% fee
- *   - calculateTotalWithFee(amount) — returns amount + 5% (client pays this)
- *   - calculateFreelancerAmount(amount) — returns full amount (freelancer gets 100%)
+ *   - calculateTotalWithFee(amount) — returns the agreed amount (client pays this)
+ *   - calculateFreelancerAmount(amount) — returns amount minus 5% (freelancer receives this)
  * 
  * This function is kept for backwards compatibility but delegates to config.
  */
@@ -262,10 +262,11 @@ export function calculatePlatformFee(
   feePercentage = 5
 ): { fee: number; total: number; freelancerAmount: number } {
   const fee = (amount * feePercentage) / 100;
-  // Per Terms of Service: client pays 5% on top, freelancer gets full amount
+  // Freelancer-side commission: the client pays the agreed amount and the fee
+  // is withheld from the payout at release.
   return {
     fee,
-    total: amount + fee,
-    freelancerAmount: amount,
+    total: amount,
+    freelancerAmount: amount - fee,
   };
 }

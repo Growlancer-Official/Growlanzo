@@ -88,7 +88,7 @@ export function ClientReferralsPage() {
             Use coins at checkout
           </Link>
         </div>
-        <div className="relative mt-3 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-900/70">You earn <span className="font-bold">10 Grow Coins</span> when a client you referred passes identity verification — never at signup — and your referral earns <span className="font-bold">10 Grow Coins</span> at that same moment, on both screens. Referral codes are same-side: clients refer clients, freelancers refer freelancers. Your own milestones pay too: 10 coins when your identity is verified and 20 coins when your first project completes (once each). At checkout you can apply coins as a ₹1-per-coin discount on a contract or package payment, from {GROW_COIN.minRedemption} coins upward.
+        <div className="relative mt-3 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-900/70">You earn <span className="font-bold">5 Grow Coins</span> when a client you referred passes identity verification — never at signup — and your referral earns <span className="font-bold">5 Grow Coins</span> at that same moment, on both screens. Referral codes are same-side: clients refer clients, freelancers refer freelancers. Every project your referred client completes keeps paying <span className="font-bold">5 coins to them and 5 coins to you</span>, with no lifetime cap. At checkout you can apply coins as a ₹1-per-coin discount on a contract or package payment, from {GROW_COIN.minRedemption} coins upward.
           <p className="mt-1 text-xs text-amber-900/70">{getReferralBonusDescription(user?.role ?? 'freelancer')}</p>
         </div>
       </section>

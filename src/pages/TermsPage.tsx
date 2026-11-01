@@ -314,7 +314,7 @@ const termsSections: Section[] = [
             Grow Coins are a rewards currency: <strong>1 Grow Coin = ₹1</strong>, whole coins only. You earn them through real platform activity — never by signing up. A successful referral pays 10 coins only after the referred user completes their first project or passes identity verification with a real verification provider. Milestones pay you directly: <strong>10 coins when your identity is verified</strong> and <strong>20 coins when your first project completes</strong> (as freelancer or as client). Each milestone pays once per account; referral bonuses are capped at 20 paid bonuses per month per user.
           </p>
           <p className="text-slate-600 leading-relaxed mb-2">
-            Freelancers can redeem coins at 1:1 into their wallet (minimum 100 coins, via the normal payout pipeline) or exchange them for one month of Premium. Clients can apply coins as a ₹1-per-coin discount at checkout. Automated development-mode or sandbox verification results never earn coins.
+            Freelancers can exchange coins for one month of Premium (199 coins). Clients can apply coins as a ₹1-per-coin discount at checkout, from 100 coins upward. Cash withdrawal is not open yet and is shown as “coming soon” for both roles; coins do not expire while it is unavailable. Automated development-mode or sandbox verification results never earn coins.
           </p>
           <ul className="list-disc pl-5 text-slate-600 space-y-2 mb-2 text-sm">
             <li><strong>No cash value except redemption</strong> — coins cannot be sold, transferred or gifted outside the published redemption routes.</li>

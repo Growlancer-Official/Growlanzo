@@ -651,8 +651,8 @@ export function CreateServicePage() {
               <p className="text-sm font-semibold text-slate-900">3 packages — Basic, Standard & Premium (all required)</p>
               <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
                 Price every tier so clients can compare and pick the scope that fits — just like the big marketplaces.
-                Packages are completely free and never affect your ranking. The client pays the package price + a flat
-                5% platform fee; you receive 100% of the package price.
+                Packages are completely free and never affect your ranking. The client pays exactly the published
+                package price; Growlanzo's flat 5% commission is deducted when your payout is released (you keep 95%).
               </p>
             </div>
           </div>
@@ -878,7 +878,8 @@ export function CreateServicePage() {
             <Shield className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-blue-700 leading-relaxed">
               <strong>Professional note:</strong> Package prices are locked into escrow when a client orders — the client
-              pays exactly the published price, plus a flat 5% platform fee. You receive 100% of the package price. If a
+              pays exactly the published price; Growlanzo's flat 5% commission is deducted when your payout is released,
+              so you keep 95%. If a
               client requests more revisions than included, you may charge your extra-revision rate (or a mutually agreed
               price) — agreed before it starts, protected by Growlanzo's Refund & Dispute Policy.
             </p>

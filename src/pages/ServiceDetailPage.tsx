@@ -233,10 +233,9 @@ export function ServiceDetailPage() {
   const tipAmount = tipPercent
     ? Math.round((displayPrice * tipPercent) / 100 * 100) / 100
     : 0;
-  // Client pays: package + add-ons + tip + flat 5% platform fee (server-side
-  // recomputed — this breakdown is informational, the amount is re-verified).
-  const platformFee = Math.round((displayPrice + addonTotal) * 0.05 * 100) / 100;
-  const totalPayable = displayPrice + addonTotal + tipAmount + platformFee;
+  // Client pays the listed price (+ add-ons + tip) only. The 5% commission is
+  // withheld from the freelancer's payout at release, never added at checkout.
+  const totalPayable = displayPrice + addonTotal + tipAmount;
 
   // ── Grow Coins at checkout ──────────────────────────────────────────────
   // The client picks a COIN COUNT only. The edge function recomputes the
@@ -599,10 +598,6 @@ export function ServiceDetailPage() {
                     <span className="font-medium">{formatCurrency(tipAmount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-slate-500">
-                  <span>Platform fee (5%)</span>
-                  <span className="font-medium">{formatCurrency(platformFee)}</span>
-                </div>
                 {coinPreview.discountInr > 0 && (
                   <div className="flex justify-between text-amber-700">
                     <span className="inline-flex items-center gap-1.5">
