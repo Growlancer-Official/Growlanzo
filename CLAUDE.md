@@ -1002,3 +1002,21 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
     seeded test accounts chahiye; local `.e2e/*.json` sessions stale hain aur production me accounts seed/delete
     nahi kiye. Command: `node scripts/e2e/element-audit.mjs --base=<prod> --group=dashboard --theme=dark
     --storage=.e2e/freelancer.json`.
+- **2026-11-01 — realtime + AI quota + Pro priority support**: live complaints ("ticket/AI/referral real time me update nahi
+  ho raha", "free AI limit trigger nahi hoti", "AI late reply deta hai"). Root cause ek hi tha: `support_tickets`,
+  `ticket_messages`, `referral_stats`, `referrals`, `usage_logs`, `grow_coin_ledger` kabhi `supabase_realtime` publication me
+  add nahi hui thi → har `postgres_changes` subscription silent no-op. Migration
+  `20270304000000_realtime_ai_quota_priority_support.sql`: guarded publication ADD + REPLICA IDENTITY FULL;
+  `consume_ai_message()` (advisory-locked, check+record ek hi transaction, service_role only) se free 10/month ab us exact
+  message par fire hota hai jo limit cross kare; `ai_support_entitlement()` (authenticated, read-only) meter ka single source;
+  `user_has_active_pro()` trial-expiry aware; Pro ticket insert par 'high' escalate (user ka 'urgent' kabhi downgrade nahi).
+  Edge functions: `ai-assistant` DB quota use karta hai (duplicate insert hata), pehla SSE frame live used/limit bhejta hai,
+  Pro lane `sort: latency` + 800 tokens + 120/min (free 30/min); `ai-ticket-responder` priority lane + 25s budget
+  (1800-token non-streaming wait hataya). UI: chat meter realtime (usage_logs + subscriptions), Pro "Priority support
+  active" chip, limit par send block; tickets page Pro default 'high'; referral hook `referral_project_reward_events` +
+  `grow_coin_ledger` subscribe. Mobile: AI Matches / Team Projects header tiles `shrink-0` + shared emerald (flex me
+  squash ho rahe the). Copy: "Guaranteed Funding Lock", "Instant Release", "guarantees a clear flow" hataye; AI system
+  prompt ka "All AI features are free and unlimited" (galat — freelancer free 10/month) correct kiya.
+  **Verified**: typecheck 0, lint 0, build 0 (34.8s), focused 110/110, full suite 856/857 — bacha hua `projectMap` sirf
+  stale INVENTORY tha, `npm run docs:map` ke baad us file par 2/2 green. **Pending**: `supabase db push` (live DB par
+  migration apply hone tak realtime/quota fix live nahi hoga) + real Razorpay/KYC keys + two-account E2E (credentials nahi).
