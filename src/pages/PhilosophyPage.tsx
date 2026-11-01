@@ -14,7 +14,7 @@ export function PhilosophyPage() {
     {
       icon: Scale,
       title: 'Symmetrical Fairness & Escrow',
-      description: 'We believe both freelancer hours and client capital are equally sacred. We lock funds in escrow before work begins to guarantee payment to the builder, while preserving release approval to ensure the buyer receives precisely what they paid for.',
+      description: 'We believe both freelancer hours and client capital are equally sacred. The agreed amount is set aside in Growlanzo\u2019s escrow ledger before work begins, so it cannot be spent elsewhere, and it is released only after the buyer approves the delivered work.',
       color: 'from-emerald-500 to-emerald-700',
       badge: 'Trust & Safety'
     },

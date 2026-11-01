@@ -1050,3 +1050,18 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   **Owner-blocked:** realtime for `usage_logs`/referral tables only fires after `20270304000000` is
   applied to the live DB; Pro-vs-free support tiers need a server-side policy (Premium is
   freelancer-only, so clients must keep support).
+
+- **2026-11-01 (2) — freelancer support tiers enforced, AI latency routing, escrow wording de-risked**:
+  (a) new `20270305000000_freelancer_support_tier.sql` — a BEFORE INSERT trigger on `support_tickets`
+  rejects a freelancer's ticket unless `user_has_active_pro()`, while clients (no Premium plan) and
+  service-role/system inserts are untouched; free freelancers keep in-app support (AI + Help Center).
+  Fail-closed assertions check the function, the trigger and the Pro RPC. (b) `_shared/ai.ts` now routes
+  BOTH lanes by `sort: 'latency'` — the standard lane used `throughput`, which bought nothing for short
+  chat answers and made replies feel slow; same model, same token ceiling, no cost change.
+  (c) Overclaiming copy fixed: "lock funds in escrow to guarantee payment" (Philosophy), "funds are
+  held by Growlanzo" (Help Center now says internal escrow ledger, not a bank/licensed escrow),
+  "released instantly" (contest), and two "Growlanzo Escrow" phrasings (Safety, Workspace).
+  **Not changed:** login routing — `/login` already redirects through `resumeDestination` and an OAuth
+  provider round-trip cannot be removed; needs a real URL trace. Client AI Matches / Team Projects tiles
+  were already identical, so only the wrapper was aligned earlier. Coin cash redemption stays blocked.
+  **Verified:** docs:map/check, typecheck 0, lint 0, full suite, build — see commit.

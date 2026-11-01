@@ -7,7 +7,7 @@ export function SafetyPage() {
     {
       icon: ShieldCheck,
       title: 'Escrow Protection with Auto-Release',
-      description: 'Your project funds are secured in Growlanzo Escrow before work begins. Once the freelancer delivers, you get a review window (default 72h) to approve — if you do not respond, the payment releases to the freelancer automatically, so funds are never held hostage by either party.',
+      description: 'Your project funds are set aside in Growlanzo\u2019s escrow ledger before work begins. Once the freelancer delivers, you get a review window (default 72h) to approve — if you do not respond, the milestone releases to the freelancer, so funds are not held open indefinitely.',
       color: 'from-emerald-500 to-emerald-600',
       badge: 'Payments'
     },
