@@ -1034,3 +1034,19 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   where jsdom `localStorage` is undefined and 69 storage/DOM tests fail — environment, not code),
   build clean, `docs:check` current. **Not pushed / not deployed:** no Supabase credentials in this
   environment, so the migration could not be dry-run; §8 forbids deploying an unverified migration.
+
+- **2026-11-01 — referral/AI realtime correctness + client header alignment**: two live-state defects
+  were provable in code. (a) `useReferralsData` subscribed to `referral_project_reward_events`, which is
+  `REVOKE ALL` + RLS with no policies — a `postgres_changes` channel there can never deliver, and
+  granting reads just to make it fire would expose other users' rows; it now subscribes only to
+  `grow_coin_ledger` (own-row policy) and re-reads on focus/visibility, so rewards written while the tab
+  was backgrounded are never shown as pending. The guard test that DEMANDED the unreadable subscription
+  was corrected (it now asserts the ledger channel and the absence of the service-role-only one).
+  (b) `AIChatSupport`'s meter only moved on mount/after a send, so a free freelancer's count looked stale
+  until reload; it now re-syncs on focus/visibility against `ai_support_entitlement()`, the same source
+  the edge function enforces. Also aligned the Team Projects header wrapper with AI Matches (the 40px
+  emerald tiles were already identical; the flex wrappers were not).
+  **Verified:** typecheck 0, lint 0, **858/858 tests** (Node 24.22.2), build 0.
+  **Owner-blocked:** realtime for `usage_logs`/referral tables only fires after `20270304000000` is
+  applied to the live DB; Pro-vs-free support tiers need a server-side policy (Premium is
+  freelancer-only, so clients must keep support).

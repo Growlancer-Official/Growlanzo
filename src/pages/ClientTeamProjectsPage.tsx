@@ -40,7 +40,7 @@ export function ClientTeamProjectsPage() {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <Users className="w-5 h-5 text-white" />
