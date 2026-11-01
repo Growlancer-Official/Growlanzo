@@ -142,31 +142,23 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
   // logs usage server-side, and the old mount-only fetch meant the bar never
   // moved while chatting ("rate limit not working in real time").
   const refreshAiUsage = useCallback(async () => {
-    if (!user || context !== 'freelancer') return;
+    // The database is the source of truth (ai_support_entitlement reads the
+    // same rows consume_ai_message writes), so the meter can never drift from
+    // what the edge function will actually allow.
+    if (!user || context === 'client') return;
     try {
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      // Aggregate across rows — usage_logs can hold several rows per month,
-      // and maybeSingle() would throw once a second row exists (usage meter
-      // would silently stop showing).
-      const { data: rows, error } = await supabase
-        .from('usage_logs')
-        .select('usage_count')
-        .eq('user_id', user.id)
-        // Must match the ai-assistant edge function's feature_type ('ai_assistant'):
-        // the usage_logs CHECK constraint only allows ai_chat/ai_matching/
-        // ai_assistant/profile_view — the old ai_message value never inserted.
-        .eq('feature_type', 'ai_assistant')
-        .gte('created_at', startOfMonth.toISOString());
+      const { data, error } = await supabase.rpc('ai_support_entitlement' as any);
       if (error) throw error;
-      const used = (rows || []).reduce(
-        (sum, r) => sum + (Number((r as { usage_count?: number }).usage_count) || 0),
-        0
-      );
-      setAiUsage({ used, limit: 10 });
+      const row = (data || {}) as Record<string, unknown>;
+      if (row.unlimited === true) {
+        setAiUsage(null); // Pro — unlimited is unlimited; a meter would be a lie
+        return;
+      }
+      setAiUsage({
+        used: Number(row.used) || 0,
+        limit: Number(row.limit) || 10,
+      });
     } catch (err) {
-      // non-critical — but log so a broken meter is discoverable
       console.error('Failed to fetch AI usage:', err);
     }
   }, [user, context]);
@@ -174,6 +166,28 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
   useEffect(() => {
     void refreshAiUsage();
   }, [refreshAiUsage]);
+
+  // Real-time quota: every AI message writes a usage_logs row and a Pro upgrade
+  // rewrites the subscription. Subscribing here is what makes the meter move
+  // the moment either happens — the old mount-only fetch meant the bar never
+  // updated while chatting ("limit not working in real time").
+  useEffect(() => {
+    if (!user?.id || context === 'client') return;
+    const channel = supabase
+      .channel(`ai-usage-${context}-${user.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'usage_logs', filter: `user_id=eq.${user.id}` },
+        () => void refreshAiUsage()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${user.id}` },
+        () => void refreshAiUsage()
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [user?.id, context, refreshAiUsage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -317,6 +331,14 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
               if (parsed.model) {
                 setModelName(parsed.model);
               }
+              // Server sends the authoritative quota in the first frame.
+              if (parsed.usage && typeof parsed.usage.used === 'number') {
+                setAiUsage(
+                  parsed.usage.unlimited
+                    ? null
+                    : { used: parsed.usage.used, limit: parsed.usage.limit ?? 10 }
+                );
+              }
               if (parsed.text) {
                 fullContent += parsed.text;
                 setStreamingContent(fullContent);
@@ -429,6 +451,21 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
   };
 
   const handleSend = () => {
+    // Client-side stop so the user doesn't type a full message the server will
+    // refuse. The server remains the enforcement point.
+    if (
+      chatMode === 'assistant' &&
+      context === 'freelancer' &&
+      !userIsPro &&
+      aiUsage &&
+      aiUsage.used >= aiUsage.limit
+    ) {
+      toast.error(
+        'Free AI limit reached',
+        'You have used all free AI messages this month. Premium (₹199/month) gives you unlimited AI messages with priority replies.'
+      );
+      return;
+    }
     void sendText(input);
   };
 
@@ -659,6 +696,12 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
                 Upgrade for unlimited →
               </Link>
             )}
+          </div>
+        )}
+        {chatMode === 'assistant' && userIsPro && (
+          <div className="flex items-center gap-1.5 mt-2 px-1 text-[10px] font-bold text-emerald-600">
+            <Sparkles className="w-3 h-3" />
+            Priority support active — your AI requests are routed to the fastest lane.
           </div>
         )}
       </div>

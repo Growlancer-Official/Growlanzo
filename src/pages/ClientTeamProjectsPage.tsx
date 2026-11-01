@@ -42,13 +42,13 @@ export function ClientTeamProjectsPage() {
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <Users className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">Team Projects <InfoTip title="How team projects work" text="Each role gets its own independent contract (own escrow / milestones / dispute). One member's issue never affects the rest of the team. Commission (5%) is withheld from each freelancer's payout per contract — never added to your total, and there is no separate team fee." /></h1>
           <p className="text-slate-600 mt-1">
-            Hire a whole team for bigger projects — each freelancer has their own protected escrow.
+            Hire a whole team for bigger projects — each freelancer has their own separately funded escrow.
           </p>
           </div>
         </div>

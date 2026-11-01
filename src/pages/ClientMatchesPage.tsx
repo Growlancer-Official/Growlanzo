@@ -182,11 +182,11 @@ export function ClientMatchesPage() {
       <div className="space-y-1.5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">AI Talent Matches <InfoTip title="How AI matching works" text="Our engine scores freelancers against your project's skills, experience and budget — higher scores mean a stronger fit. Invite the freelancers you like; when they accept, a contract + workspace is created instantly with escrow protection. Regenerate anytime to refresh the list in real time." /></h1>
+              <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">AI Talent Matches <InfoTip title="How AI matching works" text="Our engine scores freelancers against your project's skills, experience and budget — higher scores mean a stronger fit. Invite the freelancers you like; when they accept, a contract and workspace are created and the milestone escrow protects the payment. Regenerate anytime to refresh the list in real time." /></h1>
               <p className="text-slate-500 mt-1">
                 Get AI-powered freelancer recommendations based on your project requirements
               </p>
@@ -220,11 +220,11 @@ export function ClientMatchesPage() {
     return (
       <div className="space-y-1.5">
       <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">AI Talent Matches <InfoTip title="How AI matching works" text="Our engine scores freelancers against your project's skills, experience and budget — higher scores mean a stronger fit. Invite the freelancers you like; when they accept, a contract + workspace is created instantly with escrow protection. Regenerate anytime to refresh the list in real time." /></h1>
+              <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">AI Talent Matches <InfoTip title="How AI matching works" text="Our engine scores freelancers against your project's skills, experience and budget — higher scores mean a stronger fit. Invite the freelancers you like; when they accept, a contract and workspace are created and the milestone escrow protects the payment. Regenerate anytime to refresh the list in real time." /></h1>
               <p className="text-slate-500 mt-1">
                 Select a project to view AI-powered freelancer recommendations
               </p>

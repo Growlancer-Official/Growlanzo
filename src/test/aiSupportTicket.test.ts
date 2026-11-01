@@ -78,7 +78,7 @@ describe('ai-ticket-responder edge function', () => {
     expect(source).toContain('generateAIResponse({');
     // The history is passed into the model, so follow-ups are answered in
     // context rather than as fresh one-shot questions.
-    expect(source).toMatch(/generateAIResponse\(\{[\s\S]*\}, history\)/);
+    expect(source).toMatch(/generateAIResponse\(\{[\s\S]*\}, history, proFlag === true\)/);
   });
 
   it('never inserts a fake system/support user into profiles', () => {

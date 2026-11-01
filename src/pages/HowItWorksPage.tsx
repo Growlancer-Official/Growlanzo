@@ -48,14 +48,14 @@ export function HowItWorksPage() {
     },
     {
       icon: Lock,
-      title: '3. Guaranteed Funding Lock',
-      description: 'Never start work on spec. You are notified as soon as client capital is locked in the virtual escrow pool.',
+      title: '3. Escrow-Funded Milestones',
+      description: 'Start work only after the client has funded the milestone escrow. You are notified as soon as the funds are locked.',
       color: 'from-amber-500 to-orange-600'
     },
     {
       icon: Handshake,
-      title: '4. Deliver & Instant Release',
-      description: 'Complete milestones on the synced canvas. Payments are credited directly to your Wallet as soon as milestones approve.',
+      title: '4. Deliver & Get Paid',
+      description: 'Complete milestones on the synced canvas. Once the client approves a milestone, the payout (less the 5% platform fee) is released to your wallet.',
       color: 'from-teal-500 to-teal-700'
     }
   ];
@@ -93,7 +93,7 @@ export function HowItWorksPage() {
             A secure pathway to <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">getting work done</span>
           </h1>
           <p className="text-slate-300 text-sm sm:text-base max-w-xl mx-auto font-medium">
-            From smart AI matchmaking to secure escrow payment locks, Growlanzo guarantees a clear, transparent flow for both parties.
+            From AI matchmaking to escrow-funded milestones, Growlanzo keeps the flow clear and transparent for both parties.
           </p>
 
           {/* Interactive Toggle */}

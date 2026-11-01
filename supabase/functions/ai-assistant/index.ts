@@ -36,7 +36,8 @@ interface ChatRequest {
 
 // Rate limiting (abuse guard — not a monetization limit)
 const ROUTE = 'ai-assistant';
-const RATE_LIMIT = 60;
+const RATE_LIMIT_FREE = 30;
+const RATE_LIMIT_PRIORITY = 120;
 const RATE_WINDOW_MS = 60000;
 
 // Client AI is FREE FOR LIFETIME — this daily cap is fair-use abuse protection
@@ -84,7 +85,8 @@ async function checkDailyLimit(
 
 async function checkRateLimit(
   supabaseClient: any,
-  identifier: string
+  identifier: string,
+  limit: number
 ): Promise<boolean> {
   const now = new Date();
   const windowStart = new Date(now.getTime() - RATE_WINDOW_MS);
@@ -103,7 +105,7 @@ async function checkRateLimit(
     .gte('window_start', windowStart.toISOString());
 
   if (error) return true;
-  if (count !== null && count >= RATE_LIMIT) return false;
+  if (count !== null && count >= limit) return false;
 
   await supabaseClient
     .from('rate_limits')
@@ -121,56 +123,72 @@ const AI_USAGE_FEATURE = 'ai_assistant';
 
 /**
  * Freelancer AI message limit: free users get 10 messages/month,
- * Pro subscribers (₹299/month) get unlimited. Clients are always free.
+ * Pro subscribers (₹199/month) get unlimited. Clients are always free.
  * Reads SUM across rows — usage_logs legally holds several rows per
  * (user, month); maybeSingle() would break once a second row exists.
  */
-async function checkMessageLimit(
+interface AiEntitlement {
+  allowed: boolean;
+  isPro: boolean;
+  isPriority: boolean;
+  used: number;
+  limit: number;
+  unlimited: boolean;
+}
+
+/**
+ * Authoritative AI quota. The DATABASE owns the counter: consume_ai_message()
+ * checks and records in one transaction, under a per-user advisory lock. That
+ * is what makes the free limit fire on the exact message that crosses it —
+ * the old code read a browser-side count with a hardcoded limit, so the meter
+ * and the server could disagree and the limit looked like it "never triggers".
+ */
+async function resolveAiEntitlement(
   supabase: ReturnType<typeof createClient>,
   userId: string,
   userRole: string
-): Promise<{ allowed: boolean; isPro: boolean; used: number; limit: number }> {
-  // Clients are always free — no limit check needed
+): Promise<AiEntitlement> {
+  // Clients are always free — no quota for them.
   if (userRole === 'client') {
-    return { allowed: true, isPro: false, used: 0, limit: 0 };
+    return { allowed: true, isPro: false, isPriority: false, used: 0, limit: 0, unlimited: true };
   }
 
-  // Check subscription status
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('status, subscription_plans!inner(name, price)')
-    .eq('user_id', userId)
-    .in('status', ['active', 'trial'])
-    .maybeSingle();
-
-  const isPro = sub?.status === 'active' || sub?.status === 'trial';
-  if (isPro) {
-    return { allowed: true, isPro: true, used: 0, limit: 0 };
+  const { data, error } = await supabase.rpc('consume_ai_message', { p_user_id: userId });
+  if (!error && data) {
+    const row = data as Record<string, unknown>;
+    return {
+      allowed: row.allowed === true,
+      isPro: row.is_pro === true,
+      isPriority: row.is_priority === true,
+      used: Number(row.used) || 0,
+      limit: Number(row.limit) || 10,
+      unlimited: row.unlimited === true,
+    };
   }
 
-  // Free freelancer: count this month's AI messages
+  // Degraded path (RPC missing/errored). Never fail open for someone who has
+  // simply used their allowance: fall back to the read-only count.
+  console.error('[ai-assistant] quota RPC unavailable:', error?.message);
+  const { data: proFlag } = await supabase.rpc('user_has_active_pro', { p_user_id: userId });
+  if (proFlag === true) {
+    return { allowed: true, isPro: true, isPriority: true, used: 0, limit: 0, unlimited: true };
+  }
+
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
-
-  const { data: usageRows, error: usageReadError } = await supabase
+  const { data: usageRows } = await supabase
     .from('usage_logs')
     .select('usage_count')
     .eq('user_id', userId)
     .eq('feature_type', AI_USAGE_FEATURE)
     .gte('created_at', startOfMonth.toISOString());
-
-  if (usageReadError) {
-    console.error('[ai-assistant] usage read failed:', usageReadError.message);
-  }
-
   const used = (usageRows ?? []).reduce(
     (sum, row) => sum + (Number((row as { usage_count?: number }).usage_count) || 0),
     0
   );
   const limit = 10;
-
-  return { allowed: used < limit, isPro: false, used, limit };
+  return { allowed: used < limit, isPro: false, isPriority: false, used, limit, unlimited: false };
 }
 
 /** OpenAI-compatible message conversion for the AI endpoint. */
@@ -246,7 +264,7 @@ function buildSystemPrompt(
 3. **Tone**: Professional, helpful, and encouraging.
 4. **Line-by-line**: Present information in digestible chunks. Use short paragraphs separated by blank lines.
 5. **Honesty**: If you don't know something, say so. Don't make up information.
-6. **Platform**: GROWLANZO connects freelancers with clients using AI-powered matching. Clients pay no subscription and exactly the agreed project amount; Growlanzo keeps a flat 5% of the freelancer's released payout (the freelancer keeps 95%). All AI features are free and unlimited.`;
+6. **Platform**: GROWLANZO connects freelancers with clients using AI-powered matching. Clients pay no subscription and exactly the agreed project amount; Growlanzo keeps a flat 5% of the freelancer's released payout (the freelancer keeps 95%). Clients use AI free for life; freelancers get a free monthly AI allowance and Premium (₹199/month) unlocks unlimited AI with priority replies. Never promise a feature, payout, refund or timeline that is not stated here.`;
 
   if (role === 'freelancer') {
     const ticketContext = context?.ticket_category
@@ -331,14 +349,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Check freelancer AI message limit (clients always free)
-    const { allowed, isPro, used, limit } = await checkMessageLimit(supabase, user_id, user_role);
-    if (!allowed) {
+    // Authoritative quota (checked AND recorded atomically by the database).
+    const entitlement = await resolveAiEntitlement(supabase, user_id, user_role);
+    const { isPro, isPriority, used, limit } = entitlement;
+    if (!entitlement.allowed) {
       return new Response(JSON.stringify({
-        error: `You've used ${used}/${limit} free AI messages this month. Upgrade to Premium for unlimited messages.`,
+        error: `You've used ${used}/${limit} free AI messages this month. Premium (₹199/month) gives you unlimited AI messages with priority replies.`,
         code: 'message_limit',
         used,
         limit,
+        isPro: false,
       }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -348,7 +368,11 @@ Deno.serve(async (req: Request) => {
     // Rate limit check (per authenticated user — abuse guard)
     const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
     const identifier = user_id || clientIP;
-    const rateAllowed = await checkRateLimit(supabase, identifier);
+    const rateAllowed = await checkRateLimit(
+      supabase,
+      identifier,
+      isPriority ? RATE_LIMIT_PRIORITY : RATE_LIMIT_FREE
+    );
     if (!rateAllowed) {
       return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
         status: 429,
@@ -378,23 +402,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Log AI usage for freelancers (server-side only). One row per message —
-    // race-free under concurrent sends, and the limit-read sums across rows.
-    // The insert error is CHECKED and LOUD: the old code ignored it, which is
-    // exactly how a CHECK-constraint violation silently disabled this quota.
-    if (user_role === 'freelancer' && !isPro) {
-      const { error: usageInsertError } = await supabase
-        .from('usage_logs')
-        .insert({
-          user_id,
-          feature_type: AI_USAGE_FEATURE,
-          usage_count: 1,
-          metadata: { route: ROUTE, recorded_at: new Date().toISOString() },
-        });
-      if (usageInsertError) {
-        console.error('[ai-assistant] usage log insert failed:', usageInsertError.message);
-      }
-    }
+    // Usage was already recorded by consume_ai_message() inside the database —
+    // inserting again here would double-count and halve the real allowance.
 
     // Check if client wants streaming
     const acceptHeader = req.headers.get('accept') || '';
@@ -406,7 +415,7 @@ Deno.serve(async (req: Request) => {
     // first-token. 2000 chars is far more context than a chat turn needs.
     const sanitizedMessages = messages.map((msg) => ({
       ...msg,
-      content: sanitizeInput(msg.content).slice(0, 2000),
+      content: sanitizeInput(msg.content).slice(0, 1500),
     }));
 
     // Build system prompt
@@ -414,13 +423,13 @@ Deno.serve(async (req: Request) => {
 
     // Convert to OpenAI-compatible format for the AI endpoint
     const openAIMessages = convertToOpenAIMessages(
-      sanitizedMessages.slice(-10),
+      sanitizedMessages.slice(-8),
       systemPrompt
     );
 
     if (prefersStreaming) {
       // === STREAMING RESPONSE ===
-      const aiResponse = await callAI(openAIMessages, { stream: true });
+      const aiResponse = await callAI(openAIMessages, { stream: true, priority: isPriority });
 
       if (!aiResponse.ok) {
         const errText = await aiResponse.text();
@@ -433,6 +442,18 @@ Deno.serve(async (req: Request) => {
       // Stream the AI SSE response back to the client
       const stream = new ReadableStream({
         async start(controller) {
+          // First SSE frame carries the live quota so the in-app meter moves
+          // on the same tick as the reply — no refetch, no stale "0/10".
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({
+            usage: {
+              used: entitlement.used,
+              limit: entitlement.limit,
+              isPro: entitlement.isPro,
+              isPriority: entitlement.isPriority,
+              unlimited: entitlement.unlimited,
+            },
+          })}\n\n`));
+
           const reader = aiResponse.body?.getReader();
           if (!reader) {
             controller.close();
@@ -503,7 +524,7 @@ Deno.serve(async (req: Request) => {
       });
     } else {
       // === NON-STREAMING RESPONSE ===
-      const aiResponse = await callAI(openAIMessages, { stream: false });
+      const aiResponse = await callAI(openAIMessages, { stream: false, priority: isPriority });
 
       const data = await aiResponse.json().catch(() => ({}));
 
@@ -525,7 +546,13 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           success: true,
           message: assistantMessage,
-          usage: { used: 0, limit: 0, isPro },
+          usage: {
+            used: entitlement.used,
+            limit: entitlement.limit,
+            isPro: entitlement.isPro,
+            isPriority: entitlement.isPriority,
+            unlimited: entitlement.unlimited,
+          },
         }),
         {
           status: 200,

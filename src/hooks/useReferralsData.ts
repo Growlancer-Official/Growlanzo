@@ -156,9 +156,27 @@ export function useReferralsData(userId?: string, referralCode?: string, userRol
       )
       .subscribe();
 
+    // Coin awards (KYC 5+5, per-project 5+5) land in the ledger/event tables,
+    // not in `referrals`. Without these two channels the counters stayed stale
+    // until a manual refresh even though the money-side rows were written.
+    const rewardCh = supabase
+      .channel(`referral-rewards-${userId}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'referral_project_reward_events' },
+        () => void refresh()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'grow_coin_ledger', filter: `user_id=eq.${userId}` },
+        () => void refresh()
+      )
+      .subscribe();
+
     return () => {
       void statsCh.unsubscribe();
       void refCh.unsubscribe();
+      void supabase.removeChannel(rewardCh);
     };
   }, [userId, refresh]);
 

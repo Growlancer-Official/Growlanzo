@@ -44,9 +44,22 @@ describe('ai-assistant monthly quota (usage_logs feature_type)', () => {
     expect(aiAssistant).not.toContain("'ai_message'");
   });
 
-  it('CHECKS the usage-log insert error instead of swallowing it', () => {
-    expect(aiAssistant).toMatch(/error: usageInsertError/);
-    expect(aiAssistant).toMatch(/console\.error\('\[ai-assistant\] usage log insert failed/);
+  it('delegates the quota to the atomic DB RPC instead of a second client-side insert', () => {
+    // 20270304: consume_ai_message() checks AND records in one transaction
+    // under a per-user advisory lock, so the free limit fires on the exact
+    // message that crosses it. A second insert here would double-count.
+    expect(aiAssistant).toContain("rpc('consume_ai_message'");
+    expect(aiAssistant).not.toMatch(/\.from\('usage_logs'\)\s*\.insert/);
+    expect(aiAssistant).toMatch(/quota RPC unavailable/);
+
+    const migration = read(
+      'supabase/migrations/20270304000000_realtime_ai_quota_priority_support.sql'
+    );
+    expect(migration).toContain("feature_type = 'ai_assistant'");
+    expect(migration).toMatch(/pg_advisory_xact_lock/);
+    expect(migration).toMatch(
+      /REVOKE ALL ON FUNCTION public\.consume_ai_message\(uuid\) FROM PUBLIC, anon, authenticated/i
+    );
   });
 
   it('reads usage by SUMMING rows (no maybeSingle on the usage read)', () => {
@@ -55,8 +68,12 @@ describe('ai-assistant monthly quota (usage_logs feature_type)', () => {
     expect(readBlock).toMatch(/\.reduce\(/);
   });
 
-  it('frontend readers match the edge function constant', () => {
-    expect(aiChatSupport).toContain(".eq('feature_type', 'ai_assistant')");
+  it('frontend readers use the same authoritative quota source', () => {
+    // The meter reads ai_support_entitlement() — the same function family the
+    // edge function's consume_ai_message() writes through, so the bar can never
+    // disagree with what the server will allow.
+    expect(aiChatSupport).toContain("rpc('ai_support_entitlement'");
+    expect(subscriptionHelpers).toContain(".eq('feature_type', 'ai_assistant')");
     expect(subscriptionHelpers).toContain(".eq('feature_type', 'ai_assistant')");
     expect(aiChatSupport).not.toContain("'ai_message'");
     expect(subscriptionHelpers).not.toContain("'ai_message'");

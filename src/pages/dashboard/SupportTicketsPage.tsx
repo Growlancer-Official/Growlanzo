@@ -6,6 +6,7 @@ import {
   Clock, CheckCircle2, AlertCircle, Send, LifeBuoy, Loader2, Mail,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useProStatus } from '../../hooks/useProStatus';
 import { ticketService, type SupportTicket, type TicketCategory, type TicketPriority, type TicketMessage } from '../../lib/supportTicketService';
 
 const CATEGORIES: { value: TicketCategory; label: string; desc: string }[] = [
@@ -34,6 +35,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof
 
 export default function SupportTicketsPage() {
   const { user } = useAuth();
+  const { isPro } = useProStatus();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -70,6 +72,12 @@ export default function SupportTicketsPage() {
     });
     return () => { void channel.unsubscribe(); };
   }, [user?.id, loadTickets, expandedId]);
+
+  // Pro members are escalated server-side on insert; the form default follows
+  // so the priority they actually get is the one they can see.
+  useEffect(() => {
+    if (isPro) setPriority((current) => (current === 'normal' ? 'high' : current));
+  }, [isPro]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -183,7 +191,12 @@ export default function SupportTicketsPage() {
           </div>
           <div>
             <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">Support Tickets <InfoTip title="How support works" text="Create an in-app ticket and Growlanzo AI will work through the issue with you. Your conversation stays saved and updates live; mark it resolved only after the solution works for you. If AI cannot safely handle it, email growlanzo.own@gmail.com. Other support channels are coming soon." /></h1>
-            <p className="text-slate-500 text-xs">In-app AI support · email fallback · other channels coming soon</p>
+            <p className="text-slate-500 text-xs">
+              In-app AI support · email fallback · other channels coming soon
+              {isPro && (
+                <span className="ml-2 font-semibold text-emerald-600">· Priority support active</span>
+              )}
+            </p>
           </div>
         </div>
         <button
