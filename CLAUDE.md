@@ -1128,3 +1128,20 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   freelancer ticket gate is advisory, not enforced. Closing it needs a DB decision (block role changes once
   onboarding is complete, or move role assignment into a SECURITY DEFINER RPC) and a live dry-run; not
   shipped blind.
+
+- **2026-11-06 (2) — claims sweep of all public pages + a blind spot in the honesty guard**: rendered all
+  25 public routes through the production server and scanned the visible text for claims the product cannot
+  honour (guaranteed/insured/bank-grade/100%-safe/RBI-SEBI-ISO/instant-payout/risk-free/custody/stale
+  ₹299). **Result: 25/25 rendered, 3 hits, all three are honest disclaimers** ("Growlanzo provides no
+  cross-freelancer coordination or delivery guarantee — only payment protection"), so public copy holds.
+  The one bad line was inside the in-app support library, which `truthfulPlanClaims.test.ts` already scans:
+  `supportTopics.ts` said *"That's the Growlanzo guarantee — safe for you, safe for the client"*. The
+  guard's patterns require `guarantee` directly before secure/payment/deliverables, so an em-dash phrasing
+  named the **company** as guarantor and slipped through. Escrow holds money; a dispute can still refund
+  the client. Fixed the copy (now describes the mechanism, not a promise) and widened the pattern to
+  `/\b(?:growlanzo|platform|our)\s+guarantee\b/i` — proven with a negative control on the retired wording
+  (matches) and on both correct strings (does not match). Also refreshed `AGENTS.md` §11, which still
+  claimed "~541 tests" as of 2026-10-20 and did not warn that a cloud workspace cannot verify the DB (no
+  Supabase credentials, no `gh`), so a future session knows to run the pentests in CI instead of claiming
+  a live result.
+  Verify: typecheck 0, lint 0, **73/73 test files**, build 0, 25 public pages at 375/1280 with 0 overflow.

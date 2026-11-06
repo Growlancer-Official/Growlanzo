@@ -67,6 +67,12 @@ const FORBIDDEN: Array<{ label: string; re: RegExp }> = [
     label: 'absolute escrow/delivery guarantee',
     re: /guarantee[ds]?\s+(secure|payment|deliverables?|collaboration)/i,
   },
+  // Naming the company as the guarantor ("the Growlanzo guarantee") promises an
+  // outcome, not a mechanism. Escrow holds the money; a dispute can still refund
+  // the client. The patterns above missed this because the word sits before an
+  // em-dash rather than directly before "secure"/"payment" — found in
+  // src/lib/supportTopics.ts, which this guard already scans.
+  { label: 'company-level guarantee', re: /\b(?:growlanzo|platform|our)\s+guarantee\b/i },
 ];
 
 /** Find every forbidden claim in a blob of text (one line at a time). */
