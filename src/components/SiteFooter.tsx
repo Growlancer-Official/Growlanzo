@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MapPin, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Mail, MapPin, ShieldCheck } from 'lucide-react';
 import { isFeatureEnabled } from '../lib/featureFlags';
 import { openConsentPreferences } from '../lib/consent';
 import { BrandLogo } from './BrandLogo';
@@ -115,6 +115,26 @@ export function SiteFooter({ onOpenSignup }: SiteFooterProps) {
                   growlanzo.own@gmail.com
                 </a>
                 {' '}— acknowledged within 24 hours, resolved within 15 days.
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <a
+                  href="https://linkedin.com/company/growlancercom"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Growlanzo on LinkedIn"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-full ring-1 ring-slate-200 text-slate-500 hover:text-emerald-600 hover:ring-emerald-300 hover:bg-emerald-50 transition-all duration-200"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/>
+                  </svg>
+                </a>
+                <a
+                  href="mailto:growlanzo.own@gmail.com"
+                  aria-label="Email Growlanzo"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-full ring-1 ring-slate-200 text-slate-500 hover:text-emerald-600 hover:ring-emerald-300 hover:bg-emerald-50 transition-all duration-200"
+                >
+                  <Mail className="w-4 h-4" />
+                </a>
               </div>
             </div>
 

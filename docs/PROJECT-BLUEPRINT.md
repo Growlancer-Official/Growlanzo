@@ -34,8 +34,8 @@ contract workspace, and money is held in escrow until milestones are released.
 
 | Rule | Value | Where it lives |
 | --- | --- | --- |
-| Commission | **Flat 5%**, paid by the client **on top of** the contract price | `src/lib/config.ts`, `razorpay` order calculation, `contracts.platform_fee` |
-| Freelancer share | **100% of the contract amount** | `contracts.freelancer_amount`; **currently violated at release — see §14.1** |
+| Commission | **Flat 5%**, withheld from the freelancer's released payout (Option B, decided A12) | `_book_escrow_release` books 5% as platform revenue at release; client pays exactly the agreed amount |
+| Freelancer share | **Contract amount − 5%** at release | `contracts.freelancer_amount` reflects the post-commission credit |
 | Premium | **₹299/month**, one optional plan, freelancer-only | `PLATFORM_CONFIG`, subscriptions |
 | Packaging | Basic/Standard/Premium free for every freelancer | package tables, UI |
 | Client AI | Free for life, fair-use limits only | `ai-*` functions, 100/day cap |
@@ -190,7 +190,7 @@ Client funds:
         │
         ▼
   release: escrow amount → freelancer wallet + platform revenue + invoice + ledger
-           (currently net = gross − 5% AGAIN — see §14.1)
+           (Option B: 5% withheld from freelancer at release — see §14.1)
         │
         ▼
   withdrawal: available balance → hold → RazorpayX payout → completed
@@ -382,29 +382,18 @@ Ordered by what can hurt the company first. Evidence is in the module docs.
 
 ### 14.1 CRITICAL — commission is collected twice (decision required)
 
-The contract RPC says the freelancer receives 100% and the client pays 5% on top
-(`20270102000001_contract_amount_from_proposal.sql:121-124`). The funding path
-charges `amount + 5%` (`razorpay/index.ts:268-293`). But the release path
-recomputes `fee = 5% of escrow` and credits `net = gross − fee`
-(`20270124000000_restore_release_escrow_cron_and_fee_base.sql:85-95`), and books
-that fee as platform revenue (`:250-271`). For a ₹5,000 contract the client pays
-₹5,250, the freelancer receives ₹4,750, and the platform books ₹500 — a ~10%
-effective take, with the extra ₹250 not represented in the booking.
+> **DECIDED (A12, 2026-10-21): Option B.** The client pays exactly the agreed
+> contract amount; the flat 5% is withheld from the freelancer at release.
+> Migration `20270203000000_commission_model_option_a.sql` and commit `d45b388`
+> implement it, and the pricing/terms/refund copy now states the freelancer-side
+> model. The client-pays-5% flow is retired — do not "fix" the money path back
+> to it.
 
-This is not a code-style issue; it directly contradicts the fixed-5% promise and
-the "freelancer receives 100%" contract field. It needs a founder decision on
-the intended flow **before** real money:
-
-- **Option A (model-faithful):** release pays the full escrow amount; the 5%
-  fee is booked when the client pays (order amount minus contract amount), and
-  the invoice shows subtotal = contract, fee = 5%, total = amount + fee.
-- **Option B (release-fee):** charge the client only the contract amount and
-  withhold 5% at release; then update the model/copy and `freelancer_amount`.
-- Option A matches `CLAUDE.md`; Option B matches the current release code but
-  not the promise. Do not mix them.
-
-Until decided, no real payment should be taken, and the ledger reconciliation
-query in the migration (`V5`) must be run against live data after the decision.
+**Verified behavior (Option B):** for a released ₹5,000 contract, `client_charged`
+= ₹5,000 (nothing added at checkout), `freelancer_credit` = ₹4,750, and
+`platform_revenue` books exactly ₹500. A cancelled-before-work contract refunds the
+full amount with no commission. `scripts/e2e/pentest-privileges.mjs` asserts both
+legs as hard gates.
 
 ### 14.2 HIGH — the repo cannot rebuild production
 

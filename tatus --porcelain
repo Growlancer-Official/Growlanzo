@@ -1,0 +1,13 @@
+[33m6b15028[m[33m ([m[1;31morigin/main[m[33m)[m Stop submitting noindex and alias URLs in the sitemap
+[33m6fd3215[m Give the confirm-email page a heading and collapse duplicate aliases
+[33m0479641[m Make prerendering actually run and give each static page its own head
+[33mf3d37ae[m Mount the per-page metadata component that was never rendered
+[33mc0fdd80[m Make the feature flags actually reach the bundle
+[33m2d4e66e[m Widen the honesty guard past a guarantee it could not see
+[33m864a0b5[m Stop the two copies of the security policy from drifting
+[33mfa5505f[m Describe the referral programme the code actually pays
+[33mac298c4[m Show free freelancers what their support actually includes
+[33mf6cba07[m Derive the freelancer support tier from the profile, not the request body
+[33m61883f2[m Gate freelancer ticket support by plan, speed up AI routing, remove escrow overclaims
+[33mbb38976[m Make referral rewards and the free AI meter honest without relying on realtime
+[33mf9becc9[m Document the shipped freelancer-side commission and keep legacy coin rows valid
