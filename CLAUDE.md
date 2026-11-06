@@ -1211,3 +1211,17 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   1 canonical per file; 8 routes hard-loaded in a real browser with **0 hydration errors** (no React #418) and
   correct `<h1>` content, and in-app navigation to `/pricing` still updates title + canonical.
   Verify: typecheck 0, lint 0, **75/75 test files**, build 0, docs map/check 0.
+
+- **2026-11-06 (6) — static-page audit of the 33 prerendered pages**: once prerendering was real, the built HTML
+  could finally be audited as shipped (not as rendered). Two defects and one duplicate-content problem:
+  1. `/auth/email-confirm` had **no `<h1>` at all** (every state used `<h2>`, so the page's only headings were
+     sub-headings — bad for screen-reader outline and for the prerendered document). Promoted the three state
+     headings to `<h1>`; each state renders exactly one, so the outline stays single-h1.
+  2. `/certificate` and `/verify-certificate` shipped byte-identical heads, as did `/internships` and `/careers`
+     (each pair is the same component). Added `canonicalPath` to `RouteMeta` and made `canonicalUrl()` resolve it,
+     so the alias collapses onto the primary URL in the **static** HTML: `/certificate` →
+     `canonical=https://growlanzo.com/verify-certificate`, `/internships` → `.../careers`. New assertions in
+     `routeHeadCoverage.test.ts` (canonical must point at a prerendered page; both aliases pinned).
+  Audited across all 31 prerendered pages: 0 missing files, 0 multi-`h1`, 0 non-Growlanzo canonicals, and the
+  remaining duplicate title pairs are the two `noindex` auth/payment pairs (intentionally unindexed).
+  Verify: typecheck 0, lint 0, **75/75 test files**, build 0 (66 HTML), docs map/check 0.

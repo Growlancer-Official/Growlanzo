@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_TITLE, resolveMeta } from '../components/RouteHead';
+import { canonicalUrl } from '../lib/routeMeta';
 import { PUBLIC_PRERENDER_URLS } from '../../pages/prerenderUrls';
 
 /** The fallback for an unknown path. Landing on it in the index is a soft 404. */
@@ -70,6 +71,22 @@ describe('per-page metadata', () => {
     const meta = resolveMeta('/this-route-does-not-exist');
     expect(meta.title).toBe(NOT_FOUND_TITLE);
     expect(meta.noindex).toBe(true);
+  });
+
+  it('points every canonical at a real prerendered page', () => {
+    const publicPaths = new Set(PUBLIC_PRERENDER_URLS.map((u) => (u === '/' ? '/' : u.replace(/\/+$/, ''))));
+    for (const url of PUBLIC_PRERENDER_URLS) {
+      const target = new URL(canonicalUrl(url)).pathname;
+      expect(publicPaths.has(target), `${url} canonicalises to ${target}, which is not a prerendered page`).toBe(true);
+    }
+  });
+
+  it('collapses the two alias URLs onto their primary page', () => {
+    // Both pairs render the same component, so without this they ship duplicate
+    // titles and compete with each other in search results.
+    expect(canonicalUrl('/certificate')).toBe('https://growlanzo.com/verify-certificate');
+    expect(canonicalUrl('/internships')).toBe('https://growlanzo.com/careers');
+    expect(canonicalUrl('/pricing')).toBe('https://growlanzo.com/pricing');
   });
 
   it('treats a trailing slash as the same page', () => {

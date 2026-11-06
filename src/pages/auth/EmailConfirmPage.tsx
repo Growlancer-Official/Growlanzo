@@ -154,9 +154,9 @@ export function EmailConfirmPage() {
                   <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
                 </div>
               </div>
-              <h2 className="font-display text-xl font-bold text-slate-900 mb-2">
+              <h1 className="font-display text-xl font-bold text-slate-900 mb-2">
                 Verifying your email
-              </h2>
+              </h1>
               <p className="text-sm text-slate-500">{message}</p>
             </div>
           )}
@@ -168,9 +168,9 @@ export function EmailConfirmPage() {
                   <CheckCircle2 className="w-8 h-8 text-emerald-600" />
                 </div>
               </div>
-              <h2 className="font-display text-xl sm:text-2xl font-bold text-slate-900 mb-2">
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-slate-900 mb-2">
                 Email verified ✓
-              </h2>
+              </h1>
               <p className="text-sm text-slate-500 mb-6">{message}</p>
               <ol className="text-left space-y-3 mb-6">
                 {[
@@ -207,9 +207,9 @@ export function EmailConfirmPage() {
                   <XCircle className="w-8 h-8 text-red-500" />
                 </div>
               </div>
-              <h2 className="font-display text-xl font-bold text-slate-900 mb-2">
+              <h1 className="font-display text-xl font-bold text-slate-900 mb-2">
                 Verification failed
-              </h2>
+              </h1>
               <p className="text-sm text-slate-500 mb-6">{message}</p>
               <button
                 onClick={() => navigate('/?modal=signup')}

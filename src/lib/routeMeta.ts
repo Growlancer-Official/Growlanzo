@@ -27,6 +27,14 @@ export interface RouteMeta {
     description: string;
     /** Private/authenticated route → keep out of search indexes. */
     noindex?: boolean;
+    /**
+     * Two URLs that render the SAME screen (an alias) must point their canonical
+     * at the one URL you want indexed, otherwise search engines see duplicate
+     * pages competing with each other. Measured: `/certificate` and
+     * `/verify-certificate` prerendered byte-identical heads, as did
+     * `/internships` and `/careers`.
+     */
+    canonicalPath?: string;
 }
 
 interface RouteRule {
@@ -164,7 +172,13 @@ export const ROUTE_RULES: RouteRule[] = [
         // The bare pages (no code) are public and indexable; the /:code variants
         // are the same screen with a specific certificate already looked up.
         test: oneOf('/certificate', '/verify-certificate'),
-        meta: { title: `Certificate Verification · ${SITE_NAME}`, description: 'Verify a Growlanzo certificate.' },
+        // /certificate is an alias of /verify-certificate (same component, and
+        // every QR code and in-app link points at /verify-certificate).
+        meta: {
+            title: `Certificate Verification · ${SITE_NAME}`,
+            description: 'Verify a Growlanzo certificate.',
+            canonicalPath: '/verify-certificate',
+        },
     },
     {
         test: (p) => dynamic('/certificate')(p) || dynamic('/verify-certificate')(p),
@@ -205,7 +219,13 @@ export const ROUTE_RULES: RouteRule[] = [
     },
     {
         test: oneOf('/internships', '/careers'),
-        meta: { title: `Internships & Careers · ${SITE_NAME}`, description: 'Internship and career opportunities at Growlanzo.' },
+        // Both paths render the same page; /careers is the one linked site-wide,
+        // so the duplicate collapses there instead of competing with it.
+        meta: {
+            title: `Internships & Careers · ${SITE_NAME}`,
+            description: 'Internship and career opportunities at Growlanzo.',
+            canonicalPath: '/careers',
+        },
     },
     {
         test: exact('/contact'),
@@ -288,6 +308,9 @@ export function resolveMeta(pathname: string): RouteMeta {
  * prerendered <link rel="canonical"> and the runtime one can never disagree.
  */
 export function canonicalUrl(pathname: string): string {
-    const p = pathname.length > 1 ? pathname.replace(/\/+$/, '') : '/';
+    // An alias resolves to its primary URL, so the prerendered <link rel="canonical">
+    // is right at build time too (not just after hydration).
+    const target = resolveMeta(pathname).canonicalPath ?? pathname;
+    const p = target.length > 1 ? target.replace(/\/+$/, '') : '/';
     return `${SITE_URL}${p === '/' ? '/' : p}`;
 }
