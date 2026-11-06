@@ -1225,3 +1225,14 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   Audited across all 31 prerendered pages: 0 missing files, 0 multi-`h1`, 0 non-Growlanzo canonicals, and the
   remaining duplicate title pairs are the two `noindex` auth/payment pairs (intentionally unindexed).
   Verify: typecheck 0, lint 0, **75/75 test files**, build 0 (66 HTML), docs map/check 0.
+
+- **2026-11-06 (7) — the sitemap contradicted the page metadata**: `/report` is `noindex` yet was submitted in
+  `public/sitemap.xml`, and `/internships` was submitted even though its canonical now points at `/careers` —
+  a sitemap entry that says "index me" next to a page that says "don't" gets one of the two ignored. Removed both
+  (24 → 22 URLs). New `src/test/sitemapConsistency.test.ts` (5 tests) parses the sitemap and fails if any listed
+  URL is noindex, canonicalises to a different path, is missing from `PUBLIC_PRERENDER_URLS`, is duplicated, or
+  if a core page (`/`, `/pricing`, `/about`, `/terms`, `/privacy`) disappears from it.
+  Also audited the 31 prerendered documents for markup defects: **73 `<img>` with 0 missing `alt`**, 0 `href="#"`,
+  0 `http://` links, 0 `target="_blank"` without `noopener`. The 7 `console.log` calls in `src/` are all inside
+  `import.meta.env.DEV`/`isDev` guards, so they do not ship — left alone deliberately.
+  Verify: typecheck 0, lint 0, **76/76 test files**, build 0 (66 HTML), docs map/check 0.

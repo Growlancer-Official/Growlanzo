@@ -36,11 +36,6 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://growlanzo.com/internships</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://growlanzo.com/careers</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -94,11 +89,6 @@
     <loc>https://growlanzo.com/refund-policy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://growlanzo.com/report</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
   </url>
   <url>
     <loc>https://growlanzo.com/freelancers</loc>

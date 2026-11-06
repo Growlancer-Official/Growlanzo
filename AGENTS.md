@@ -192,7 +192,7 @@ check. If something was not verified, write "not verified" and why.
 
 ## 11. Current state snapshot (update when it changes)
 
-**As of 2026-11-06:** engineering is green (typecheck, lint, 75 test files,
+**As of 2026-11-06:** engineering is green (typecheck, lint, 76 test files,
 build with **33 genuinely prerendered pages** — 66 HTML files, each with its own
 <title>/canonical/robots — docs map, 25 public pages rendered at 375px + 1280px
 with 0 overflow),
