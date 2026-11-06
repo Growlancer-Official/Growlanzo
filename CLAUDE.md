@@ -1163,3 +1163,26 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   the documented SPA shell. That decides whether crawlers and link previews get per-page titles, so it needs
   checking on the Vercel build (or CI) before launch; the cause is not proven and changing the build blind
   would risk a red deploy.
+
+- **2026-11-06 (4) — per-page titles never reached the browser (RouteHead was never mounted)**: measured on
+  the built site, 19 rendered public routes produced **1 distinct `<title>` and 0 canonical tags** — every
+  page advertised itself as the homepage, so search results and link previews could not tell them apart.
+  Cause: `src/components/RouteHead.tsx` (title, description, canonical, OG/Twitter, `noindex` for private
+  surfaces) was complete and correct but **not rendered anywhere** — no import, no `<RouteHead />`. Mounting
+  it exposed a second, older bug in the same file: three rules were written `test: exact('/a') || exact('/b')`.
+  Those are two FUNCTION values, so `||` returns the first function and the second path is never tested —
+  `/careers`, `/verify-certificate` and `/auth/verify-email` silently fell through to the not-found metadata,
+  which is `noindex` on public pages. Fixed with a `oneOf(...paths)` helper and a separate dynamic rule for
+  `/certificate/:code`; `/certificate` itself had no exact rule at all. `Payment`'s description was the
+  placeholder "Payment status." (15 chars) and is now a real sentence.
+  New guard `src/test/routeHeadCoverage.test.ts` (6 tests) checks BOTH that `App.tsx` mounts `<RouteHead />`
+  (a coverage-only test would have passed while the component was dead) and that every
+  `PUBLIC_PRERENDER_URLS` entry resolves to its own indexable title with a usable description.
+  **Verified in the browser:** 10 public routes hard-loaded → 10 distinct titles, 9 canonicals, correct
+  `robots`, e.g. `/pricing` → "Pricing · Growlanzo" + canonical `https://growlanzo.com/pricing`.
+  Verify: typecheck 0, lint 0, **75/75 test files**, build 0, docs map/check 0.
+  **Observed, not explained:** a hard load of `/` shows no canonical/robots tag, while in-app navigation to
+  `/` sets both and hard loads of the other 9 routes work. Both tags default safely (no robots tag = indexable,
+  no canonical = self-canonical), so this is a cosmetic gap, not a blocker; nothing in the repo removes head
+  nodes. Also added the missing `VITE_FEATURE_*`, `VITE_AI_MODEL` entries to `.env.example` — the flags were
+  documented in source but absent from the only file a new deploy reads.

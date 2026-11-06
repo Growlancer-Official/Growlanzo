@@ -16,7 +16,7 @@ import { useLocation } from 'react-router-dom';
 
 const SITE_URL = 'https://growlanzo.com';
 const SITE_NAME = 'Growlanzo';
-const DEFAULT_TITLE = 'Growlanzo — AI-Powered Freelancing Marketplace';
+export const DEFAULT_TITLE = 'Growlanzo — AI-Powered Freelancing Marketplace';
 const DEFAULT_DESCRIPTION =
     'Growlanzo is an AI-powered freelancing marketplace connecting talented freelancers with innovative clients. Find work, hire talent, and collaborate seamlessly.';
 
@@ -38,6 +38,20 @@ function isPath(prefix: string): (p: string) => boolean {
 
 function exact(path: string): (p: string) => boolean {
     return (p) => p === path;
+}
+
+/**
+ * Match any of the given exact paths.
+ *
+ * ⚠️ Never write `exact('/a') || exact('/b')` as a rule's `test`: those are two
+ * FUNCTION values, so `||` returns the first function and the second path is
+ * never tested. Three rules were written that way, which left `/careers`,
+ * `/verify-certificate` and `/auth/verify-email` falling through to the
+ * not-found metadata (`noindex` on a public page). Found by
+ * `src/test/routeHeadCoverage.test.ts`.
+ */
+function oneOf(...paths: string[]): (p: string) => boolean {
+    return (p) => paths.includes(p);
 }
 
 function dynamic(prefix: string): (p: string) => boolean {
@@ -90,7 +104,7 @@ const ROUTE_RULES: RouteRule[] = [
     },
     {
         test: isPath('/payment'),
-        meta: { title: `Payment · ${SITE_NAME}`, description: 'Payment status.', noindex: true },
+        meta: { title: `Payment · ${SITE_NAME}`, description: 'The status of your Growlanzo payment and what happens next.', noindex: true },
     },
     {
         test: isPath('/report'),
@@ -115,7 +129,7 @@ const ROUTE_RULES: RouteRule[] = [
         meta: { title: `Verify Your Email · ${SITE_NAME}`, description: 'Verify your email with a one-time code.', noindex: true },
     },
     {
-        test: isPath('/auth/email-confirm') || isPath('/auth/verify-email'),
+        test: (p) => isPath('/auth/email-confirm')(p) || isPath('/auth/verify-email')(p),
         meta: { title: `Confirm Your Email · ${SITE_NAME}`, description: 'Confirm your Growlanzo email address.', noindex: true },
     },
     {
@@ -145,7 +159,13 @@ const ROUTE_RULES: RouteRule[] = [
         meta: { title: `Contest Details · ${SITE_NAME}`, description: 'View a design contest on Growlanzo.' },
     },
     {
-        test: dynamic('/certificate') || dynamic('/verify-certificate'),
+        // The bare pages (no code) are public and indexable; the /:code variants
+        // are the same screen with a specific certificate already looked up.
+        test: oneOf('/certificate', '/verify-certificate'),
+        meta: { title: `Certificate Verification · ${SITE_NAME}`, description: 'Verify a Growlanzo certificate.' },
+    },
+    {
+        test: (p) => dynamic('/certificate')(p) || dynamic('/verify-certificate')(p),
         meta: { title: `Certificate Verification · ${SITE_NAME}`, description: 'Verify a Growlanzo certificate.' },
     },
 
@@ -182,7 +202,7 @@ const ROUTE_RULES: RouteRule[] = [
         meta: { title: `Our Philosophy · ${SITE_NAME}`, description: 'The philosophy behind Growlanzo.' },
     },
     {
-        test: exact('/internships') || exact('/careers'),
+        test: oneOf('/internships', '/careers'),
         meta: { title: `Internships & Careers · ${SITE_NAME}`, description: 'Internship and career opportunities at Growlanzo.' },
     },
     {
@@ -253,7 +273,7 @@ const NOT_FOUND_META: RouteMeta = {
     noindex: true,
 };
 
-function resolveMeta(pathname: string): RouteMeta {
+export function resolveMeta(pathname: string): RouteMeta {
     const p = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
     for (const rule of ROUTE_RULES) {
         if (rule.test(p)) return rule.meta;
