@@ -1109,3 +1109,22 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   withdrawal still closed, no-expiry, no-ranking-influence, clawback) was changed. **Founder review wanted**
   on the Terms wording — it is legal copy, but it now matches the implemented rule instead of contradicting it.
   Verify: typecheck 0, lint 0, 858/858 tests, build 0.
+
+- **2026-11-06 (1) — security-header drift fixed at the source (payment-impacting)**: `server.js` and
+  `vercel.json` each carried a hand-maintained copy of the CSP/header set, and `server.js` said in a comment
+  that it "must stay in sync" — it had not. The Express/VPS copy dropped every Razorpay checkout host
+  (`checkout-static-next`, `cdn`, `express`, `lumberjack`, `api-dark`) from `script-src`/`connect-src`/
+  `frame-src` and shipped `payment=()`, while production allows them. Anything served by `server.js`
+  (self-hosted/VPS, and the webhook-rehearsal flow) would have failed checkout in the browser — invisible to
+  typecheck/tests/build, because a CSP is enforced by the browser at runtime. **Fix:** values now live in
+  `security-headers.json`, `server.js` applies that file, and two guards keep it honest —
+  `src/test/securityHeadersParity.test.ts` (new: JSON ⇄ `vercel.json`, every key, exact value, plus
+  `object-src 'none'` / `base-uri 'self'` / real checkout hosts) and `cspFontAllowList.test.ts` (its third
+  copy is now `security-headers.json`, not `server.js`; assertion tightened, not loosened). Verified live:
+  served response now contains `checkout-static-next`/`lumberjack`/`api-dark` and the payment allow-list.
+  **Residual, founder decision (unchanged today):** `profiles.role` stays self-writable between
+  `freelancer` and `client` by design (`20270101000002`), and `admin` escalation is still blocked — but that
+  means a free freelancer can flip to `client` and reach the client-side support form, so the Pro-only
+  freelancer ticket gate is advisory, not enforced. Closing it needs a DB decision (block role changes once
+  onboarding is complete, or move role assignment into a SECURITY DEFINER RPC) and a live dry-run; not
+  shipped blind.

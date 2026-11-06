@@ -13,15 +13,19 @@ import path from 'node:path';
  * have blocked the fonts it does use while allowing ones it never loads.
  *
  * This locks: (a) no Google Fonts host anywhere in the policy, (b) the hosts the
- * site actually needs present in every copy, (c) all three copies identical for
- * the font-bearing directives, and (d) the policy in sync with pages/+Head.tsx.
+ * site actually needs present in every copy, (c) every copy identical for the
+ * font-bearing directives, and (d) the policy in sync with pages/+Head.tsx.
+ *
+ * server.js no longer declares its own policy: it applies security-headers.json
+ * (pinned to vercel.json by securityHeadersParity.test.ts), so that file — not
+ * server.js — is the source this guard reads for the Express/VPS deployment.
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (rel: string) => readFileSync(path.join(root, rel), 'utf8').replace(/\r\n/g, '\n');
 
-/** The three places the production/self-hosted policy is declared. */
-const CSP_SOURCES = ['vercel.json', 'server.js', 'nginx.conf'];
+/** Every place the production/self-hosted policy is declared. */
+const CSP_SOURCES = ['vercel.json', 'security-headers.json', 'nginx.conf'];
 
 /** Directives that decide whether fonts load at all. */
 const FONT_DIRECTIVES = ['style-src', 'font-src', 'connect-src'] as const;
@@ -74,11 +78,11 @@ describe('CSP font allow-list', () => {
     }
   });
 
-  // Only the font-bearing directives must agree. connect-src legitimately
-  // differs per deployment target (vercel.json and nginx.conf list Razorpay
-  // endpoints that server.js omits), so asserting equality there would invent a
+  // Only the font-bearing directives must agree. connect-src can legitimately
+  // differ per deployment target (nginx.conf lists Razorpay endpoints that the
+  // Vercel/Express pair may not), so asserting equality there would invent a
   // constraint the app does not have. The font contract is what must not drift.
-  it('all three copies agree on the font-bearing directives', () => {
+  it('every copy agrees on the font-bearing directives', () => {
     const [first, ...rest] = CSP_SOURCES.map((rel) => {
       const values = fontDirectiveValues(read(rel));
       // de-duplicate identical directives (server.js declares them once)
