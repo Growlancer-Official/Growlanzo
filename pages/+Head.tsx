@@ -1,6 +1,18 @@
 import React from 'react';
+import { usePageContext } from 'vike-react/usePageContext';
+import { canonicalUrl, resolveMeta } from '../src/lib/routeMeta';
 
 export default function Head() {
+  // The app is ONE Vike page (catch-all → react-router). Without this, every
+  // prerendered HTML file shipped the global title and
+  // `canonical="https://growlanzo.com/"`, so /pricing, /terms and /privacy all
+  // told Google they were the homepage. `resolveMeta` is the same rule table the
+  // client uses, so static and runtime metadata cannot drift.
+  const { urlPathname } = usePageContext();
+  const pathname = urlPathname || '/';
+  const meta = resolveMeta(pathname);
+  const canonical = canonicalUrl(pathname);
+
   return (
     <>
       {/* ── Favicon + app icon — the final Growlanzo "G" (public/UpdatedLogo.*,
@@ -25,30 +37,29 @@ export default function Head() {
       <meta name="mobile-web-app-capable" content="yes" />
       <meta name="application-name" content="Growlanzo" />
 
+      {/* ── Per-route metadata ──
+          <title> and <meta name="description"> come from pages/+title.ts and
+          pages/+description.ts (vike-react also emits their og: counterparts,
+          so those are deliberately NOT duplicated here). This file owns the
+          tags vike-react does not derive from the page URL. */}
+      <meta name="robots" content={meta.noindex ? 'noindex, nofollow' : 'index, follow'} />
+
       {/* ── Open Graph / Facebook ── */}
       <meta property="og:type" content="website" />
-      <meta property="og:url" content="https://growlanzo.com/" />
-      <meta property="og:title" content="Growlanzo — AI-Powered Freelancing Marketplace" />
-      <meta
-        property="og:description"
-        content="Growlanzo is an AI-powered freelancing marketplace connecting talented freelancers with innovative clients. Find work, hire talent, and collaborate seamlessly."
-      />
+      <meta property="og:url" content={canonical} />
       <meta property="og:image" content="https://growlanzo.com/og-image.png" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
 
       {/* ── Twitter ── */}
       <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:url" content="https://growlanzo.com/" />
-      <meta property="twitter:title" content="Growlanzo — AI-Powered Freelancing Marketplace" />
-      <meta
-        property="twitter:description"
-        content="Growlanzo is an AI-powered freelancing marketplace connecting talented freelancers with innovative clients."
-      />
+      <meta property="twitter:url" content={canonical} />
+      <meta property="twitter:title" content={meta.title} />
+      <meta property="twitter:description" content={meta.description} />
       <meta property="twitter:image" content="https://growlanzo.com/og-image.png" />
 
       {/* ── Canonical ── */}
-      <link rel="canonical" href="https://growlanzo.com/" />
+      <link rel="canonical" href={canonical} />
       <link rel="manifest" href="/manifest.json" />
 
       {/* ── Resource hints ── */}

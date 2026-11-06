@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **704 files** across 12 groups.
+Total tracked structure: **705 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -12,7 +12,7 @@ Total tracked structure: **704 files** across 12 groups.
 | Layouts | 4 |
 | Components | 52 |
 | Context & hooks | 10 |
-| Client libraries & services | 69 |
+| Client libraries & services | 70 |
 | Edge functions | 33 |
 | Edge shared modules | 8 |
 | Database migrations | 313 |
@@ -203,7 +203,7 @@ Cross-page state (auth, theme, currency) and reusable data hooks.
 - `src/hooks/useProStatus.ts`
 - `src/hooks/useReferralsData.ts`
 
-## Client libraries & services (69)
+## Client libraries & services (70)
 
 All data access, business rules and formatting live here — pages call services, not Supabase directly (with few explicit exceptions).
 
@@ -260,6 +260,7 @@ All data access, business rules and formatting live here — pages call services
 - `src/lib/refundService.ts`
 - `src/lib/reviews.ts`
 - `src/lib/revisionService.ts`
+- `src/lib/routeMeta.ts`
 - `src/lib/secondAccountGuard.ts`
 - `src/lib/sellerLevels.ts`
 - `src/lib/servicePricing.ts`

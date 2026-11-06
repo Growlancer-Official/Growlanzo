@@ -46,6 +46,12 @@ app.use((req, res, next) => {
 app.use(express.static(DIST_DIR, {
   maxAge: '1d', // Cache static assets for 1 day
   etag: false,
+  // Prerendered pages live at dist/<route>/index.html. Without this, express
+  // 301s /pricing → /pricing/ before serving it, while the page's own
+  // <link rel="canonical"> says /pricing — a needless hop and a canonical that
+  // disagrees with the served URL. `redirect: false` serves the directory's
+  // index.html directly at the canonical URL.
+  redirect: false,
 }));
 
 // Health check endpoint

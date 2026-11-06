@@ -193,7 +193,9 @@ check. If something was not verified, write "not verified" and why.
 ## 11. Current state snapshot (update when it changes)
 
 **As of 2026-11-06:** engineering is green (typecheck, lint, 75 test files,
-build, docs map, 25 public pages rendered at 375px + 1280px with 0 overflow),
+build with **33 genuinely prerendered pages** — 66 HTML files, each with its own
+<title>/canonical/robots — docs map, 25 public pages rendered at 375px + 1280px
+with 0 overflow),
 but public paid launch is still **NO** for the same owner-only reasons tracked
 in `docs/LAUNCH-READINESS.md`: payouts disabled (A1), no real payment ever run
 (A2), Brevo IP restriction (A9), KYC in development mode (A4), legal identity /

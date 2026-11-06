@@ -1186,3 +1186,28 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   no canonical = self-canonical), so this is a cosmetic gap, not a blocker; nothing in the repo removes head
   nodes. Also added the missing `VITE_FEATURE_*`, `VITE_AI_MODEL` entries to `.env.example` — the flags were
   documented in source but absent from the only file a new deploy reads.
+
+- **2026-11-06 (5) — prerendering had never run: every route shipped the homepage's static head**: the build
+  printed `⚠ Vike prerender did not run — dist/client/index.html missing` on every run and fell back to the
+  SPA shell, so **1 HTML file existed for 31 public URLs** and every one of them carried
+  `<title>Growlanzo — AI-Powered…</title>` and `canonical="https://growlanzo.com/"`. Root cause: `scripts/build.mjs`
+  invoked `npx vite build`, and **under Vite 8 the Vite CLI no longer fires Vike's prerender hook** — it exits 0,
+  prints "built in 647ms", and writes zero HTML. `npx vike build` with the same config prerenders all 33 pages
+  (66 files). Fixes:
+  1. build script runs `vike build`; `staticShellIntegrity.test.ts` now asserts that string **and** that
+     `npx vite build` is absent, so the regression cannot come back silently (it caught this one).
+  2. The route metadata moved out of the React component into dependency-free `src/lib/routeMeta.ts`, consumed by
+     new `pages/+title.ts` and `pages/+description.ts` (Vike config functions of `pageContext`) and by
+     `pages/+Head.tsx` for canonical/robots/og:url. **Before this, only the client knew the rules** — that is why
+     the prerendered `/pricing` advertised itself as the homepage. `src/components/RouteHead.tsx` stays as the
+     client-navigation applier (Vike never sees in-app react-router navigations) and re-exports the helpers.
+     `title`/`description` were removed from `pages/+config.ts`: a constant there overrides the per-URL functions.
+  3. `server.js` serves `express.static(..., { redirect: false })`, because prerendered pages live at
+     `dist/<route>/index.html` and express was 301-ing `/pricing` → `/pricing/` while the page's canonical said
+     `/pricing`.
+  **Verified:** 66 HTML files; raw `curl` (JS disabled) returns `200` with the right head for `/`, `/pricing`,
+  `/terms`, `/careers`, `/help-center`, `/verify-certificate` (e.g. `/pricing` → "Pricing · Growlanzo" +
+  `canonical https://growlanzo.com/pricing`); exactly 1 `<title>`, 1 `og:title`, 1 `meta[name=description]`,
+  1 canonical per file; 8 routes hard-loaded in a real browser with **0 hydration errors** (no React #418) and
+  correct `<h1>` content, and in-app navigation to `/pricing` still updates title + canonical.
+  Verify: typecheck 0, lint 0, **75/75 test files**, build 0, docs map/check 0.

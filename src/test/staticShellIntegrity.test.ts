@@ -30,9 +30,15 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 describe('build output is self-consistent', () => {
   const build = read('scripts/build.mjs');
 
-  it('wipes dist/ before the vite build so a restored cache cannot ship a stale index.html', () => {
-    const viteIndex = build.indexOf("execSync('npx vite build'");
-    expect(viteIndex, 'build script lost its vite build call').toBeGreaterThan(-1);
+  it('wipes dist/ before the build so a restored cache cannot ship a stale index.html', () => {
+    // ⚠️ Must be Vike's CLI, not Vite's. Under Vite 8 `vite build` exits 0 but
+    // never fires Vike's prerender hook, so the site silently ships the SPA
+    // shell on every route (measured: 1 HTML file for 31 URLs, every page
+    // carrying the homepage <title>). This assertion is what caught the
+    // regression when the build script was switched back.
+    const viteIndex = build.indexOf("execSync('npx vike build'");
+    expect(viteIndex, 'build script must run `vike build` (prerender does not run under `vite build`)').toBeGreaterThan(-1);
+    expect(build.indexOf("execSync('npx vite build'"), 'build script regressed to `vite build`, which silently skips prerender').toBe(-1);
     const wipe = build.indexOf('rmSync(DIST, { recursive: true, force: true })');
     expect(wipe, 'build no longer wipes dist/ — a cached index.html will outlive its assets').toBeGreaterThan(-1);
     expect(wipe, 'dist/ must be wiped BEFORE vite build').toBeLessThan(viteIndex);
