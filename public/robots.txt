@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://growlanzo.com/sitemap.xml
+Sitemap: https://growlancer.vercel.app/sitemap.xml

@@ -10,7 +10,7 @@
     { "key": "ANON_KEY", "value": "PASTE_YOUR_SUPABASE_ANON_KEY_HERE", "type": "string" },
     { "key": "AUTH_TOKEN", "value": "", "type": "string" },
     { "key": "REFRESH_TOKEN", "value": "", "type": "string" },
-    { "key": "APP_URL", "value": "https://growlanzo.com", "type": "string" }
+    { "key": "APP_URL", "value": "https://growlancer.vercel.app", "type": "string" }
   ],
   "item": [
     {

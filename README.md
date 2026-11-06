@@ -12,7 +12,7 @@
 
 <br/>
 
-[![Website](https://img.shields.io/badge/Website-Live-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlanzo.com)
+[![Website](https://img.shields.io/badge/Website-Live-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlancer.vercel.app)
 [![Status](https://img.shields.io/badge/Status-Beta-success?style=for-the-badge\&logo=rocket\&logoColor=white)]
 [![License](https://img.shields.io/badge/License-Proprietary-2563eb?style=for-the-badge\&logo=github\&logoColor=white)]
 
@@ -588,9 +588,9 @@ Growlanzo is being continuously developed toward a production-grade professional
 
 <div align="center">
 
-[![Visit Growlanzo](https://img.shields.io/badge/Visit%20Growlanzo-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlanzo.com)
+[![Visit Growlanzo](https://img.shields.io/badge/Visit%20Growlanzo-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlancer.vercel.app)
 
-**https://growlanzo.com**
+**https://growlancer.vercel.app**
 
 </div>
 
@@ -612,7 +612,7 @@ Growlanzo is being continuously developed toward a production-grade professional
 
 <div align="center">
 
-[![Website](https://img.shields.io/badge/Website-growlanzo.com-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlanzo.com)
+[![Website](https://img.shields.io/badge/Website-growlanzo.com-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlancer.vercel.app)
 
 [![Email](https://img.shields.io/badge/Email-growlanzo.own%40gmail.com-2563eb?style=for-the-badge\&logo=gmail\&logoColor=white)](mailto:growlanzo.own@gmail.com)
 

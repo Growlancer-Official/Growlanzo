@@ -28,7 +28,7 @@
 
 | Item | Value |
 |---|---|
-| **Live app** | `https://growlanzo.com` |
+| **Live app** | `https://growlancer.vercel.app` |
 | **Supabase project** | `zttwsjehcgaicziqyxpq` |
 | **Payment webhook URL** (paste in Razorpay Dashboard) | `https://zttwsjehcgaicziqyxpq.supabase.co/functions/v1/razorpay-webhook` |
 | **Webhook secret** (set in Razorpay webhook + Supabase secrets) | Generate it in the dashboard — **never** paste the value into this file. Store it only as the `RAZORPAY_WEBHOOK_SECRET` secret (Supabase + CI), see §0 |

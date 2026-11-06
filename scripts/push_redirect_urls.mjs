@@ -28,76 +28,40 @@ if (!TOKEN) {
 }
 
 const REDIRECT_URLS = [
-  // Production
-  'https://growlanzo.com',
-  'https://growlanzo.com/auth/callback',
-  'https://growlanzo.com/auth/email-confirm',
-  'https://growlanzo.com/auth/callback*',
-  'https://growlanzo.com/auth/email-confirm*',
-  'https://www.growlanzo.com',
-  'https://www.growlanzo.com/auth/callback',
-  'https://www.growlanzo.com/auth/email-confirm',
-  'https://www.growlanzo.com/auth/callback*',
-  'https://www.growlanzo.com/auth/email-confirm*',
-  // Preview deployments
+  // Production main domain
+  'https://growlancer.vercel.app',
+  'https://growlancer.vercel.app/auth/callback',
+  'https://growlancer.vercel.app/auth/email-confirm',
+  'https://growlancer.vercel.app/auth/callback*',
+  'https://growlancer.vercel.app/auth/email-confirm*',
+  // Preview deployment
   'https://growlancer-mrkhan154212s-projects.vercel.app',
   'https://growlancer-mrkhan154212s-projects.vercel.app/auth/callback',
   'https://growlancer-mrkhan154212s-projects.vercel.app/auth/email-confirm',
   'https://growlancer-mrkhan154212s-projects.vercel.app/auth/callback*',
   'https://growlancer-mrkhan154212s-projects.vercel.app/auth/email-confirm*',
+  // Old custom domain (growlancer.com)
+  'https://growlancer.com',
+  'https://growlancer.com/auth/callback',
+  'https://growlancer.com/auth/email-confirm',
+  'https://growlancer.com/auth/callback*',
+  'https://growlancer.com/auth/email-confirm*',
+  'https://www.growlancer.com',
+  'https://www.growlancer.com/auth/callback',
+  'https://www.growlancer.com/auth/email-confirm',
+  'https://www.growlancer.com/auth/callback*',
+  'https://www.growlancer.com/auth/email-confirm*',
   // Local dev
   'http://localhost:5173',
   'http://localhost:5173/auth/callback',
   'http://localhost:5173/auth/email-confirm',
 ];
 
-/**
- * Canonical origin for Supabase Auth. Drives `site_url` (where verification and
- * password-reset emails send the user back to) and the OAuth probe target.
- * Reads APP_URL so the custom-domain switch stays a single variable, matching
- * supabase/functions/_shared/site.ts.
- *
- * NEVER guesses: a malformed value would be written straight to the live
- * `site_url` and would break every auth email link, so this fails closed.
- */
 function resolveSiteUrl() {
-  const raw = (getEnv('APP_URL') || '').trim();
-  // Fail closed: guessing a fallback here would write a domain the founder never
-  // asked for straight into the live `site_url` and break every auth email link.
-  if (!raw) {
-    console.error('❌ APP_URL is not set in .env — refusing to guess the site_url.');
-    console.error('   Set APP_URL=https://<your-domain> and run this again.');
-    process.exit(1);
-  }
-  let parsed;
-  try {
-    parsed = new URL(raw);
-  } catch {
-    console.error(`❌ APP_URL is not an absolute URL: ${JSON.stringify(raw)}`);
-    console.error('   Use a full origin, e.g. https://growlanzo.com');
-    process.exit(1);
-  }
-  if (!/^https?:$/.test(parsed.protocol)) {
-    console.error(`❌ APP_URL must be http(s), got "${parsed.protocol}"`);
-    process.exit(1);
-  }
-  return parsed.origin;
+  return 'https://growlancer.vercel.app';
 }
 
 const SITE_URL = resolveSiteUrl();
-
-// Custom-domain entries are DERIVED from APP_URL instead of being a hard-coded
-// `growlanzo.com` list. The old literal list silently missed any other domain
-// (the switch to growlancing.com would have pushed redirects without it), so a
-// domain switch must never require editing this file — it is one variable.
-const AUTH_PATHS = ['', '/auth/callback', '/auth/email-confirm', '/auth/callback*', '/auth/email-confirm*'];
-{
-  const host = new URL(SITE_URL).host;
-  const altHost = host.startsWith('www.') ? host.slice(4) : `www.${host}`;
-  for (const h of [host, altHost]) {
-    for (const p of AUTH_PATHS) REDIRECT_URLS.push(`https://${h}${p}`);
-  }
-}
 const UNIQUE_REDIRECT_URLS = [...new Set(REDIRECT_URLS)];
 
 async function main() {

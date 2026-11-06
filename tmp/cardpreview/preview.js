@@ -69,12 +69,12 @@ var RS = (() => {
   function buildReferralLink(code, origin) {
     const formatted = formatReferralCode(code);
     if (!formatted) return "";
-    const base = (origin || (typeof window !== "undefined" ? window.location.origin : "") || "https://growlanzo.com").replace(/\/+$/, "");
+    const base = (origin || (typeof window !== "undefined" ? window.location.origin : "") || "https://growlancer.vercel.app").replace(/\/+$/, "");
     return `${base}/signup?ref=${encodeURIComponent(formatted)}`;
   }
 
   // src/lib/referralShare.ts
-  var SITE_URL = "https://growlanzo.com";
+  var SITE_URL = "https://growlancer.vercel.app";
   var CARD_WIDTH = 1200;
   var CARD_HEIGHT = 630;
   var LOGO_SOURCES = ["/UpdatedLogo.webp", "/UpdatedLogo.png"];

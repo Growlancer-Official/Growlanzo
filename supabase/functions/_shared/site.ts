@@ -25,7 +25,7 @@ const RAW_APP_URL = (Deno.env.get('APP_URL') ?? '').trim();
  * ever lost, this keeps links working rather than pointing at a domain that
  * may not resolve yet.
  */
-export const FALLBACK_SITE_URL = 'https://growlanzo.com';
+export const FALLBACK_SITE_URL = 'https://growlancer.vercel.app';
 
 /** Absolute site origin, no trailing slash. */
 export const SITE_URL: string = (RAW_APP_URL || FALLBACK_SITE_URL).replace(/\/+$/, '');
@@ -34,7 +34,7 @@ if (!RAW_APP_URL) {
   console.warn(
     `[site] APP_URL is not configured — falling back to ${FALLBACK_SITE_URL}. ` +
       'Email links and payment redirects will use that origin. ' +
-      'Set the canonical domain with: supabase secrets set APP_URL=https://<domain>',
+      'Set the canonical domain with: supabase secrets set APP_URL=https://growlancer.vercel.app',
   );
 }
 
