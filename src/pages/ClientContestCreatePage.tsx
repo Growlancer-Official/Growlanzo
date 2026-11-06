@@ -100,7 +100,7 @@ export function ClientContestCreatePage() {
         </div>
       </div>
 
-      <InfoTip title="Escrow protection — how your prize is secured" text="After creating the contest you'll fund the prize pool (1st + 2nd + 3rd + a 5% platform fee) from your wallet. The money is held in escrow — freelancers can only submit once it's funded, so everyone knows the prize is real. When you award winners, their prizes are released instantly to their wallets. Fair for you, fair for freelancers." />
+      <InfoTip title="Escrow protection — how your prize is secured" text="After creating the contest you'll fund the prize pool (1st + 2nd + 3rd + a 5% platform fee) from your wallet. The money is held in escrow — freelancers can only submit once it's funded, so everyone knows the prize is real. When you award winners, their prizes are released to their wallets. Fair for you, fair for freelancers." />
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Basic Information */}

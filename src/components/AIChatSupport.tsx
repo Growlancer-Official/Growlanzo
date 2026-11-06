@@ -167,6 +167,23 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
     void refreshAiUsage();
   }, [refreshAiUsage]);
 
+  // The usage counter is only pushed live when the usage table is in the
+  // realtime publication. Until that deploy has run, re-sync whenever the tab
+  // becomes active so the meter — and the client-side block below — always
+  // reflect the same allowance the server will enforce.
+  useEffect(() => {
+    if (!user || context === 'client') return;
+    const sync = () => {
+      if (document.visibilityState === 'visible') void refreshAiUsage();
+    };
+    window.addEventListener('focus', sync);
+    document.addEventListener('visibilitychange', sync);
+    return () => {
+      window.removeEventListener('focus', sync);
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, [user, context, refreshAiUsage]);
+
   // Real-time quota: every AI message writes a usage_logs row and a Pro upgrade
   // rewrites the subscription. Subscribing here is what makes the meter move
   // the moment either happens — the old mount-only fetch meant the bar never

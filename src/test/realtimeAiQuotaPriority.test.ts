@@ -139,9 +139,16 @@ describe('quota + rewards update without a page refresh', () => {
     expect(CHAT).toMatch(/aiUsage\.used >= aiUsage\.limit/);
   });
 
-  it('referral counters follow the coin award tables', () => {
-    expect(REFERRALS_HOOK).toMatch(/table: 'referral_project_reward_events'/);
+  it('referral counters follow the coin ledger, not a table users cannot read', () => {
+    // `grow_coin_ledger` has an own-row SELECT policy, so postgres_changes can
+    // actually deliver the award to the affected user.
     expect(REFERRALS_HOOK).toMatch(/table: 'grow_coin_ledger'/);
+    // `referral_project_reward_events` is REVOKE ALL + RLS with no policies:
+    // a channel on it can never fire, and granting reads to "fix" that would
+    // expose other users' reward rows. Subscribing is always a bug.
+    expect(REFERRALS_HOOK).not.toMatch(/table: 'referral_project_reward_events'/);
+    // Realtime is best-effort, so the page must also re-read committed rows.
+    expect(REFERRALS_HOOK).toMatch(/addEventListener\('visibilitychange'/);
   });
 });
 

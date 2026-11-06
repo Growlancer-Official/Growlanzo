@@ -34,9 +34,15 @@ contract workspace, and money is held in escrow until milestones are released.
 
 | Rule | Value | Where it lives |
 | --- | --- | --- |
+<<<<<<< HEAD
 | Commission | **Flat 5%**, withheld from the freelancer's released payout (Option B, decided A12) | `_book_escrow_release` books 5% as platform revenue at release; client pays exactly the agreed amount |
 | Freelancer share | **Contract amount − 5%** at release | `contracts.freelancer_amount` reflects the post-commission credit |
 | Premium | **₹299/month**, one optional plan, freelancer-only | `PLATFORM_CONFIG`, subscriptions |
+=======
+| Commission | **Flat 5%**, withheld from the freelancer's released gross. The client pays exactly the agreed amount; nothing is added at checkout | `src/lib/config.ts`, `public.platform_commission()`, `_release_escrow_internal` / `_book_escrow_release` (`20270203000000`) |
+| Freelancer share | **95% of the contract amount** (gross − 5% commission) | `contracts.freelancer_amount`, `platform_revenue` |
+| Premium | **₹199/month**, one optional plan, freelancer-only | `PLATFORM_CONFIG`, subscriptions |
+>>>>>>> 6b15028e5846318614c3eeee801074e049612fd6
 | Packaging | Basic/Standard/Premium free for every freelancer | package tables, UI |
 | Client AI | Free for life, fair-use limits only | `ai-*` functions, 100/day cap |
 | Ranking | 100% merit; no paid flag in score/sort | `ai-matching`, search, `is_pro` must never appear |
@@ -181,16 +187,23 @@ contract per role.
 
 ```
 Client funds:
-  Razorpay order = contract.amount + 5% fee        (server-derived)
-  wallet funding debits contract.amount + 5% fee
+  Razorpay order = contract.amount                (server-derived; no client-side fee)
+  wallet funding debits contract.amount
         │
         ▼
   escrow row: amount = contract.amount, status pending → funded
   client wallet.escrow_balance += contract.amount
         │
         ▼
+<<<<<<< HEAD
   release: escrow amount → freelancer wallet + platform revenue + invoice + ledger
            (Option B: 5% withheld from freelancer at release — see §14.1)
+=======
+  release: gross = escrow.amount
+           fee = platform_commission(gross) = 5%
+           freelancer wallet += gross − fee;  platform_revenue.platform_fee = fee
+           invoice: subtotal = gross, platform_fee = 0, total = gross
+>>>>>>> 6b15028e5846318614c3eeee801074e049612fd6
         │
         ▼
   withdrawal: available balance → hold → RazorpayX payout → completed
@@ -255,7 +268,7 @@ Full step-by-step traces and state machines: [`blueprint/DOMAIN-FLOWS.md`](bluep
 | J7 | Withdrawal → payout methods → RazorpayX | **Blocked**: payout product 404 (A1) |
 | J8 | Disputes, refunds, admin resolution | Built |
 | J9 | Reviews, reputation, seller levels | Built; 0 reviews |
-| J10 | Premium ₹299 + AI quotas | Built; AI providers live |
+| J10 | Premium ₹199 + AI quotas | Built; AI providers live |
 | J11 | KYC / identity verification | Built; **development mode auto-verifies** (A4) |
 | J12 | Skill certifications, certificate verification | Partial; quiz answers ship client-side |
 | J13 | Contests, internships, tickets, reports, notification prefs | Mixed |
@@ -380,8 +393,9 @@ get the founder's decision before writing code.
 
 Ordered by what can hurt the company first. Evidence is in the module docs.
 
-### 14.1 CRITICAL — commission is collected twice (decision required)
+### 14.1 RESOLVED — commission is charged once, freelancer-side (Option B, 2026-10-21)
 
+<<<<<<< HEAD
 > **DECIDED (A12, 2026-10-21): Option B.** The client pays exactly the agreed
 > contract amount; the flat 5% is withheld from the freelancer at release.
 > Migration `20270203000000_commission_model_option_a.sql` and commit `d45b388`
@@ -394,6 +408,35 @@ Ordered by what can hurt the company first. Evidence is in the module docs.
 `platform_revenue` books exactly ₹500. A cancelled-before-work contract refunds the
 full amount with no commission. `scripts/e2e/pentest-privileges.mjs` asserts both
 legs as hard gates.
+=======
+**Status: decided and implemented by `20270203000000_commission_freelancer_side.sql`.**
+Do not "restore" the old shape: the client funds exactly `contract.amount`, and
+the flat 5% is withheld from the freelancer's released gross.
+
+What the code does today (verified in the migration body, not just the docs):
+
+- `razorpay/index.ts` orders **`contract.amount` only** — `platform_fee` is
+explicitly not added (`serverAmount = round(fundingAmount, 2)`).
+- `wallet` funding debits `contract.amount` and records `platform_fee = 0`.
+- `_release_escrow_internal` computes `fee = platform_commission(gross)` and
+`net = gross − fee`, credits the freelancer `net`, and calls
+`_book_escrow_release`.
+- `_book_escrow_release` books `platform_revenue(gross, fee, net)` and issues an
+invoice with `subtotal = gross`, `platform_fee = 0`, `total = gross`, so the
+client's invoice matches what the client actually paid.
+- `platform_commission(n)` is the single SQL source of truth (`ROUND(n * 0.05, 2)`),
+mirrored by `calculatePlatformFee()` in `src/lib/config.ts`.
+
+Worked example: ₹10,000 contract → client pays ₹10,000; platform books ₹500;
+freelancer wallet receives ₹9,500.
+
+The historical defect (client charged `amount + 5%` **and** release deducting
+another 5%, i.e. a ~10% effective take) existed in `20270102000001` +
+`20270124000000:85-95` and is preserved here only as history. If any older
+migration is ever replayed after `20270203000000`, the double charge returns —
+that is why the release helpers must never be re-created from a pre-`20270203`
+body.
+>>>>>>> 6b15028e5846318614c3eeee801074e049612fd6
 
 ### 14.2 HIGH — the repo cannot rebuild production
 

@@ -5,9 +5,10 @@ export default {
   extends: [vikeReact],
 
   // ─── Global <head> defaults ──────────────────────────────
-  title: 'Growlanzo — AI-Powered Freelancing Marketplace',
-  description:
-    'Growlanzo is an AI-powered freelancing marketplace connecting talented freelancers with innovative clients. Find work, hire talent, and collaborate seamlessly.',
+  // ⚠️ `title` and `description` are deliberately NOT set here: a constant here
+  // overrides the per-URL values from pages/+title.ts and +description.ts, which
+  // is exactly how every prerendered page ended up advertising itself as the
+  // homepage. Only the social image stays global.
   image: 'https://growlanzo.com/og-image.png',
   // ⚠️ vike-react only understands 'responsive' | number here — any other
   // string makes getViewportTag() return an EMPTY string, which silently

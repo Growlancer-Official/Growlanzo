@@ -42,3 +42,6 @@ screenshots/
 
 # Packaged release archives (built artefacts, not source) — never commit.
 release/
+
+# Generated source/QA bundles (never commit).
+artifacts/

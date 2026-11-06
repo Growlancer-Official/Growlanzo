@@ -15,43 +15,30 @@ const DIST_DIR = join(__dirname, 'dist');
 // Enable compression
 app.use(compression());
 
-// ─── Security headers (pre-deploy production audit) ───
+// ─── Security headers (single source of truth) ───
 // Applied to every response so browsers enforce nosniff, frame protection,
-// HSTS, and a baseline CSP even before the SPA's own <meta> tags.
+// HSTS and a baseline CSP even before the SPA's own <meta> tags.
+//
+// The values live in security-headers.json because this file and vercel.json
+// (which serves production) each used to carry a hand-maintained copy, and
+// they had drifted: this one omitted every Razorpay checkout host
+// (checkout-static-next, cdn, express, lumberjack, api-dark) from
+// script/connect/frame-src and set `payment=()`. Anything served by this file
+// would therefore have broken live checkout in the browser, silently.
+// `src/test/securityHeadersParity.test.ts` fails if the two ever diverge again.
+//
+// Typography: Fontshare only (api.fontshare.com serves the CSS,
+// cdn.fontshare.com serves the woff2). Both are loaded via <link> in
+// pages/+Head.tsx, so they must stay in style-src/font-src. Supabase realtime
+// uses wss://, hence the wss://*.supabase.co entry in connect-src.
+const SECURITY_HEADERS = JSON.parse(
+  fs.readFileSync(join(__dirname, 'security-headers.json'), 'utf8')
+);
 app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  // HSTS only over HTTPS (Vercel terminates TLS, so this is safe there;
-  // plain-HTTP local dev is unaffected since the header is inert without TLS)
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  res.setHeader(
-    'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(), payment=()'
-  );
-  // Baseline CSP: Vite dev server injects inline scripts/styles, so keep
-  // 'unsafe-inline' for style and allow self + Razorpay/PayPal scripts.
-  // Typography: Fontshare only (api.fontshare.com serves the CSS,
-  // cdn.fontshare.com serves the actual woff2). Both are loaded via <link> in
-  // pages/+Head.tsx, so they must be allowed in style-src/font-src or the
-  // typography silently breaks. The former Google Fonts entries were removed
-  // after the Inter load was dropped: nothing in the build requests
-  // fonts.googleapis.com / fonts.gstatic.com any more, and an allow-list entry
-  // with no requester is pure attack surface. Must stay in sync with
-  // vercel.json, which carries the production header.
-  // Supabase realtime uses wss:// so connect-src includes wss://*.supabase.co.
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://*.paypal.com https://*.paypalobjects.com; " +
-      "style-src 'self' 'unsafe-inline' https://api.fontshare.com; " +
-      "img-src 'self' data: blob: https:; " +
-      "font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com; " +
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.paypal.com https://api.razorpay.com https://checkout.razorpay.com https://api.fontshare.com https://cdn.fontshare.com https://o4511722119495680.ingest.us.sentry.io; " +
-      "frame-src 'self' https://checkout.razorpay.com https://*.paypal.com; " +
-      "media-src 'self' blob:; " +
-      "object-src 'none'; base-uri 'self'; form-action 'self'"
-  );
+  // HSTS is inert without TLS, so this is safe for plain-HTTP local dev.
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    res.setHeader(name, value);
+  }
   next();
 });
 
@@ -59,6 +46,12 @@ app.use((req, res, next) => {
 app.use(express.static(DIST_DIR, {
   maxAge: '1d', // Cache static assets for 1 day
   etag: false,
+  // Prerendered pages live at dist/<route>/index.html. Without this, express
+  // 301s /pricing → /pricing/ before serving it, while the page's own
+  // <link rel="canonical"> says /pricing — a needless hop and a canonical that
+  // disagrees with the served URL. `redirect: false` serves the directory's
+  // index.html directly at the canonical URL.
+  redirect: false,
 }));
 
 // Health check endpoint

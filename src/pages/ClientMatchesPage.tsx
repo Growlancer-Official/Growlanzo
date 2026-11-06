@@ -281,8 +281,12 @@ export function ClientMatchesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
-              <Sparkles className="w-4 h-4 text-white" />
+            {/* Same header tile as every other client page (AI Matches landing,
+                Team Projects): 40px, rounded-xl, emerald-500→700. This state used
+                w-8/rounded-lg/emerald-600, so opening one project's matches
+                visibly changed the icon the founder kept reporting. */}
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <Link
               to="/client/matches"

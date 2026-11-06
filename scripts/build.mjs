@@ -135,7 +135,14 @@ if (process.env.SKIP_VITE_BUILD === '1') {
     // assets this build emits (see the Step 0 note above).
     rmSync(DIST, { recursive: true, force: true });
     ok('wiped any restored dist/ so no stale index.html can outlive its assets');
-    execSync('npx vite build', { cwd: ROOT, stdio: 'inherit' });
+    // ⚠️ `vike build`, not `vite build`. Under Vite 8 the Vite CLI's build no
+    // longer fires Vike's prerender hook: it exits 0, prints "built in 647ms",
+    // and writes zero HTML — so the site silently fell back to the SPA shell on
+    // every route (measured: 1 HTML file for 31 URLs, and every prerendered
+    // <title> was the homepage's). Vike's own CLI prerenders all 33 pages
+    // (66 files) with the same config and no extra flags. If this ever regresses,
+    // step [3/5] now fails the build instead of warning.
+    execSync('npx vike build', { cwd: ROOT, stdio: 'inherit' });
     ok('Vite build completed');
   } catch (err) {
     fail(`Vite build failed: ${err.message}`);

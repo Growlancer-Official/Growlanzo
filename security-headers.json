@@ -1,0 +1,8 @@
+{
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(self \"https://checkout.razorpay.com\" \"https://checkout-static-next.razorpay.com\" \"https://express.razorpay.com\")",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://checkout-static-next.razorpay.com https://cdn.razorpay.com https://*.paypal.com https://*.paypalobjects.com; style-src 'self' 'unsafe-inline' https://api.fontshare.com; img-src 'self' data: blob: https:; font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.paypal.com https://api.razorpay.com https://api-dark.razorpay.com https://checkout.razorpay.com https://checkout-static-next.razorpay.com https://cdn.razorpay.com https://express.razorpay.com https://lumberjack.razorpay.com https://api.fontshare.com https://cdn.fontshare.com https://o4511722119495680.ingest.us.sentry.io; frame-src 'self' https://checkout.razorpay.com https://checkout-static-next.razorpay.com https://express.razorpay.com https://api.razorpay.com https://*.paypal.com; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+}

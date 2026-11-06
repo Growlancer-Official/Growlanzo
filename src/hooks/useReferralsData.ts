@@ -156,16 +156,17 @@ export function useReferralsData(userId?: string, referralCode?: string, userRol
       )
       .subscribe();
 
-    // Coin awards (KYC 5+5, per-project 5+5) land in the ledger/event tables,
-    // not in `referrals`. Without these two channels the counters stayed stale
-    // until a manual refresh even though the money-side rows were written.
+    // Coin awards (KYC 5+5, per-project 5+5) land in the ledger, not in
+    // `referrals`, so a referral can reach "completed" while the counters and
+    // balance look unchanged until a manual refresh.
+    //
+    // Only `grow_coin_ledger` is subscribed: it has a own-row SELECT policy and
+    // is published for realtime. `referral_project_reward_events` is
+    // service-role only (REVOKE ALL + RLS with no policies), so a
+    // postgres_changes channel on it can never deliver an event — and granting
+    // reads just to make it "fire" would expose other users' reward rows.
     const rewardCh = supabase
       .channel(`referral-rewards-${userId}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'referral_project_reward_events' },
-        () => void refresh()
-      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'grow_coin_ledger', filter: `user_id=eq.${userId}` },
@@ -177,6 +178,25 @@ export function useReferralsData(userId?: string, referralCode?: string, userRol
       void statsCh.unsubscribe();
       void refCh.unsubscribe();
       void supabase.removeChannel(rewardCh);
+    };
+  }, [userId, refresh]);
+
+  // Realtime is best-effort: the reward rows are written by SECURITY DEFINER
+  // functions and the publication is only applied once the backend deploy has
+  // run. Re-reading whenever the tab becomes active means a reward that landed
+  // while the page was in the background is never shown as "pending" until a
+  // manual reload — the counters and balance always describe committed rows.
+  useEffect(() => {
+    if (!userId) return;
+    const onFocus = () => void refresh();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [userId, refresh]);
 

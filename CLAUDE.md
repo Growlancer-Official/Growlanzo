@@ -1020,3 +1020,219 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   **Verified**: typecheck 0, lint 0, build 0 (34.8s), focused 110/110, full suite 856/857 — bacha hua `projectMap` sirf
   stale INVENTORY tha, `npm run docs:map` ke baad us file par 2/2 green. **Pending**: `supabase db push` (live DB par
   migration apply hone tak realtime/quota fix live nahi hoga) + real Razorpay/KYC keys + two-account E2E (credentials nahi).
+
+- **2026-11-01 — commission docs reconciled + coin ledger CHECK restored**: `PROJECT-BLUEPRINT.md`
+  (§1 table, §7 money path, §14.1), `docs/blueprint/DATABASE.md` §11.2 and `LAUNCH-READINESS` A12 still
+  described the retired client-side 5% and called the double charge "open". Verified against
+  `20270203000000_commission_freelancer_side.sql` that Option B is what actually runs: order =
+  `contract.amount` (no fee on top), `platform_commission()` withholds 5% at release, invoice
+  `platform_fee = 0`. Docs corrected, incl. the wrong migration filename A12 cited.
+  **Real defect fixed:** `20270302`'s rebuilt `grow_coin_ledger` reason CHECK dropped
+  `referee_referral_bonus`; `ALTER TABLE ADD CONSTRAINT` validates existing rows, so one historical
+  row would hard-fail `db push`. Value restored + guard in `src/test/growCoins.test.ts`.
+  **Verified:** typecheck 0, lint 0, full suite **858/858** on Node 24.22.2 (VM default is Node 26,
+  where jsdom `localStorage` is undefined and 69 storage/DOM tests fail — environment, not code),
+  build clean, `docs:check` current. **Not pushed / not deployed:** no Supabase credentials in this
+  environment, so the migration could not be dry-run; §8 forbids deploying an unverified migration.
+
+- **2026-11-01 — referral/AI realtime correctness + client header alignment**: two live-state defects
+  were provable in code. (a) `useReferralsData` subscribed to `referral_project_reward_events`, which is
+  `REVOKE ALL` + RLS with no policies — a `postgres_changes` channel there can never deliver, and
+  granting reads just to make it fire would expose other users' rows; it now subscribes only to
+  `grow_coin_ledger` (own-row policy) and re-reads on focus/visibility, so rewards written while the tab
+  was backgrounded are never shown as pending. The guard test that DEMANDED the unreadable subscription
+  was corrected (it now asserts the ledger channel and the absence of the service-role-only one).
+  (b) `AIChatSupport`'s meter only moved on mount/after a send, so a free freelancer's count looked stale
+  until reload; it now re-syncs on focus/visibility against `ai_support_entitlement()`, the same source
+  the edge function enforces. Also aligned the Team Projects header wrapper with AI Matches (the 40px
+  emerald tiles were already identical; the flex wrappers were not).
+  **Verified:** typecheck 0, lint 0, **858/858 tests** (Node 24.22.2), build 0.
+  **Owner-blocked:** realtime for `usage_logs`/referral tables only fires after `20270304000000` is
+  applied to the live DB; Pro-vs-free support tiers need a server-side policy (Premium is
+  freelancer-only, so clients must keep support).
+
+- **2026-11-01 (2) — freelancer support tiers enforced, AI latency routing, escrow wording de-risked**:
+  (a) new `20270305000000_freelancer_support_tier.sql` — a BEFORE INSERT trigger on `support_tickets`
+  rejects a freelancer's ticket unless `user_has_active_pro()`, while clients (no Premium plan) and
+  service-role/system inserts are untouched; free freelancers keep in-app support (AI + Help Center).
+  Fail-closed assertions check the function, the trigger and the Pro RPC. (b) `_shared/ai.ts` now routes
+  BOTH lanes by `sort: 'latency'` — the standard lane used `throughput`, which bought nothing for short
+  chat answers and made replies feel slow; same model, same token ceiling, no cost change.
+  (c) Overclaiming copy fixed: "lock funds in escrow to guarantee payment" (Philosophy), "funds are
+  held by Growlanzo" (Help Center now says internal escrow ledger, not a bank/licensed escrow),
+  "released instantly" (contest), and two "Growlanzo Escrow" phrasings (Safety, Workspace).
+  **Not changed:** login routing — `/login` already redirects through `resumeDestination` and an OAuth
+  provider round-trip cannot be removed; needs a real URL trace. Client AI Matches / Team Projects tiles
+  were already identical, so only the wrapper was aligned earlier. Coin cash redemption stays blocked.
+  **Verified:** docs:map/check, typecheck 0, lint 0, full suite, build — see commit.
+
+- **2026-11-01 (3) — closed a bypass in my own support-tier guard**: `20270305` gated on `NEW.user_role`,
+  a browser-supplied field the insert policy does not constrain (`user_id = auth.uid()` only), so a free
+  freelancer could POST `user_role:'client'` and never meet the Pro requirement. `20270306` replaces the
+  decision input with `profiles.role` (the same source ProtectedRoute and the admin RPCs use), corrects the
+  stored label when the derived role is one the CHECK accepts, fails closed when the profile row is missing,
+  and asserts at deploy time that the trigger exists, is enabled, and that its body reads `public.profiles`.
+  **Verified in WASM Postgres (PGlite), not live**: 20270304 → 20270305 → 20270306 apply in order and an
+  11-case decision table passes with the *expected rejection reason* asserted — spoofed label, expired
+  trial, cross-user insert, missing profile, service-role path, and label auto-correction. The first run of
+  that harness reported 5/11 "passing" for the wrong reason (a missing SELECT grant, not the guard), which
+  is exactly why each rejection now matches on message. Live DB unverified: no credentials in this sandbox.
+  **Open finding, not fixed:** `authenticated` still holds table-level UPDATE on `profiles` and the privilege
+  trigger only blocks escalation to `admin`, so a freelancer can set their own role to `client`. Ticket
+  gating is not the weakest link there, and closing it changes onboarding (OnboardingPage writes
+  `profiles.role` directly) — founder decision.
+
+- **2026-11-01 (4) — the free/Pro split is now visible, and the icon mismatch was real**: the gate from
+  `20270306` was enforced only in the database, so a free freelancer still saw a working-looking "New
+  Ticket" form that would fail on submit. `SupportTicketsPage` now hides the form and the empty-state
+  button for `freelancer && !isPro` and shows what the free plan actually includes — AI assistant, Help
+  Center, and where Premium sits — while clients and Pro are untouched and existing tickets stay readable.
+  **Icon defect found, not guessed**: `ClientMatchesPage` has three headers, and the project-detail one
+  used `w-8 h-8 rounded-lg … emerald-500→600 shadow-md` with a `w-4` icon while the landing state and
+  Team Projects use `w-10 h-10 rounded-xl … emerald-500→700 shadow-lg`. Opening one project's matches
+  changed the icon — that is the inconsistency reported. All three now share the 40px tile.
+  **Routing checked, not assumed**: `docs/UI-ELEMENT-AUDIT-REPORT.md` still claims the tickets page is an
+  unrouted orphan; `App.tsx:358` (freelancer) and `:405` (client) both mount it, so the doc is stale and
+  nothing was changed. Login landing left alone: `/auth/callback` already calls `redirectAfterAuth` →
+  role dashboard with no intermediate hop, and the provider page itself cannot be removed from OAuth.
+  Verify: typecheck 0, lint 0, full suite, build 0.
+
+- **2026-11-01 (5) — two stale money promises removed from the referral surface**: the shipped programme is
+  5 + 5 (KYC approval, once per relationship) and 5 + 5 again for every project the referred user completes,
+  with no cap (`20270303000000`). Two places still described the retired one-shot economy. (a)
+  `ReferralsPage` listed a "First Project Completed" validation rule and a "first project → rewards" empty
+  state, and credited "10 points" per referral — tiers actually count confirmed referrals at 3 / 10 / 25.
+  (b) `TermsPage` §14 — a **legal** document — promised "10 coins when your identity is verified", "20 coins
+  when your first project completes" and "capped at 20 paid bonuses per month". All three are retired, so the
+  terms described payouts the code cannot make. Rewritten to state the 5 + 5 / no-cap rule and the real
+  verification gate; nothing else in §14 (Premium at 199 coins, client checkout discount from 100, cash
+  withdrawal still closed, no-expiry, no-ranking-influence, clawback) was changed. **Founder review wanted**
+  on the Terms wording — it is legal copy, but it now matches the implemented rule instead of contradicting it.
+  Verify: typecheck 0, lint 0, 858/858 tests, build 0.
+
+- **2026-11-06 (1) — security-header drift fixed at the source (payment-impacting)**: `server.js` and
+  `vercel.json` each carried a hand-maintained copy of the CSP/header set, and `server.js` said in a comment
+  that it "must stay in sync" — it had not. The Express/VPS copy dropped every Razorpay checkout host
+  (`checkout-static-next`, `cdn`, `express`, `lumberjack`, `api-dark`) from `script-src`/`connect-src`/
+  `frame-src` and shipped `payment=()`, while production allows them. Anything served by `server.js`
+  (self-hosted/VPS, and the webhook-rehearsal flow) would have failed checkout in the browser — invisible to
+  typecheck/tests/build, because a CSP is enforced by the browser at runtime. **Fix:** values now live in
+  `security-headers.json`, `server.js` applies that file, and two guards keep it honest —
+  `src/test/securityHeadersParity.test.ts` (new: JSON ⇄ `vercel.json`, every key, exact value, plus
+  `object-src 'none'` / `base-uri 'self'` / real checkout hosts) and `cspFontAllowList.test.ts` (its third
+  copy is now `security-headers.json`, not `server.js`; assertion tightened, not loosened). Verified live:
+  served response now contains `checkout-static-next`/`lumberjack`/`api-dark` and the payment allow-list.
+  **Residual, founder decision (unchanged today):** `profiles.role` stays self-writable between
+  `freelancer` and `client` by design (`20270101000002`), and `admin` escalation is still blocked — but that
+  means a free freelancer can flip to `client` and reach the client-side support form, so the Pro-only
+  freelancer ticket gate is advisory, not enforced. Closing it needs a DB decision (block role changes once
+  onboarding is complete, or move role assignment into a SECURITY DEFINER RPC) and a live dry-run; not
+  shipped blind.
+
+- **2026-11-06 (2) — claims sweep of all public pages + a blind spot in the honesty guard**: rendered all
+  25 public routes through the production server and scanned the visible text for claims the product cannot
+  honour (guaranteed/insured/bank-grade/100%-safe/RBI-SEBI-ISO/instant-payout/risk-free/custody/stale
+  ₹299). **Result: 25/25 rendered, 3 hits, all three are honest disclaimers** ("Growlanzo provides no
+  cross-freelancer coordination or delivery guarantee — only payment protection"), so public copy holds.
+  The one bad line was inside the in-app support library, which `truthfulPlanClaims.test.ts` already scans:
+  `supportTopics.ts` said *"That's the Growlanzo guarantee — safe for you, safe for the client"*. The
+  guard's patterns require `guarantee` directly before secure/payment/deliverables, so an em-dash phrasing
+  named the **company** as guarantor and slipped through. Escrow holds money; a dispute can still refund
+  the client. Fixed the copy (now describes the mechanism, not a promise) and widened the pattern to
+  `/\b(?:growlanzo|platform|our)\s+guarantee\b/i` — proven with a negative control on the retired wording
+  (matches) and on both correct strings (does not match). Also refreshed `AGENTS.md` §11, which still
+  claimed "~541 tests" as of 2026-10-20 and did not warn that a cloud workspace cannot verify the DB (no
+  Supabase credentials, no `gh`), so a future session knows to run the pentests in CI instead of claiming
+  a live result.
+  Verify: typecheck 0, lint 0, **73/73 test files**, build 0, 25 public pages at 375/1280 with 0 overflow.
+
+- **2026-11-06 (3) — the feature-flag switch was decorative (silently dead in the bundle)**: `isFeatureEnabled`
+  read `import.meta.env?.[`VITE_FEATURE_${feature.toUpperCase()}_ENABLED`]`. Vike replaces a **bare** env
+  expression (the object itself, no property access after it) with `null` at build time — it printed that
+  warning on every build and nobody acted on it — so the lookup evaluated `null?.[key]` → `undefined` for
+  all three features, and every flag stayed on its fail-closed default. The documented way to enable a module
+  (`VITE_FEATURE_CONTESTS_ENABLED=true`) therefore did nothing in the shipped app. Fixed with per-feature
+  explicit property access (statically replaced by Vite) plus `src/test/featureFlagsEnv.test.ts` (6 tests:
+  default OFF, exact `'true'` ON, explicit `'false'`, non-exact values ignored, a real flip changing
+  `isDeferredRoute('/contests')` without swallowing `/client/contracts`, and a source guard against the bare
+  expression). **Proven end-to-end, not just in unit tests:** built with the flag on → `/contests` renders
+  "Compete. Create. Win." while `/certificate` and `/internships` still render the early-access notice. The
+  build warning is gone too — it had been matching the literal token inside the explanatory comment I wrote.
+  **Open, measured locally and NOT fixed:** Vike prerender still does not run here — `dist/client` contains a
+  single `index.html` and all 25 public URLs serve the same `<title>`, i.e. `scripts/build.mjs` falls back to
+  the documented SPA shell. That decides whether crawlers and link previews get per-page titles, so it needs
+  checking on the Vercel build (or CI) before launch; the cause is not proven and changing the build blind
+  would risk a red deploy.
+
+- **2026-11-06 (4) — per-page titles never reached the browser (RouteHead was never mounted)**: measured on
+  the built site, 19 rendered public routes produced **1 distinct `<title>` and 0 canonical tags** — every
+  page advertised itself as the homepage, so search results and link previews could not tell them apart.
+  Cause: `src/components/RouteHead.tsx` (title, description, canonical, OG/Twitter, `noindex` for private
+  surfaces) was complete and correct but **not rendered anywhere** — no import, no `<RouteHead />`. Mounting
+  it exposed a second, older bug in the same file: three rules were written `test: exact('/a') || exact('/b')`.
+  Those are two FUNCTION values, so `||` returns the first function and the second path is never tested —
+  `/careers`, `/verify-certificate` and `/auth/verify-email` silently fell through to the not-found metadata,
+  which is `noindex` on public pages. Fixed with a `oneOf(...paths)` helper and a separate dynamic rule for
+  `/certificate/:code`; `/certificate` itself had no exact rule at all. `Payment`'s description was the
+  placeholder "Payment status." (15 chars) and is now a real sentence.
+  New guard `src/test/routeHeadCoverage.test.ts` (6 tests) checks BOTH that `App.tsx` mounts `<RouteHead />`
+  (a coverage-only test would have passed while the component was dead) and that every
+  `PUBLIC_PRERENDER_URLS` entry resolves to its own indexable title with a usable description.
+  **Verified in the browser:** 10 public routes hard-loaded → 10 distinct titles, 9 canonicals, correct
+  `robots`, e.g. `/pricing` → "Pricing · Growlanzo" + canonical `https://growlanzo.com/pricing`.
+  Verify: typecheck 0, lint 0, **75/75 test files**, build 0, docs map/check 0.
+  **Observed, not explained:** a hard load of `/` shows no canonical/robots tag, while in-app navigation to
+  `/` sets both and hard loads of the other 9 routes work. Both tags default safely (no robots tag = indexable,
+  no canonical = self-canonical), so this is a cosmetic gap, not a blocker; nothing in the repo removes head
+  nodes. Also added the missing `VITE_FEATURE_*`, `VITE_AI_MODEL` entries to `.env.example` — the flags were
+  documented in source but absent from the only file a new deploy reads.
+
+- **2026-11-06 (5) — prerendering had never run: every route shipped the homepage's static head**: the build
+  printed `⚠ Vike prerender did not run — dist/client/index.html missing` on every run and fell back to the
+  SPA shell, so **1 HTML file existed for 31 public URLs** and every one of them carried
+  `<title>Growlanzo — AI-Powered…</title>` and `canonical="https://growlanzo.com/"`. Root cause: `scripts/build.mjs`
+  invoked `npx vite build`, and **under Vite 8 the Vite CLI no longer fires Vike's prerender hook** — it exits 0,
+  prints "built in 647ms", and writes zero HTML. `npx vike build` with the same config prerenders all 33 pages
+  (66 files). Fixes:
+  1. build script runs `vike build`; `staticShellIntegrity.test.ts` now asserts that string **and** that
+     `npx vite build` is absent, so the regression cannot come back silently (it caught this one).
+  2. The route metadata moved out of the React component into dependency-free `src/lib/routeMeta.ts`, consumed by
+     new `pages/+title.ts` and `pages/+description.ts` (Vike config functions of `pageContext`) and by
+     `pages/+Head.tsx` for canonical/robots/og:url. **Before this, only the client knew the rules** — that is why
+     the prerendered `/pricing` advertised itself as the homepage. `src/components/RouteHead.tsx` stays as the
+     client-navigation applier (Vike never sees in-app react-router navigations) and re-exports the helpers.
+     `title`/`description` were removed from `pages/+config.ts`: a constant there overrides the per-URL functions.
+  3. `server.js` serves `express.static(..., { redirect: false })`, because prerendered pages live at
+     `dist/<route>/index.html` and express was 301-ing `/pricing` → `/pricing/` while the page's canonical said
+     `/pricing`.
+  **Verified:** 66 HTML files; raw `curl` (JS disabled) returns `200` with the right head for `/`, `/pricing`,
+  `/terms`, `/careers`, `/help-center`, `/verify-certificate` (e.g. `/pricing` → "Pricing · Growlanzo" +
+  `canonical https://growlanzo.com/pricing`); exactly 1 `<title>`, 1 `og:title`, 1 `meta[name=description]`,
+  1 canonical per file; 8 routes hard-loaded in a real browser with **0 hydration errors** (no React #418) and
+  correct `<h1>` content, and in-app navigation to `/pricing` still updates title + canonical.
+  Verify: typecheck 0, lint 0, **75/75 test files**, build 0, docs map/check 0.
+
+- **2026-11-06 (6) — static-page audit of the 33 prerendered pages**: once prerendering was real, the built HTML
+  could finally be audited as shipped (not as rendered). Two defects and one duplicate-content problem:
+  1. `/auth/email-confirm` had **no `<h1>` at all** (every state used `<h2>`, so the page's only headings were
+     sub-headings — bad for screen-reader outline and for the prerendered document). Promoted the three state
+     headings to `<h1>`; each state renders exactly one, so the outline stays single-h1.
+  2. `/certificate` and `/verify-certificate` shipped byte-identical heads, as did `/internships` and `/careers`
+     (each pair is the same component). Added `canonicalPath` to `RouteMeta` and made `canonicalUrl()` resolve it,
+     so the alias collapses onto the primary URL in the **static** HTML: `/certificate` →
+     `canonical=https://growlanzo.com/verify-certificate`, `/internships` → `.../careers`. New assertions in
+     `routeHeadCoverage.test.ts` (canonical must point at a prerendered page; both aliases pinned).
+  Audited across all 31 prerendered pages: 0 missing files, 0 multi-`h1`, 0 non-Growlanzo canonicals, and the
+  remaining duplicate title pairs are the two `noindex` auth/payment pairs (intentionally unindexed).
+  Verify: typecheck 0, lint 0, **75/75 test files**, build 0 (66 HTML), docs map/check 0.
+
+- **2026-11-06 (7) — the sitemap contradicted the page metadata**: `/report` is `noindex` yet was submitted in
+  `public/sitemap.xml`, and `/internships` was submitted even though its canonical now points at `/careers` —
+  a sitemap entry that says "index me" next to a page that says "don't" gets one of the two ignored. Removed both
+  (24 → 22 URLs). New `src/test/sitemapConsistency.test.ts` (5 tests) parses the sitemap and fails if any listed
+  URL is noindex, canonicalises to a different path, is missing from `PUBLIC_PRERENDER_URLS`, is duplicated, or
+  if a core page (`/`, `/pricing`, `/about`, `/terms`, `/privacy`) disappears from it.
+  Also audited the 31 prerendered documents for markup defects: **73 `<img>` with 0 missing `alt`**, 0 `href="#"`,
+  0 `http://` links, 0 `target="_blank"` without `noopener`. The 7 `console.log` calls in `src/` are all inside
+  `import.meta.env.DEV`/`isDev` guards, so they do not ship — left alone deliberately.
+  Verify: typecheck 0, lint 0, **76/76 test files**, build 0 (66 HTML), docs map/check 0.

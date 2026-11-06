@@ -44,7 +44,7 @@ const faqs: FAQ[] = [
   {
     category: 'Payments & Escrow',
     question: 'What is Escrow Protection and how does it secure transactions?',
-    answer: 'When a contract is created, the client funds the contract total into a secure escrow pool. The funds are held by Growlanzo and are not released to either party until the client approves the deliverables, the review window passes, or both sides mutually cancel the agreement. Either party can also open a dispute, which freezes that escrow until a neutral admin review decides how the funds move.',
+    answer: 'When a contract is created, the client funds the contract total into the contract\u2019s escrow balance. Those funds are recorded in Growlanzo\u2019s internal escrow ledger (a bookkeeping hold, not a bank or licensed escrow account) and are not released to the freelancer until the client approves the deliverables, the review window passes, or both sides mutually cancel the agreement. Either party can also open a dispute, which freezes that contract\u2019s escrow until an admin review decides how the funds move.',
   },
   {
     category: 'Payments & Escrow',

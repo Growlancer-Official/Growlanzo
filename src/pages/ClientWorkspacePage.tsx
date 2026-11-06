@@ -991,7 +991,7 @@ export function ClientWorkspacePage() {
             </div>
             <p className="text-xs text-slate-700 leading-relaxed">
               <span className="font-bold text-slate-900">Escrow Protection.</span> All payments are held in
-              Growlanzo Escrow — release funds to the freelancer only after you approve the complete work.
+              Growlanzo’s escrow ledger — release funds to the freelancer only after you approve the complete work.
             </p>
           </div>
           <div className="flex items-start gap-3.5">

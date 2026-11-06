@@ -192,12 +192,21 @@ check. If something was not verified, write "not verified" and why.
 
 ## 11. Current state snapshot (update when it changes)
 
-**As of 2026-10-20:** engineering is green (typecheck, ~541 tests, build), but
-public paid launch is **NO**. Blockers are owner actions tracked in
-`docs/LAUNCH-READINESS.md`: payouts disabled (A1), no real payment ever run
+**As of 2026-11-06:** engineering is green (typecheck, lint, 76 test files,
+build with **33 genuinely prerendered pages** — 66 HTML files, each with its own
+<title>/canonical/robots — docs map, 25 public pages rendered at 375px + 1280px
+with 0 overflow),
+but public paid launch is still **NO** for the same owner-only reasons tracked
+in `docs/LAUNCH-READINESS.md`: payouts disabled (A1), no real payment ever run
 (A2), Brevo IP restriction (A9), KYC in development mode (A4), legal identity /
 grievance contact (A10), empty marketplace (A8), Grow Coin deploy (A11).
 Public posture until A1+A2: **invite-only beta, money handled manually**.
+
+**Cloud/sandbox limit:** a cloud workspace has no Supabase credentials and no
+`gh` auth, so migration diffing, the privilege pentests in `scripts/e2e/*`, and
+the Backend Deploy run state are **unverifiable there**. Run the DB-level proof
+in CI (which holds the secrets) or on a machine with `.env.local` — and never
+report a live-DB result you did not actually get.
 
 Working tree note: the professional referral-code change (migration
 `20270201000000`, `src/lib/referralCode.ts`, `ReferralInviteCard`) may be

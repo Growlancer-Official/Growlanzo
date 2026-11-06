@@ -5,6 +5,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { CurrencyProvider } from '../context/CurrencyContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { ScrollToTop } from '../components/ScrollToTop';
+import { RouteHead } from '../components/RouteHead';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { I18nProvider } from '../lib/i18n';
@@ -207,6 +208,10 @@ function App() {
           <I18nProvider>
           <ToastProvider>
           <ScrollToTop />
+          {/* Per-route <title>/description/canonical/OG. Must stay INSIDE the router
+              (it reads useLocation) and must be mounted at all — it was written but
+              never rendered, so every page shipped the homepage title. */}
+          <RouteHead />
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               {/* Public Routes */}

@@ -70,11 +70,12 @@ export async function callAI(
     top_p: 0.95,
   };
   // OpenRouter routes the SAME model to whichever provider answers fastest and
-  // falls back when one is saturated. Priority traffic asks for the lowest
-  // time-to-first-token; standard traffic favours steady throughput.
-  body.provider = priority
-    ? { sort: 'latency', allow_fallbacks: true }
-    : { sort: 'throughput', allow_fallbacks: true };
+  // falls back when one is saturated. Both lanes now ask for the lowest
+  // time-to-first-token: a chat answer is short, so steady throughput bought us
+  // nothing while it made replies feel slower (the reported "assistant is not
+  // replying fast"). Cost is unchanged — this is a routing preference, not a
+  // different model or a bigger ceiling.
+  body.provider = { sort: 'latency', allow_fallbacks: true };
   if (options.stream) {
     body.stream = true;
   }

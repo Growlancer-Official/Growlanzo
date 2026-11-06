@@ -102,7 +102,7 @@ export const FREELANCER_SUPPORT_TOPICS: SupportTopic[] = [
       },
       {
         text: 'When a client funds a contract, the full amount sits in **Growlanzo Escrow** — protected for both sides. Once you deliver, the client gets a review window (default 72h). If they don\u2019t respond in time, the escrow **auto-releases** to your wallet — a client can never hold your payment hostage. You can never be paid before delivering, and the client can never be charged for work not done.',
-        options: [{ label: 'Perfect — thanks!', done: 'That\u2019s the Growlanzo guarantee — safe for you, safe for the client. 🛡️' }, { label: 'Tell me about milestones', next: 1 }],
+        options: [{ label: 'Perfect — thanks!', done: 'That\u2019s escrow doing its job — the money is held before work starts and released when you deliver, for both sides. 🛡️' }, { label: 'Tell me about milestones', next: 1 }],
       },
       {
         text: 'The freelancer only starts after escrow is funded — that\u2019s by design. Politely remind the client in the workspace chat. Most clients fund within 24–48h. If the contract has been stuck unfunded for over a week, you can withdraw your proposal and move on to other projects.',

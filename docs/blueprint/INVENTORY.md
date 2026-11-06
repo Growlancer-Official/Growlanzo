@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **699 files** across 12 groups.
+Total tracked structure: **706 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -12,12 +12,12 @@ Total tracked structure: **699 files** across 12 groups.
 | Layouts | 4 |
 | Components | 52 |
 | Context & hooks | 10 |
-| Client libraries & services | 69 |
+| Client libraries & services | 70 |
 | Edge functions | 33 |
 | Edge shared modules | 8 |
-| Database migrations | 311 |
+| Database migrations | 313 |
 | Archived migrations (not applied) | 6 |
-| Test suite | 72 |
+| Test suite | 76 |
 | Operational scripts | 34 |
 | CI / deploy workflows | 4 |
 
@@ -203,7 +203,7 @@ Cross-page state (auth, theme, currency) and reusable data hooks.
 - `src/hooks/useProStatus.ts`
 - `src/hooks/useReferralsData.ts`
 
-## Client libraries & services (69)
+## Client libraries & services (70)
 
 All data access, business rules and formatting live here — pages call services, not Supabase directly (with few explicit exceptions).
 
@@ -260,6 +260,7 @@ All data access, business rules and formatting live here — pages call services
 - `src/lib/refundService.ts`
 - `src/lib/reviews.ts`
 - `src/lib/revisionService.ts`
+- `src/lib/routeMeta.ts`
 - `src/lib/secondAccountGuard.ts`
 - `src/lib/sellerLevels.ts`
 - `src/lib/servicePricing.ts`
@@ -328,7 +329,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/site.ts`
 - `supabase/functions/_shared/urlGuard.ts`
 
-## Database migrations (311)
+## Database migrations (313)
 
 Ordered by filename timestamp. Applied by `supabase db push --include-all` in Backend Deploy; never by hand in the dashboard.
 
@@ -643,6 +644,8 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20270302000000_referral_lifetime_project_rewards.sql`
 - `supabase/migrations/20270303000000_coin_economy_single_reward_table.sql`
 - `supabase/migrations/20270304000000_realtime_ai_quota_priority_support.sql`
+- `supabase/migrations/20270305000000_freelancer_support_tier.sql`
+- `supabase/migrations/20270306000000_support_tier_derive_role.sql`
 
 ## Archived migrations (not applied) (6)
 
@@ -655,7 +658,7 @@ Kept for history only. `db push` reads the top level of `supabase/migrations`, s
 - `supabase/migrations/archived/20260806000000_restore_auto_confirm_trigger.sql`
 - `supabase/migrations/archived/20260830000000_consolidated_email_verification_final.sql`
 
-## Test suite (72)
+## Test suite (76)
 
 Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invariants have guard tests here.
 
@@ -691,6 +694,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/errorBoundary.test.tsx`
 - `src/test/escrow.test.ts`
 - `src/test/featureFlags.test.ts`
+- `src/test/featureFlagsEnv.test.ts`
 - `src/test/growCoins.test.ts`
 - `src/test/iconPackConsolidation.test.ts`
 - `src/test/kycLightVerification.test.ts`
@@ -714,13 +718,16 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/referralInviteCard.test.tsx`
 - `src/test/referralLifetimeProjectRewards.test.ts`
 - `src/test/referralShare.test.ts`
+- `src/test/routeHeadCoverage.test.ts`
 - `src/test/sameRoleReferrals.test.ts`
 - `src/test/secondAccountGuard.test.ts`
+- `src/test/securityHeadersParity.test.ts`
 - `src/test/sellerLevels.test.ts`
 - `src/test/serverOnlyRpcs.test.ts`
 - `src/test/servicePricing.test.ts`
 - `src/test/serviceRoleContextGuard.test.ts`
 - `src/test/signupProfileTrigger.test.ts`
+- `src/test/sitemapConsistency.test.ts`
 - `src/test/siteUrlGuard.test.ts`
 - `src/test/sqlMigrationSyntax.test.ts`
 - `src/test/staticShellIntegrity.test.ts`
