@@ -47,8 +47,34 @@ const DEFAULTS: Record<ClientFeature, boolean> = {
   contests: false,
 };
 
+/**
+ * Read the flag for one feature with EXPLICIT property access.
+ *
+ * ⚠️ Do not "simplify" this back to one computed lookup on the env object.
+ * Vike replaces a BARE env expression (the object itself, with no property
+ * access after it) with `null` at build time — it printed exactly that warning
+ * for this file on every build — so the computed lookup evaluated `null?.[key]`
+ * → `undefined` for every feature in the shipped bundle. Every
+ * flag therefore stayed on its fail-closed default and setting
+ * `VITE_FEATURE_CONTESTS_ENABLED=true` (the documented way to enable a module)
+ * did nothing at all — silently. Property access on the env object is replaced
+ * statically by Vite and survives the build, which is why it is written out.
+ */
+function envFlag(feature: ClientFeature): string | undefined {
+  switch (feature) {
+    case 'internships':
+      return import.meta.env.VITE_FEATURE_INTERNSHIPS_ENABLED;
+    case 'certificates':
+      return import.meta.env.VITE_FEATURE_CERTIFICATES_ENABLED;
+    case 'contests':
+      return import.meta.env.VITE_FEATURE_CONTESTS_ENABLED;
+    default:
+      return undefined;
+  }
+}
+
 export function isFeatureEnabled(feature: ClientFeature): boolean {
-  const raw = import.meta.env?.[`VITE_FEATURE_${feature.toUpperCase()}_ENABLED`];
+  const raw = envFlag(feature);
   if (raw === 'true') return true;
   if (raw === 'false') return false;
   return DEFAULTS[feature];

@@ -1145,3 +1145,21 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   Supabase credentials, no `gh`), so a future session knows to run the pentests in CI instead of claiming
   a live result.
   Verify: typecheck 0, lint 0, **73/73 test files**, build 0, 25 public pages at 375/1280 with 0 overflow.
+
+- **2026-11-06 (3) — the feature-flag switch was decorative (silently dead in the bundle)**: `isFeatureEnabled`
+  read `import.meta.env?.[`VITE_FEATURE_${feature.toUpperCase()}_ENABLED`]`. Vike replaces a **bare** env
+  expression (the object itself, no property access after it) with `null` at build time — it printed that
+  warning on every build and nobody acted on it — so the lookup evaluated `null?.[key]` → `undefined` for
+  all three features, and every flag stayed on its fail-closed default. The documented way to enable a module
+  (`VITE_FEATURE_CONTESTS_ENABLED=true`) therefore did nothing in the shipped app. Fixed with per-feature
+  explicit property access (statically replaced by Vite) plus `src/test/featureFlagsEnv.test.ts` (6 tests:
+  default OFF, exact `'true'` ON, explicit `'false'`, non-exact values ignored, a real flip changing
+  `isDeferredRoute('/contests')` without swallowing `/client/contracts`, and a source guard against the bare
+  expression). **Proven end-to-end, not just in unit tests:** built with the flag on → `/contests` renders
+  "Compete. Create. Win." while `/certificate` and `/internships` still render the early-access notice. The
+  build warning is gone too — it had been matching the literal token inside the explanatory comment I wrote.
+  **Open, measured locally and NOT fixed:** Vike prerender still does not run here — `dist/client` contains a
+  single `index.html` and all 25 public URLs serve the same `<title>`, i.e. `scripts/build.mjs` falls back to
+  the documented SPA shell. That decides whether crawlers and link previews get per-page titles, so it needs
+  checking on the Vercel build (or CI) before launch; the cause is not proven and changing the build blind
+  would risk a red deploy.
