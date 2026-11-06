@@ -259,7 +259,7 @@ for (const u of targets) {
   console.log(`    Password : ${TEST_PASSWORD}`);
   console.log(`    Role     : ${u.role.toUpperCase()}`);
 }
-console.log('\n  🔗 Test at: https://growlancer.vercel.app');
+console.log('\n  🔗 Test at: https://growlanzo.com');
 console.log('  🧹 Cleanup : node scripts/create_test_users.mjs --cleanup --force');
 console.log('══════════════════════════════════════════════════════════\n');
 

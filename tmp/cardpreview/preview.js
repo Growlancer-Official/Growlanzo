@@ -69,12 +69,12 @@ var RS = (() => {
   function buildReferralLink(code, origin) {
     const formatted = formatReferralCode(code);
     if (!formatted) return "";
-    const base = (origin || (typeof window !== "undefined" ? window.location.origin : "") || "https://growlancer.com").replace(/\/+$/, "");
+    const base = (origin || (typeof window !== "undefined" ? window.location.origin : "") || "https://growlanzo.com").replace(/\/+$/, "");
     return `${base}/signup?ref=${encodeURIComponent(formatted)}`;
   }
 
   // src/lib/referralShare.ts
-  var SITE_URL = "https://growlancer.com";
+  var SITE_URL = "https://growlanzo.com";
   var CARD_WIDTH = 1200;
   var CARD_HEIGHT = 630;
   var LOGO_SOURCES = ["/UpdatedLogo.webp", "/UpdatedLogo.png"];
@@ -276,7 +276,7 @@ var RS = (() => {
     ctx2d.stroke();
     ctx2d.fillStyle = "rgba(148, 163, 184, 0.95)";
     ctx2d.font = '20px -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-    ctx2d.fillText("growlancer.com/signup", 72, 606);
+    ctx2d.fillText("growlanzo.com/signup", 72, 606);
     const name = (ctx.name || "").trim();
     if (name) {
       ctx2d.textAlign = "right";

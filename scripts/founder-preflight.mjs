@@ -126,7 +126,8 @@ const DIGEST_CANDIDATES = {
   APP_URL: [
     'https://growlanzo.com',
     'https://www.growlanzo.com',
-    'https://growlancer.vercel.app',
+    'https://growlanzo.com',
+    'https://www.growlanzo.com',
     'http://localhost:5173',
   ],
   PAYPAL_SANDBOX: ['true', 'false'],
@@ -197,7 +198,7 @@ function secretInventory() {
   }
 
   const appUrl = configured.get('APP_URL');
-  if (appUrl === sha256('https://growlancer.vercel.app')) {
+  if (appUrl === sha256('https://growlanzo.com')) {
     warn(
       'APP_URL still points at the Vercel origin',
       'switch to https://growlanzo.com after the custom domain is live (see runbook §5)',

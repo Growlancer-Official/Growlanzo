@@ -29,11 +29,16 @@ if (!TOKEN) {
 
 const REDIRECT_URLS = [
   // Production
-  'https://growlancer.vercel.app',
-  'https://growlancer.vercel.app/auth/callback',
-  'https://growlancer.vercel.app/auth/email-confirm',
-  'https://growlancer.vercel.app/auth/callback*',
-  'https://growlancer.vercel.app/auth/email-confirm*',
+  'https://growlanzo.com',
+  'https://growlanzo.com/auth/callback',
+  'https://growlanzo.com/auth/email-confirm',
+  'https://growlanzo.com/auth/callback*',
+  'https://growlanzo.com/auth/email-confirm*',
+  'https://www.growlanzo.com',
+  'https://www.growlanzo.com/auth/callback',
+  'https://www.growlanzo.com/auth/email-confirm',
+  'https://www.growlanzo.com/auth/callback*',
+  'https://www.growlanzo.com/auth/email-confirm*',
   // Preview deployments
   'https://growlancer-mrkhan154212s-projects.vercel.app',
   'https://growlancer-mrkhan154212s-projects.vercel.app/auth/callback',

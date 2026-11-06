@@ -8,7 +8,7 @@ This document defines the engineering standards, contribution workflow, review e
 
 > **Repository Status:** Proprietary / Controlled Contribution
 > **Project:** Growlanzo
-> **Website:** https://growlancer.vercel.app
+> **Website:** https://growlanzo.com
 
 ---
 

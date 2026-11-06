@@ -25,7 +25,7 @@ const RAW_APP_URL = (Deno.env.get('APP_URL') ?? '').trim();
  * ever lost, this keeps links working rather than pointing at a domain that
  * may not resolve yet.
  */
-export const FALLBACK_SITE_URL = 'https://growlancer.vercel.app';
+export const FALLBACK_SITE_URL = 'https://growlanzo.com';
 
 /** Absolute site origin, no trailing slash. */
 export const SITE_URL: string = (RAW_APP_URL || FALLBACK_SITE_URL).replace(/\/+$/, '');

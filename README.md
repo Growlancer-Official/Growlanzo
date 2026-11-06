@@ -12,7 +12,7 @@
 
 <br/>
 
-[![Website](https://img.shields.io/badge/Website-Live-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlancer.vercel.app)
+[![Website](https://img.shields.io/badge/Website-Live-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlanzo.com)
 [![Status](https://img.shields.io/badge/Status-Beta-success?style=for-the-badge\&logo=rocket\&logoColor=white)]
 [![License](https://img.shields.io/badge/License-Proprietary-2563eb?style=for-the-badge\&logo=github\&logoColor=white)]
 
@@ -588,9 +588,9 @@ Growlanzo is being continuously developed toward a production-grade professional
 
 <div align="center">
 
-[![Visit Growlanzo](https://img.shields.io/badge/Visit%20Growlanzo-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlancer.vercel.app)
+[![Visit Growlanzo](https://img.shields.io/badge/Visit%20Growlanzo-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlanzo.com)
 
-**https://growlancer.vercel.app**
+**https://growlanzo.com**
 
 </div>
 
@@ -612,11 +612,13 @@ Growlanzo is being continuously developed toward a production-grade professional
 
 <div align="center">
 
-[![Website](https://img.shields.io/badge/Website-growlancer.vercel.app-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlancer.vercel.app)
+[![Website](https://img.shields.io/badge/Website-growlanzo.com-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlanzo.com)
 
-[![Email](https://img.shields.io/badge/Email-growlancer.own%40gmail.com-2563eb?style=for-the-badge\&logo=gmail\&logoColor=white)](mailto:growlancer.own@gmail.com)
+[![Email](https://img.shields.io/badge/Email-growlanzo.own%40gmail.com-2563eb?style=for-the-badge\&logo=gmail\&logoColor=white)](mailto:growlanzo.own@gmail.com)
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Growlanzo-0A66C2?style=for-the-badge\&logo=linkedin\&logoColor=white)](https://linkedin.com/company/growlancercom)
+[![Twitter](https://img.shields.io/badge/X-Twitter-000000?style=for-the-badge\&logo=x\&logoColor=white)](https://x.com/Growlanzo)
+[![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge\&logo=instagram\&logoColor=white)](https://www.instagram.com/invites/contact/?utm_source=ig_contact_invite&utm_medium=copy_link&utm_content=6xoewwb)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Growlanzo-0A66C2?style=for-the-badge\&logo=linkedin\&logoColor=white)](https://www.linkedin.com/company/growlancercom/)
 
 </div>
 
