@@ -160,7 +160,7 @@ enabled = true
 #    Never run `supabase config push` while site_url is localhost — it would overwrite
 #    the live site_url and break every verification / password-reset email link.
 #    The live value is written by scripts/push_redirect_urls.mjs (which reads APP_URL).
-site_url = "http://localhost:5173"
+site_url = "https://growlanzo.com"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
@@ -176,26 +176,16 @@ additional_redirect_urls = [
   # suffixes that break exact glob matches — wildcard (*) entries below cover
   # them. GoTrue appends type=… to the URL fragment itself, so the client
   # never needs ?type= in emailRedirectTo.
-  "https://growlancer-vercel.app",
-  "https://growlancer-vercel.app/auth/callback",
-  "https://growlancer-vercel.app/auth/email-confirm",
-  "https://growlancer-vercel.app/auth/callback*",
-  "https://growlancer-vercel.app/auth/email-confirm*",
-  "https://growlancer.com",
-  "https://growlancer.com/auth/callback",
-  "https://growlancer.com/auth/email-confirm",
-  "https://growlancer.com/auth/callback*",
-  "https://growlancer.com/auth/email-confirm*",
-  "https://www.growlancer.com",
-  "https://www.growlancer.com/auth/callback",
-  "https://www.growlancer.com/auth/email-confirm",
-  "https://www.growlancer.com/auth/callback*",
-  "https://www.growlancer.com/auth/email-confirm*",
-  "https://growlancer-mrkhan154212s-projects.vercel.app",
-  "https://growlancer-mrkhan154212s-projects.vercel.app/auth/callback",
-  "https://growlancer-mrkhan154212s-projects.vercel.app/auth/email-confirm",
-  "https://growlancer-mrkhan154212s-projects.vercel.app/auth/callback*",
-  "https://growlancer-mrkhan154212s-projects.vercel.app/auth/email-confirm*",
+  "https://growlanzo.com",
+  "https://growlanzo.com/auth/callback",
+  "https://growlanzo.com/auth/email-confirm",
+  "https://growlanzo.com/auth/callback*",
+  "https://growlanzo.com/auth/email-confirm*",
+  "https://www.growlanzo.com",
+  "https://www.growlanzo.com/auth/callback",
+  "https://www.growlanzo.com/auth/email-confirm",
+  "https://www.growlanzo.com/auth/callback*",
+  "https://www.growlanzo.com/auth/email-confirm*",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

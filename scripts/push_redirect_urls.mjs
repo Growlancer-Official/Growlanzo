@@ -29,28 +29,28 @@ if (!TOKEN) {
 
 const REDIRECT_URLS = [
   // Production main domain
-  'https://growlancer.vercel.app',
-  'https://growlancer.vercel.app/auth/callback',
-  'https://growlancer.vercel.app/auth/email-confirm',
-  'https://growlancer.vercel.app/auth/callback*',
-  'https://growlancer.vercel.app/auth/email-confirm*',
+  'https://growlanzo.com',
+  'https://growlanzo.com/auth/callback',
+  'https://growlanzo.com/auth/email-confirm',
+  'https://growlanzo.com/auth/callback*',
+  'https://growlanzo.com/auth/email-confirm*',
   // Preview deployment
-  'https://growlancer-mrkhan154212s-projects.vercel.app',
-  'https://growlancer-mrkhan154212s-projects.vercel.app/auth/callback',
-  'https://growlancer-mrkhan154212s-projects.vercel.app/auth/email-confirm',
-  'https://growlancer-mrkhan154212s-projects.vercel.app/auth/callback*',
-  'https://growlancer-mrkhan154212s-projects.vercel.app/auth/email-confirm*',
+  'https://growlanzo.com',
+  'https://growlanzo.com/auth/callback',
+  'https://growlanzo.com/auth/email-confirm',
+  'https://growlanzo.com/auth/callback*',
+  'https://growlanzo.com/auth/email-confirm*',
   // Old custom domain (growlancer.com)
-  'https://growlancer.com',
-  'https://growlancer.com/auth/callback',
-  'https://growlancer.com/auth/email-confirm',
-  'https://growlancer.com/auth/callback*',
-  'https://growlancer.com/auth/email-confirm*',
-  'https://www.growlancer.com',
-  'https://www.growlancer.com/auth/callback',
-  'https://www.growlancer.com/auth/email-confirm',
-  'https://www.growlancer.com/auth/callback*',
-  'https://www.growlancer.com/auth/email-confirm*',
+  'https://growlanzo.com',
+  'https://growlanzo.com/auth/callback',
+  'https://growlanzo.com/auth/email-confirm',
+  'https://growlanzo.com/auth/callback*',
+  'https://growlanzo.com/auth/email-confirm*',
+  'https://www.growlanzo.com',
+  'https://www.growlanzo.com/auth/callback',
+  'https://www.growlanzo.com/auth/email-confirm',
+  'https://www.growlanzo.com/auth/callback*',
+  'https://www.growlanzo.com/auth/email-confirm*',
   // Local dev
   'http://localhost:5173',
   'http://localhost:5173/auth/callback',
@@ -58,7 +58,7 @@ const REDIRECT_URLS = [
 ];
 
 function resolveSiteUrl() {
-  return 'https://growlancer.vercel.app';
+  return 'https://growlanzo.com';
 }
 
 const SITE_URL = resolveSiteUrl();

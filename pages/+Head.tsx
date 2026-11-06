@@ -47,7 +47,7 @@ export default function Head() {
       {/* ── Open Graph / Facebook ── */}
       <meta property="og:type" content="website" />
       <meta property="og:url" content={canonical} />
-      <meta property="og:image" content="https://growlancer.vercel.app/og-image.png" />
+      <meta property="og:image" content="https://growlanzo.com/og-image.png" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
 
@@ -56,7 +56,7 @@ export default function Head() {
       <meta property="twitter:url" content={canonical} />
       <meta property="twitter:title" content={meta.title} />
       <meta property="twitter:description" content={meta.description} />
-      <meta property="twitter:image" content="https://growlancer.vercel.app/og-image.png" />
+      <meta property="twitter:image" content="https://growlanzo.com/og-image.png" />
 
       {/* ── Canonical ── */}
       <link rel="canonical" href={canonical} />
