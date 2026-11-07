@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase, realtimeChannels, tables } from '../lib/supabase';
+import { notifyProjectCompleted } from '../lib/workflowService';
 import { formatBudgetRange } from '../utils/date';
 import { PageSkeleton } from '../components/PageSkeleton';
 import { InfoTip } from '../components/InfoTip';
@@ -264,6 +265,9 @@ export function ClientProjectsPage() {
       .eq('client_id', user.id);
     if (!error) {
       setProjects(prev => prev.map(p => p.id === projectId ? { ...p, status: 'completed' } : p));
+      // Fire-and-forget: the freelancer hears the project is done and is asked
+      // for a review. Sends nothing if no one was hired through Growlanzo.
+      void notifyProjectCompleted(projectId);
     }
     setCompletingId(null);
     setShowCompleteModal(null);

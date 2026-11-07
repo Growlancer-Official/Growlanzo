@@ -474,6 +474,13 @@ verify_jwt = false
 [functions.email-admin]
 verify_jwt = true
 
+# Project lifecycle emails (completed / review request). Called from the
+# client's browser after the project is marked complete, so the caller's JWT is
+# required; the function then re-checks project ownership server-side and
+# derives the recipient from the contract — never from the request body.
+[functions.project-notifications]
+verify_jwt = true
+
 # ai-writer is called from the app with the user's JWT (it re-validates the
 # user via auth.getUser() and enforces the daily free/Pro allowance), so it
 # keeps the default verify_jwt = true.

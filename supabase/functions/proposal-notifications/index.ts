@@ -214,31 +214,31 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Fetch proposal with freelancer + project details
+    // Fetch the proposal and its project. The counterparty ADDRESS is no longer
+    // a profiles column (it moved to profiles_private in 20261221000000), so it
+    // is read from there below — selecting `profiles(email)` here made the
+    // query fail and took every proposal email down with it.
     const { data: proposal, error: propError } = await supabaseClient
       .from('proposals')
-      .select('id, project_id, freelancer_id, status, profiles!proposals_freelancer_id_fkey(id, email, name), projects!proposals_project_id_fkey(id, title), projects!inner(client_id), profiles!projects_client_id_fkey!inner(name)')
+      .select('id, project_id, freelancer_id, status, projects!proposals_project_id_fkey(id, title, client_id)')
       .eq('id', proposal_id)
-      .single()
+      .maybeSingle()
 
     if (propError || !proposal) {
       return new Response(
-        JSON.stringify({ error: 'Proposal not found', details: propError?.message }),
+        JSON.stringify({ error: 'Proposal not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Extract data from the nested selects
-    const freelancer = proposal.profiles as { id: string; email: string; name: string } | null
-    const project = proposal.projects as { id: string; title: string } | null
+    const project = proposal.projects as { id: string; title: string; client_id: string } | null
+    if (!project) {
+      return new Response(
+        JSON.stringify({ error: 'Could not load project details' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
-    // Get the project's client name for the email
-    let clientName = 'the client'
-    const { data: projectFull } = await supabaseClient
-      .from('projects')
-      .select('client_id')
-      .eq('id', proposal.project_id)
-      .single()
 
     // 🔐 Ownership: only the project's client (or an admin) may trigger
     // accept/reject emails for this proposal. Any other authenticated user
@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .maybeSingle();
     const callerIsAdmin = callerProfile?.role === 'admin';
-    if (!callerIsAdmin && projectFull?.client_id !== user.id) {
+    if (!callerIsAdmin && project.client_id !== user.id) {
       console.warn(`[proposal-notifications] FORBIDDEN: user ${user.id} tried to ${action} proposal ${proposal_id}`);
       return new Response(
         JSON.stringify({ error: 'Forbidden — you do not own this project' }),
@@ -258,19 +258,24 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (projectFull?.client_id) {
-      const { data: cp } = await supabaseClient
-        .from('profiles')
-        .select('name')
-        .eq('id', projectFull.client_id)
-        .maybeSingle()
-      if (cp?.name) clientName = cp.name
+    const [{ data: freelancerProfile }, { data: freelancerPrivate }, { data: clientProfile }] =
+      await Promise.all([
+        supabaseClient.from('profiles').select('name').eq('id', proposal.freelancer_id).maybeSingle(),
+        supabaseClient.from('profiles_private').select('email').eq('id', proposal.freelancer_id).maybeSingle(),
+        supabaseClient.from('profiles').select('name').eq('id', project.client_id).maybeSingle(),
+      ])
+
+    const clientName = clientProfile?.name || 'the client'
+    const freelancer = {
+      id: proposal.freelancer_id as string,
+      email: String(freelancerPrivate?.email ?? '').trim(),
+      name: String(freelancerProfile?.name ?? 'there'),
     }
 
-    if (!freelancer || !project) {
+    if (!freelancer.id || !freelancer.email) {
       return new Response(
-        JSON.stringify({ error: 'Could not load freelancer or project details' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Freelancer has no verified email address on file' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -296,8 +301,13 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Create in-app notification for the freelancer
-    const notifType = action === 'accept' ? 'proposal_accepted' : 'proposal_rejected'
+    // Create in-app notification for the freelancer.
+    // `notifications.type` is constrained to a fixed vocabulary ('proposal',
+    // 'contract', 'review', …) — the previous values 'proposal_accepted' /
+    // 'proposal_rejected' violated notifications_type_check, so the in-app
+    // notification was silently rejected on every accept/reject.
+    const notifType = 'proposal'
+    const notifOutcome = action === 'accept' ? 'proposal_accepted' : 'proposal_rejected'
     const notifTitle = action === 'accept' ? 'Proposal Accepted! 🎉' : 'Proposal Update 💙'
     const notifMessage = action === 'accept'
       ? `Your proposal for "${project.title}" was accepted! Contract has been created.`
@@ -308,7 +318,7 @@ Deno.serve(async (req) => {
       type: notifType,
       title: notifTitle,
       message: notifMessage,
-      metadata: { proposal_id, project_id: project.id, action },
+      metadata: { proposal_id, project_id: project.id, action, outcome: notifOutcome },
       action_url: action === 'accept' ? '/dashboard/contracts' : '/dashboard/projects',
     })
 
@@ -318,7 +328,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         email_sent: emailSent,
-        notif_type: notifType,
+        notif_type: notifOutcome,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

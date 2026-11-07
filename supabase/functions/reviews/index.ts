@@ -4,6 +4,42 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { sendTransactionalEmail } from '../_shared/emailService.ts'
+
+/**
+ * "You received a review" — sent once the review row exists, to the person who
+ * was reviewed. Best-effort by design: the review is already saved, so a failed
+ * email is logged and never turns a successful review into an error.
+ */
+async function notifyReviewReceived(
+  supabaseAdmin: any,
+  params: { reviewId: string; revieweeId: string; rating: number; projectTitle?: string },
+): Promise<void> {
+  try {
+    const [{ data: pub }, { data: priv }] = await Promise.all([
+      supabaseAdmin.from('profiles').select('name').eq('id', params.revieweeId).maybeSingle(),
+      supabaseAdmin.from('profiles_private').select('email').eq('id', params.revieweeId).maybeSingle(),
+    ])
+    const email = String(priv?.email ?? '').trim()
+    if (!email) return
+
+    await sendTransactionalEmail({
+      event: 'review_received',
+      to: email,
+      recipientName: String(pub?.name ?? 'there'),
+      recipientUserId: params.revieweeId,
+      data: {
+        name: String(pub?.name ?? ''),
+        rating: params.rating,
+        project_title: params.projectTitle ?? 'your project',
+      },
+      // One mail per review row — a retried request cannot send it twice.
+      idempotencyKey: `review_received:${params.reviewId}`,
+    })
+  } catch (err) {
+    console.error('[reviews] review_received email failed:', err instanceof Error ? err.message : err)
+  }
+}
 
 
 // Rate limiting - DB-backed
@@ -138,7 +174,9 @@ Deno.serve(async (req) => {
         // Verify user is part of the contract
         const { data: contract, error: contractError } = await supabaseClient
           .from('contracts')
-          .select('freelancer_id, client_id, status')
+          // projects(title) is only for the notification email; the review
+          // itself needs nothing but the two parties and the status.
+          .select('freelancer_id, client_id, status, projects(title)')
           .eq('id', contract_id)
           .single()
 
@@ -210,6 +248,14 @@ Deno.serve(async (req) => {
         if (reviewError) {
           throw reviewError
         }
+
+        const contractProject = (contract as { projects?: { title?: string } | null } | null)?.projects
+        await notifyReviewReceived(supabaseAdmin, {
+          reviewId: String(review.id),
+          revieweeId: reviewee_id,
+          rating,
+          projectTitle: contractProject?.title,
+        })
 
         return new Response(
           JSON.stringify({ review }),
@@ -310,6 +356,13 @@ Deno.serve(async (req) => {
       // time by the on_review_change trigger (security definer). No direct
       // update here — an authenticated user cannot UPDATE another user's
       // freelancer_profiles row (RLS), which previously failed silently.
+
+      // Contest winners and clients review each other the same way.
+      await notifyReviewReceived(supabaseAdmin, {
+        reviewId: String(review.id),
+        revieweeId: reviewee_id,
+        rating,
+      })
 
       return new Response(
         JSON.stringify({ review }),

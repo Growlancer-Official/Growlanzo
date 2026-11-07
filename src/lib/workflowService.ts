@@ -98,6 +98,40 @@ export async function rejectProposal(proposalId: string): Promise<boolean> {
   return ok;
 }
 
+/** Project lifecycle emails the freelancer receives when a project finishes. */
+export type ProjectEmailEvent = 'project_completed' | 'review_request';
+
+/**
+ * Call the project-notifications edge function. The recipient and the ownership
+ * check are resolved server-side from the project, so nothing here is trusted:
+ * a caller can only produce mail about a project they own.
+ * Fire-and-forget — the project is already complete whether or not it sends.
+ */
+async function sendProjectNotification(projectId: string, event: ProjectEmailEvent): Promise<void> {
+  try {
+    const { error } = await supabase.functions.invoke('project-notifications', {
+      method: 'POST',
+      body: { project_id: projectId, event },
+    });
+    if (error) {
+      console.error(`[project-notifications] ${event} failed:`, error.message);
+    }
+  } catch (err) {
+    // Intentionally silent: post-completion notification is non-critical background work.
+    console.error(`[project-notifications] ${event} error:`, err);
+  }
+}
+
+/**
+ * Tell the hired freelancer the project is complete and invite their review.
+ * Both are idempotent per project (email_logs idempotency key), so calling this
+ * from two places — or twice from the same tab — sends each email at most once.
+ */
+export async function notifyProjectCompleted(projectId: string): Promise<void> {
+  await sendProjectNotification(projectId, 'project_completed');
+  await sendProjectNotification(projectId, 'review_request');
+}
+
 /** Call the proposal-notifications edge function to send email + in-app notification. */
 async function sendProposalNotification(proposalId: string, action: 'accept' | 'reject'): Promise<void> {
   try {

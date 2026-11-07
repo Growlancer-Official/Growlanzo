@@ -25,6 +25,7 @@ import {
 import { ROUTES } from '../routes';
 import { useToast } from '../components/Toast';
 import { TipNote } from '../components/TipNote';
+import { notifyProjectCompleted } from '../lib/workflowService';
 
 interface ProjectDetails {
   id: string;
@@ -145,6 +146,9 @@ export function ProjectDetailsPage() {
       .eq('client_id', user.id);
     if (!error) {
       setShowCompleteModal(false);
+      // The freelancer gets the completion email + review request (server-side
+      // recipient, idempotent per project).
+      void notifyProjectCompleted(projectId);
       void fetchProject();
     } else {
       toast.error('Error', 'Failed to complete project. Please try again.');

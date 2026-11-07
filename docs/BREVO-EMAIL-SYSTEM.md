@@ -49,6 +49,32 @@ essential (transactional) or optional (activity/onboarding).
 Groups: authentication/security, welcome/onboarding, support, client project
 workflows, freelancer workflows, payments/payouts, trust and account state.
 
+### Which events are actually triggered
+
+Catalogue ≠ wired. Only events with a real workflow in the app are sent today:
+
+| Event | Trigger (real workflow) | Recipient | Function |
+| --- | --- | --- | --- |
+| `proposal_accepted` / `proposal_rejected` | client accepts or rejects a proposal (`hireFreelancerFromProposal`, `rejectProposal`) | the freelancer who proposed | `proposal-notifications` |
+| `project_completed` | client sets a project to `completed` (client projects list, project details) | the hired freelancer | `project-notifications` |
+| `review_request` | same completion action, sent once per project | the hired freelancer | `project-notifications` |
+| `review_received` | a review row is created (contract or contest review) | the person reviewed | `reviews` |
+| welcome / verified / withdrawal / dispute / escrow / milestone / verification / suspension / support ack | their existing flows | the affected user | `email-notifications` |
+
+Everything else in the catalogue (payout updates, refund confirmation, some
+milestone and invitation events) is defined but **not triggered**, because no
+workflow emits it yet. Wiring one means calling the pipeline from the code path
+that performs the state change — never sending optimistically before it.
+
+Both lifecycle functions resolve the recipient **server-side** (contract or
+hired proposal → `profiles_private.email`) and check ownership against the
+caller's session, so neither can be used as a mail relay. `project-notifications`
+refuses to send unless the project really is `completed`.
+
+`project-notifications` idempotency keys are `event:project_id:recipient`;
+`review_received` uses `review_received:<review_id>` — a retried request or a
+double-click cannot send the same message twice.
+
 Every message renders **HTML + plain-text**, and the footer carries the
 Growlanzo social profiles (X, Instagram, LinkedIn) plus website / help centre /
 support links.
@@ -103,6 +129,8 @@ npx supabase functions deploy email-admin
 npx supabase functions deploy brevo-webhook --no-verify-jwt
 npx supabase functions deploy email-notifications
 npx supabase functions deploy proposal-notifications
+npx supabase functions deploy project-notifications
+npx supabase functions deploy reviews
 ```
 
 Frontend ships with the normal Vercel deploy; the admin console lives at

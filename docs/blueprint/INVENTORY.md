@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **715 files** across 12 groups.
+Total tracked structure: **717 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -13,11 +13,11 @@ Total tracked structure: **715 files** across 12 groups.
 | Components | 52 |
 | Context & hooks | 10 |
 | Client libraries & services | 71 |
-| Edge functions | 35 |
+| Edge functions | 36 |
 | Edge shared modules | 11 |
 | Database migrations | 314 |
 | Archived migrations (not applied) | 6 |
-| Test suite | 76 |
+| Test suite | 77 |
 | Operational scripts | 35 |
 | CI / deploy workflows | 4 |
 
@@ -280,7 +280,7 @@ All data access, business rules and formatting live here — pages call services
 - `src/lib/withdrawal.ts`
 - `src/lib/workflowService.ts`
 
-## Edge functions (35)
+## Edge functions (36)
 
 One directory per deployed function; `_shared` is imported, never deployed on its own.
 
@@ -307,6 +307,7 @@ One directory per deployed function; `_shared` is imported, never deployed on it
 - `supabase/functions/paypal-webhook/index.ts`
 - `supabase/functions/paypal/index.ts`
 - `supabase/functions/process-deletion/index.ts`
+- `supabase/functions/project-notifications/index.ts`
 - `supabase/functions/proposal-notifications/index.ts`
 - `supabase/functions/razorpay-payout-webhook/index.ts`
 - `supabase/functions/razorpay-webhook/index.ts`
@@ -666,7 +667,7 @@ Kept for history only. `db push` reads the top level of `supabase/migrations`, s
 - `supabase/migrations/archived/20260806000000_restore_auto_confirm_trigger.sql`
 - `supabase/migrations/archived/20260830000000_consolidated_email_verification_final.sql`
 
-## Test suite (76)
+## Test suite (77)
 
 Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invariants have guard tests here.
 
@@ -699,6 +700,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/dashboardSection.test.ts`
 - `src/test/domainSwitchGuard.test.ts`
 - `src/test/earningsChart.test.tsx`
+- `src/test/emailEventWiring.test.ts`
 - `src/test/errorBoundary.test.tsx`
 - `src/test/escrow.test.ts`
 - `src/test/featureFlags.test.ts`

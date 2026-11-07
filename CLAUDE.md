@@ -1312,3 +1312,29 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   `npx supabase migration repair --status reverted <version>` if it was a dashboard experiment; then re-run
   Backend Deploy. The exact version is only in the Actions log (needs an authenticated `gh` token — this
   workspace has none and the unauthenticated API rate limit was exhausted).
+
+- **2026-11-07 (4) — project completion, review request and review received are now actually sent**: the
+  catalogue had entries nobody emitted, and `proposal_accepted` looked wired while being unable to send.
+  1. **New `project-notifications` edge function** (`{ project_id, event }`, verify_jwt true) fires
+     `project_completed` and `review_request` to the **hired freelancer**. Recipient is resolved server-side
+     (contract → fallback hired proposal → `profiles_private.email`), never from the body; the caller must own
+     the project **and** the project must already be `completed`, so no "you're done" mail can precede the
+     state change. Idempotency `event:project_id:recipient`; in-app notification uses the allowed
+     `notifications.type` values (`contract` / `review`).
+  2. Wired to the real workflow: both completion handlers (`ClientProjectsPage`, `ProjectDetailsPage`) call
+     `notifyProjectCompleted()` from `workflowService` (fire-and-forget, after the UPDATE succeeds).
+  3. **`proposal_accepted`/`proposal_rejected` were broken and are fixed**: `proposal-notifications` selected
+     `profiles!proposals_freelancer_id_fkey(id, email, name)`, but `email` moved to `profiles_private` — the
+     query failed, so no proposal email could ever send. It now selects the project + freelancer id and reads
+     the address from `profiles_private`. Its in-app notification used `type='proposal_accepted'`, which
+     `notifications_type_check` rejects (allowed: `proposal`) — that insert now uses `proposal` + metadata.
+  4. **`review_received`** is sent from the `reviews` function after the row is inserted (contract and contest
+     reviews), idempotent per review id; a failed email is logged and never turns a saved review into an error.
+  5. New guard test `src/test/emailEventWiring.test.ts` (12 tests) pins the properties that make the wiring
+     trustworthy: shared pipeline, no body-supplied recipient, ownership row check, completion-state gate,
+     idempotency, the pages actually calling it, and the dropped `profiles.email` select never coming back.
+  Not wired on purpose: payouts, refund confirmation and the remaining invitation/milestone events have no
+  workflow that emits them yet — they stay catalogued, not faked.
+  Verify: typecheck 0, lint 0 (1 pre-existing warning), **76 test files / 893 tests**, build 0, docs map/check 0.
+  Live delivery still unverified (no Supabase/Brevo credentials here; Backend Deploy is red on the pre-existing
+  migration drift gate — nothing from this change is deployed).
