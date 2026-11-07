@@ -1,5 +1,71 @@
 ## Status log (chronological, newest at bottom)
 
+### (8) 2026-11-07 · Private owner Gmail removed from all public-facing surfaces; routed to professional senders; pushed to main
+- **Problem:** spec §1/§2/§3 — the private owner Gmail
+  (`growlanzo.own@gmail.com`) was leaking into public-facing customer surfaces as
+  a From address and contact link. The email system (4 verified senders, event→
+  sender routing, email_logs, webhook, admin console) already existed (status log
+  (2)–(3)); the gap was the owner Gmail still being the DEFAULT sender fallback in
+  `brevo.ts` and still appearing in public pages, footers, legal pages, support
+  pages, customer email templates, the README badge, and a few backend defaults.
+- **brevo.ts:** legacy default sender fallback is no longer the owner Gmail — when
+  `EMAIL_FROM` is unset it falls back to a verified `@growlanzo.com` sender
+  (`info@growlanzo.com`), and the comment states the owner Gmail is never a From
+  address.
+- **.env.example:** documents the four `BREVO_FROM_*` senders, the `EMAIL_FROM`
+  fallback, and `EMAIL_REPLY_TO`; states the owner Gmail is never a From address.
+- **Public surfaces → `support@growlanzo.com`** (the monitored support inbox) as the
+  contact/grievance/DPO email: `SiteFooter`, `ContactPage`, `TermsPage`,
+  `PrivacyPage`, `CookiesPage`, `UnsubscribePage`, `ReportFeedbackPage`,
+  `SupportTicketsPage`, `AIChatSupport`, `AdminLoginPage` (generic placeholder),
+  `README` shield badge.
+- **Backend customer-facing email templates → `support@growlanzo.com`:**
+  `email-notifications` (withdrawal-failed / dispute-resolved / account-suspended
+  bodies), `submit-report` (default `REPORT_EMAIL` + comment), `admin-data` (test
+  email default + certificate footers), `ai-ticket-responder` (AI-failure copy).
+- **security-alert-notify:** now sends FROM `security@growlanzo.com` (the security
+  identity) TO the owner Gmail (internal alert recipient) — correct use of the four
+  sender design.
+- **Preserved as the private internal-alert RECIPIENT (spec §7, untouched):**
+  `admin-data` `send_admin_notification`, `security-alert-notify`,
+  `internship-applications` `ADMIN_EMAIL`, `proposal-notifications` `ADMIN_EMAIL`.
+- **Docs:** `BACKEND.md`, `LAUNCH-READINESS.md`, `RELEASE-READINESS-REPORT.md`,
+  `INVENTORY.md` updated to match; `README` badge updated.
+- **Guard tests rewritten to assert the CORRECT state** (several previously asserted
+  the bug as if it were an invariant): `authResumeAndBrand.test.ts` brand-email
+  suite now asserts `support@growlanzo.com` as the public contact and the verified
+  domain sender fallback, plus a suite asserting the owner Gmail remains only as the
+  internal admin-alert recipient; `aiSupportTicket.test.ts` support-mailbox / AI-
+  failure fallback assertions now expect `support@growlanzo.com` and assert the
+  owner Gmail is absent; `growCoins.test.ts` "Terms and Privacy name a real operator
+  and grievance contact" now expects `support@growlanzo.com` and asserts the owner
+  Gmail is absent; `launchSurfaceFixes.test.ts` support-mailbox suite rewritten;
+  `src/test/emailIdentityHygiene.test.ts` (NEW) pins the invariant — owner Gmail
+  absent from every public frontend surface and from customer-facing backend
+  email-template bodies/footers/test-defaults, lives only as the internal admin-alert
+  recipient, brevo.ts default fallback is a verified domain sender, the four senders
+  are the documented defaults.
+- Verified: `npm run verify` — 0 tsc errors, 0 lint errors, **916 tests / 80 files
+  pass**, build 0, docs map current.
+- Commit `bea9d3f` pushed to `origin/main` via `cloud_git push --branch main`.
+- **NOT done / owner action required (spec §6, §13):** no incoming mailbox is
+  configured for `support@growlanzo.com`. Brevo verified senders ≠ an inbound
+  mailbox — customer replies to `support@growlanzo.com` will bounce until the domain
+  has a real inbox or forwarding (e.g. MX to a hosted inbox, or Brevo inbound
+  parsing / a catch-all forward to the owner Gmail). This is a DNS + mailbox setup
+  task for the founder, not a code change. Until then: spec §6 "customers can reply
+  to support emails" and §13 "incoming support communication reaches the configured
+  destination" are NOT verified — must not be claimed working. The private owner
+  Gmail remains functional for internal admin alerts (sent TO it from the four alert
+  functions), which is all spec §7 requires of it.
+- **Deploy:** not yet observed. Owner-only blocker unchanged: the
+  `backend-deploy` workflow's step-8 "Migration drift check (repo vs live DB)"
+  has been failing on `main` (no GitHub/auth or Supabase creds in the workspace to
+  read the step log or run `supabase db push`). The diff includes no new migration,
+  no new DB object, and no new secret — it changes sender defaults, public-contact
+  strings, a few backend defaults, docs, and tests — so it does not change the
+  drift situation either way.
+
 ### (7) 2026-11-07 · OAuth→dashboard redirect hardened + invariant guard test; pushed to main
 - **Problem:** reported bug "GitHub/LinkedIn login works, then back to homepage".
   After reading the real chain (`AuthContext.signInWithOAuth` →
