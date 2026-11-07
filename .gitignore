@@ -5,6 +5,9 @@ dist/
 coverage/
 .vite/
 
+# Python venv for the local Respan Gateway (requirements-gateway.txt).
+.venv/
+
 # Local environment files must never be committed.
 .env
 .env.local

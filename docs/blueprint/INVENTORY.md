@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **717 files** across 12 groups.
+Total tracked structure: **719 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -17,8 +17,8 @@ Total tracked structure: **717 files** across 12 groups.
 | Edge shared modules | 11 |
 | Database migrations | 314 |
 | Archived migrations (not applied) | 6 |
-| Test suite | 77 |
-| Operational scripts | 35 |
+| Test suite | 78 |
+| Operational scripts | 36 |
 | CI / deploy workflows | 4 |
 
 ## Pages (97)
@@ -667,7 +667,7 @@ Kept for history only. `db push` reads the top level of `supabase/migrations`, s
 - `supabase/migrations/archived/20260806000000_restore_auto_confirm_trigger.sql`
 - `supabase/migrations/archived/20260830000000_consolidated_email_verification_final.sql`
 
-## Test suite (77)
+## Test suite (78)
 
 Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invariants have guard tests here.
 
@@ -728,6 +728,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/referralInviteCard.test.tsx`
 - `src/test/referralLifetimeProjectRewards.test.ts`
 - `src/test/referralShare.test.ts`
+- `src/test/respanGatewayWiring.test.ts`
 - `src/test/routeHeadCoverage.test.ts`
 - `src/test/sameRoleReferrals.test.ts`
 - `src/test/secondAccountGuard.test.ts`
@@ -749,7 +750,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/typographyFonts.test.ts`
 - `src/test/waitlistPage.test.tsx`
 
-## Operational scripts (35)
+## Operational scripts (36)
 
 Build, preflight, security audit and the E2E harnesses. Nothing here is imported by the app.
 
@@ -779,6 +780,7 @@ Build, preflight, security audit and the E2E harnesses. Nothing here is imported
 - `scripts/e2e/razorpay-chain.mjs`
 - `scripts/e2e/razorpay-webhook-rehearsal.mjs`
 - `scripts/e2e/remove-test-accounts.mjs`
+- `scripts/e2e/respan-gateway-smoke.mjs`
 - `scripts/e2e/surface-audit.mjs`
 - `scripts/e2e/with-env.mjs`
 - `scripts/founder-preflight.mjs`

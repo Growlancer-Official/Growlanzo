@@ -1,0 +1,52 @@
+# Respan Gateway — local LLM routing for Growlanzo's AI workflows.
+#
+# Every Growlanzo AI feature (assistant, ticket responder, writer, matching) is
+# one OpenAI-compatible chat call in `supabase/functions/_shared/ai.ts`. Point
+# that call at this process with `AI_GATEWAY_URL=http://127.0.0.1:8080` and the
+# app asks for the logical routes `growlanzo-chat` / `growlanzo-priority`
+# instead of a vendor model — provider order, retries and hedging live here,
+# in one file, instead of in a secret.
+#
+# Usage and the verified smoke check: docs/blueprint/BACKEND.md § AI gateway
+# (Respan). Upstream guide: https://github.com/respanai/respan-gateway
+#
+# LOCAL ONLY. Without `client_keys`, any process that can reach the port may
+# spend the provider key, so this listens on loopback. Never bind it to a
+# public address without client keys.
+
+listen = "127.0.0.1:8080"
+log    = "text"   # text | json | off — stderr, per request
+ui     = true     # web UI + admin API at /ui/
+
+# ─── Providers ───────────────────────────────────────────────────────────────
+# Reuses the existing Growlanzo AI secret (AI_API_KEY) as the provider key, so
+# there is no second credential to rotate. The gateway reads it from the process
+# environment; it never reads a committed file.
+[providers.openrouter]
+vendor = "openrouter"
+key    = "env:AI_API_KEY"
+
+# Enable a provider only when its key is present: an unset `env:` reference
+# fails `respan-gateway check` on purpose, so a dead fallback cannot go unseen.
+# [providers.openai]
+# vendor = "openai"
+# key    = "env:OPENAI_API_KEY"
+#
+# [providers.anthropic]
+# vendor = "anthropic"
+# key    = "env:ANTHROPIC_API_KEY"
+
+# ─── Routes ──────────────────────────────────────────────────────────────────
+# Free/default chat lane: same model and price as before, but a stalled or
+# failing upstream is retried here instead of surfacing as a dead chat reply.
+[routes.growlanzo-chat]
+to      = ["openrouter/deepseek/deepseek-chat-v3-0324"]
+tries   = 2
+backoff = "250ms"
+
+# Pro/priority lane: cheapest-first hedge — if DeepSeek has not answered in
+# 200 ms, the faster fallback starts in parallel and the first reply wins.
+# Drop the second target if cost matters more than the perceived latency.
+[routes.growlanzo-priority]
+to    = ["openrouter/openai/gpt-4o-mini", "openrouter/deepseek/deepseek-chat-v3-0324"]
+hedge = "200ms"

@@ -1,0 +1,12 @@
+# Respan Gateway — the local LLM router in front of Growlanzo's AI workflows.
+# Config: gateway.toml. Wiring and usage: docs/blueprint/BACKEND.md § AI gateway.
+# Guide: https://github.com/respanai/respan-gateway
+#
+# Python 3.10+ and wheels only (the gateway ships a compiled extension):
+#   python3 -m venv .venv
+#   .venv/bin/python -m pip install --only-binary=:all: -r requirements-gateway.txt
+#   .venv/bin/python -m respan_gateway -c gateway.toml
+#
+# Not a runtime dependency of the app: Growlanzo's edge functions only ever see
+# an OpenAI-compatible URL, so production keeps calling its provider directly.
+respan-gateway==0.3.0

@@ -1,6 +1,13 @@
 /**
- * Shared AI client for Growlanzo edge functions — powered by OpenRouter
- * (https://openrouter.ai), an OpenAI-compatible model gateway.
+ * Shared AI client for Growlanzo edge functions — an OpenAI-compatible chat
+ * completions call to either OpenRouter (https://openrouter.ai) or a local
+ * Respan Gateway (https://github.com/respanai/respan-gateway) in front of it.
+ *
+ * GATEWAY MODE: when `AI_GATEWAY_URL` is set (the Respan Gateway on loopback,
+ * see `gateway.toml`), every workflow here asks the gateway for a logical route
+ * name (`growlanzo-chat` / `growlanzo-priority`) instead of a vendor model. The
+ * gateway owns provider order, retries and hedging, so a slow or failing
+ * provider is retried in-process instead of surfacing as a dead chat reply.
  *
  * SECURITY: the API key is read from edge-function secrets ONLY (AI_API_KEY) —
  * it is never exposed to the frontend or committed to git. All AI features
@@ -16,22 +23,38 @@
  */
 import { SITE_URL } from './site.ts';
 
-export const AI_BASE_URL = (
-  Deno.env.get('AI_BASE_URL') ||
-  'https://openrouter.ai/api/v1'
-).replace(/\/+$/, '');
+/** Local Respan Gateway origin, e.g. `http://127.0.0.1:8080`. Empty = talk to
+ *  the upstream provider directly (the production default). Kept on loopback:
+ *  the gateway spends the developer's own provider keys and is not a public
+ *  endpoint. */
+export const AI_GATEWAY_URL = (Deno.env.get('AI_GATEWAY_URL') || '')
+  .trim()
+  .replace(/\/+$/, '');
+
+/** True when AI traffic must go through the local gateway. */
+export const AI_VIA_GATEWAY = AI_GATEWAY_URL.length > 0;
+
+export const AI_BASE_URL = AI_VIA_GATEWAY
+  ? `${AI_GATEWAY_URL}/v1`
+  : (Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1').replace(/\/+$/, '');
 
 export const AI_API_KEY = Deno.env.get('AI_API_KEY') || '';
 
+const RAW_MODEL = Deno.env.get('AI_MODEL') || '';
+
 /** Default chat model. OpenRouter slugs use the `vendor/model` format
- *  (e.g. `deepseek/deepseek-chat-v3-0324`). Override via the AI_MODEL secret. */
-export const AI_MODEL = Deno.env.get('AI_MODEL') || 'deepseek/deepseek-chat-v3-0324';
+ *  (e.g. `deepseek/deepseek-chat-v3-0324`). In gateway mode the default is the
+ *  route name from `gateway.toml`, so the provider/model choice stays in one
+ *  config file instead of a secret. Override via the AI_MODEL secret. */
+export const AI_MODEL =
+  RAW_MODEL || (AI_VIA_GATEWAY ? 'growlanzo-chat' : 'deepseek/deepseek-chat-v3-0324');
 
 /** Faster model used for priority (Pro) support. Overridable; falls back to
  *  AI_MODEL when unset so a deployment never breaks just because the secret
- *  is missing. */
+ *  is missing. In gateway mode the fallback is the faster route. */
 export const AI_PRIORITY_MODEL =
-  Deno.env.get('AI_PRIORITY_MODEL') || AI_MODEL;
+  Deno.env.get('AI_PRIORITY_MODEL') ||
+  (AI_VIA_GATEWAY && !RAW_MODEL ? 'growlanzo-priority' : AI_MODEL);
 
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -75,7 +98,13 @@ export async function callAI(
   // nothing while it made replies feel slower (the reported "assistant is not
   // replying fast"). Cost is unchanged — this is a routing preference, not a
   // different model or a bigger ceiling.
-  body.provider = { sort: 'latency', allow_fallbacks: true };
+  //
+  // Gateway mode skips it: the Respan Gateway already applies the route's
+  // provider order/retries from `gateway.toml`, and `provider` is an
+  // OpenRouter-only field that other providers would reject as unknown.
+  if (!AI_VIA_GATEWAY) {
+    body.provider = { sort: 'latency', allow_fallbacks: true };
+  }
   if (options.stream) {
     body.stream = true;
   }

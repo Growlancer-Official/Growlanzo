@@ -1,5 +1,32 @@
 ## Status log (chronological, newest at bottom)
 
+### (6) 2026-11-07 · Respan Gateway wired as the local AI router; smoke check green
+- `supabase/functions/_shared/ai.ts`: new `AI_GATEWAY_URL` → gateway mode. Base
+  URL becomes `{AI_GATEWAY_URL}/v1`, the default models become the logical
+  routes `growlanzo-chat` / `growlanzo-priority` (overridable via
+  `AI_MODEL`/`AI_PRIORITY_MODEL`), and the OpenRouter-only
+  `provider: {sort:'latency'}` field is not forwarded. Unset = previous
+  OpenRouter behaviour, unchanged (asserted in the smoke check).
+- `gateway.toml` (root, `respan-gateway` default config path): loopback
+  `127.0.0.1:8080`, no client keys, provider key = existing `env:AI_API_KEY`,
+  routes with retries/backoff and a hedged priority lane.
+  `requirements-gateway.txt` pins `respan-gateway==0.3.0` (wheel-only);
+  `.gitignore` ignores `.venv/`; `.env.example` documents `AI_GATEWAY_URL`.
+- `scripts/e2e/respan-gateway-smoke.mjs` (`npm run e2e:gateway`): drives the real
+  `callAI()` through a gateway backed by an in-process OpenAI-compatible
+  fixture. 18/18 checks green — route translated to a provider model, broken
+  target retried, streaming + priority SSE complete, gateway stopped after the
+  run, direct mode still OpenRouter.
+- **NOT verified:** no live provider request (no provider key here). Docs:
+  `docs/blueprint/BACKEND.md` §4.11 + §6; guide
+  https://github.com/respanai/respan-gateway
+- Verified for this change: `npm run e2e:gateway` 18/18, new guard test 10/10,
+  `npm run docs:map` refreshed. Repo-wide `typecheck`, `lint`, `test` and
+  `build` are red on files this change does not touch: the
+  `src/test/emailEventWiring.test.ts` guard drift and a mid-edit
+  `src/pages/ClientReferralsPage.tsx` already present in the worktree —
+  unrelated to the gateway.
+
 ### (5) 2026-11-07 · Proposal-received + project-invitation wired; guard tests rewritten; pushed
 - Wired two more real workflows through server-derived recipients:
   - `proposal_received` — on every proposal submit, `proposal-notifications`

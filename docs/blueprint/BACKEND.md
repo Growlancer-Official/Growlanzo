@@ -253,6 +253,30 @@ There is **no shared rate-limit helper and no shared auth helper.** Each functio
 
 ---
 
+### 4.11 AI gateway (Respan) — local routing for every AI workflow
+
+Guide: https://github.com/respanai/respan-gateway?utm_source=freebuff&utm_medium=paid&utm_campaign=respan-gateway&bfcid=bfc_1.eyJpZCI6ImI1YTk2MzVkLWFlNzUtNDY1OS04MDM2LWE0NDA3YjllZjBhMyIsImMiOiIyMDM2ODZkZS1mMzg0LTQ4NTQtYmViNC1hYzBiYWRmNmM1NTUiLCJrIjoiM2IxMGE4YmUtNzgyOS00MmJhLWFmNmEtYmI0YWUxZTRhY2Y4IiwiaWF0IjoxNzk0MDQxODQ3fQ.yjjIR7hYgX35iCwTEFlvPqHdm-dmbXd3aGhRRBwlCiU
+
+* **What it is:** [`respan-gateway`](https://github.com/respanai/respan-gateway) 0.3.0, the open-source LLM router (Python 3.10+, wheels for macOS/Linux x64+arm64, Windows x64), run locally as an OpenAI-compatible server. Not a dependency of the app: no hosted account, credits or tracing export is involved — it spends the developer's existing provider key.
+* **Wiring:** `_shared/ai.ts` is still one `POST {base}/chat/completions`. With `AI_GATEWAY_URL` set (loopback, e.g. `http://127.0.0.1:8080`) the base URL becomes `{AI_GATEWAY_URL}/v1` and the app asks for the logical routes **`growlanzo-chat`** / **`growlanzo-priority`** instead of a vendor slug; `AI_MODEL` / `AI_PRIORITY_MODEL` still override. Unset (the production default) is byte-identical to before: `AI_BASE_URL` + `AI_MODEL` + the OpenRouter `provider: {sort:'latency'}` hint, which is **not** forwarded in gateway mode because it is an OpenRouter-only field.
+* **Why:** provider order, retries (`tries`/`backoff`) and hedging (`hedge`) live in `gateway.toml` instead of each edge function, so a stalled or failing provider is retried in-process rather than surfacing as a dead chat reply (`docs/blueprint/BACKEND.md` §4.7 covers the quota side, unchanged).
+* **Files:** `gateway.toml` — providers + routes, listens `127.0.0.1:8080`, **no `client_keys`**, therefore loopback only and never to be bound publicly; the provider key is `env:AI_API_KEY`, i.e. the existing secret, so there is no second credential to rotate. `requirements-gateway.txt` — the pinned `respan-gateway==0.3.0` (wheel-only). `scripts/e2e/respan-gateway-smoke.mjs` — the check below.
+* **Run it:**
+
+  ```bash
+  python3 -m venv .venv
+  .venv/bin/python -m pip install --only-binary=:all: -r requirements-gateway.txt
+  .venv/bin/python -m respan_gateway -c gateway.toml   # http://127.0.0.1:8080, web UI at /ui/
+  # then, for the edge functions that serve the app:
+  #   AI_GATEWAY_URL=http://127.0.0.1:8080  (supabase secrets / functions env)
+  ```
+
+  Stop with Ctrl-C. Restart command: `.venv/bin/python -m respan_gateway -c gateway.toml`. `respan-gateway check -c gateway.toml` validates the config without calling a provider.
+* **Verified (2026-11-07, `npm run e2e:gateway`, 18/18 checks):** the real `callAI()` ran against a gateway started with a throwaway loopback provider fixture. Observed: route `growlanzo-chat` → `fixture/broken-chat` twice (HTTP 500) → `fixture/fixture-chat` HTTP 200, reply `gateway-fixture-ok via fixture-chat`; the streaming Pro lane returned SSE ending `[DONE]` with the full text; no `provider` field was forwarded; the gateway was stopped afterwards (exit confirmed); with `AI_GATEWAY_URL` unset the module still defaults to `https://openrouter.ai/api/v1` + `deepseek/deepseek-chat-v3-0324`.
+* **NOT verified:** a live model request. There is no provider key in this environment, so no provider was billed and no real completion was produced; the smoke check proves routing, retry, streaming and the app contract, not model output. Production is unaffected while `AI_GATEWAY_URL` is empty (Supabase Cloud cannot reach a developer's loopback).
+
+---
+
 ## 5. Auth & authorization
 
 | Mechanism | Implementation | Evidence |
@@ -283,7 +307,7 @@ There is **no shared rate-limit helper and no shared auth helper.** Each functio
 | RazorpayX Payouts | `RAZORPAY_ACCOUNT_NUMBER` (+ same key pair) | `payout_mode` (default `UPI`) | Provider errors classified config-like ⇒ **queue with funds held**, real errors ⇒ rollback; withdrawal is blocked entirely for PayPal |
 | PayPal | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_SANDBOX` (`'true'` → sandbox host), `PAYPAL_WEBHOOK_ID` | `VITE_PAYPAL_ENABLED` (frontend, currently `false`) | Webhook ID missing → 403; credentials missing → logged + API calls fail; **payout path blocked in code** (`withdrawal:225-227`) |
 | Brevo email | `BREVO_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` | none | **Not** fail-closed by design: missing key = `false` + log, request still succeeds (`brevo.ts:39-43`) |
-| AI gateway | `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | OpenRouter defaults; `AI_BASE_URL` allows any OpenAI-compatible gateway | `ai-assistant`/`ai-writer`/`verify-document` → 500/502; `ai-matching` degrades to deterministic scores with `ai_enhanced:false` |
+| AI gateway | `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL`; optional `AI_GATEWAY_URL` → local Respan Gateway (`gateway.toml`) | OpenRouter defaults; `AI_BASE_URL` allows any OpenAI-compatible gateway, `AI_GATEWAY_URL` switches to the gateway's `growlanzo-chat` / `growlanzo-priority` routes | `ai-assistant`/`ai-writer`/`verify-document` → 500/502; `ai-matching` degrades to deterministic scores with `ai_enhanced:false` |
 | KYC provider | `KYC_PROVIDER` (`surepass`), `SUREPASS_API_TOKEN`, `SUREPASS_BASE_URL`; sandbox `KYC_DEV_MODE`, `KYC_DEV_TOKEN`, `KYC_DEV_PROJECT_REF` | DB `kyc_provider_config.mode` = `production` or `development` (admin-toggled, audited) | No token → row `review`, never `verified`; dev mode needs three independent gates |
 | Storage | `SUPABASE_URL` + service role | buckets: `avatars`, `profile-pictures`, `company-logos`, `portfolio-images`, `contract-files`, `verification-documents`, `certificate_documents`, `internship_documents`, `internship_resumes`, `videos` | Private buckets are served via 1 h signed URLs; deletion sweep is best-effort |
 | Supabase Auth email | Dashboard-managed SMTP (`config.toml:272-274`, `enable_confirmations = false` locally) | Custom SMTP **off** | N/A — not an edge-function dependency |
