@@ -284,7 +284,7 @@ function buildWithdrawalFailedHtml(name: string, amount: number, reason: string)
       </td></tr>
     </table>
     <p style="font-size: 14px; color: #64748b; line-height: 1.7; margin: 0;">
-      If the issue persists, please <a href="mailto:growlanzo.own@gmail.com" style="color: #14861f; font-weight: 600;">contact support</a>.
+      If the issue persists, please <a href="mailto:support@growlanzo.com" style="color: #14861f; font-weight: 600;">contact support</a>.
     </p>`
   return baseEmailHtml('Withdrawal Failed 💔', body)
 }
@@ -358,7 +358,7 @@ function buildDisputeResolvedHtml(name: string, disputeId: string, resolution: s
       </td></tr>
     </table>
     <p style="font-size: 14px; color: #64748b; line-height: 1.7; margin: 0;">
-      If you have any questions about this resolution, please <a href="mailto:growlanzo.own@gmail.com" style="color: #14861f; font-weight: 600;">contact our support team</a>.
+      If you have any questions about this resolution, please <a href="mailto:support@growlanzo.com" style="color: #14861f; font-weight: 600;">contact our support team</a>.
     </p>`
   return baseEmailHtml(isFavorable ? 'Dispute Resolved ✅' : 'Dispute Updated 💙', body)
 }
@@ -514,7 +514,7 @@ function buildAccountSuspendedHtml(name: string, reason?: string): string {
       During this time, you will not be able to access your dashboard, submit proposals, or communicate with clients.
     </p>
     <p style="font-size: 14px; color: #64748b; line-height: 1.7; margin: 0;">
-      If you believe this was done in error or would like more information, please <a href="mailto:growlanzo.own@gmail.com" style="color: #14861f; font-weight: 600;">contact our support team</a>.
+      If you believe this was done in error or would like more information, please <a href="mailto:support@growlanzo.com" style="color: #14861f; font-weight: 600;">contact our support team</a>.
     </p>`
   return baseEmailHtml('Account Suspended ⚠️', body)
 }

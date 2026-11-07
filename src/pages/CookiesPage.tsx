@@ -129,7 +129,7 @@ export function CookiesPage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Contact</h2>
             <p className="text-slate-600">
               Questions about cookies or this policy? Email{' '}
-              <a href="mailto:growlanzo.own@gmail.com" className="text-emerald-600 hover:underline">growlanzo.own@gmail.com</a>{' '}
+              <a href="mailto:support@growlanzo.com" className="text-emerald-600 hover:underline">support@growlanzo.com</a>{' '}
               — we acknowledge requests within 24 hours and aim to resolve them within 15 days.
             </p>
           </div>

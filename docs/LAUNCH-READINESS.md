@@ -279,7 +279,7 @@ restriction or (if your org requires it) whitelist the *range*, not one address.
    `.e2e/brevo-test.mjs` — the verdict must be `{"success":true}`.
 
 **How to verify it is done:** `node .e2e/brevo-test.mjs` → `{"success":{"success":true}}` and a
-"Growlanzo Test Email ✅" lands in `growlanzo.own@gmail.com`. Until then **every** Brevo send
+"Growlanzo Test Email ✅" lands in the configured sender inbox (default `support@growlanzo.com`). Until then **every** Brevo send
 (welcome, proposals, milestones, withdrawals, security alerts, admin notifications) is a
 logged no-op with `email_sent:false` — the platform is fully silent by email.
 

@@ -284,7 +284,7 @@ same `main` baseline; the local quality gate was re-run end to end afterwards.
    continuous and the AI badge is truthful. The ticket page subscribes to the
    ticket + messages and renders user / AI / human bubbles live; the user marks
    a ticket resolved only after the fix works. Support surface is deliberately
-   **AI in-app + email (`growlanzo.own@gmail.com`)**, with phone/live chat shown
+   **AI in-app + email (`support@growlanzo.com`)**, with phone/live chat shown
    as *coming soon* on the contact page.
 3. **Client navigation icons** — AI Matches now uses the AI sparkle (the glyph
    `ClientMatchesPage` already uses) instead of a talent-search icon, and Team

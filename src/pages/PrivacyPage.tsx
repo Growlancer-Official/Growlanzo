@@ -216,7 +216,7 @@ const privacySections: Section[] = [
       content: (
         <>
           <p className="text-slate-600 leading-relaxed mb-2">
-            If you have questions, comments, or seek to file an appeal regarding the processing of data in a disputed contract workspace, please contact our designated Data Protection Officer (DPO): <strong>Muhammad (Founder &amp; CEO)</strong> at <a href="mailto:growlanzo.own@gmail.com" className="text-emerald-600 font-medium hover:underline">growlanzo.own@gmail.com</a>. We acknowledge privacy requests within 24 hours and aim to resolve them within 15 days.
+            If you have questions, comments, or seek to file an appeal regarding the processing of data in a disputed contract workspace, please contact our designated Data Protection Officer (DPO): <strong>Muhammad (Founder &amp; CEO)</strong> at <a href="mailto:support@growlanzo.com" className="text-emerald-600 font-medium hover:underline">support@growlanzo.com</a>. We acknowledge privacy requests within 24 hours and aim to resolve them within 15 days.
           </p>
           <div className="bg-slate-900 rounded-xl p-3 text-white flex flex-col sm:flex-row items-center justify-between gap-3 mt-6">
             <div>

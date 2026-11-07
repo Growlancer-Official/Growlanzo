@@ -337,7 +337,7 @@ const termsSections: Section[] = [
             These Terms of Service shall be governed by and construed in accordance with the laws of India, without regard to conflict of law principles.
           </p>
           <p className="text-slate-600 leading-relaxed mb-2">
-            Growlanzo is operated by <strong>Muhammad (Founder &amp; CEO)</strong>, India. For legal notices, grievances, or complaints, contact our grievance officer at <a href="mailto:growlanzo.own@gmail.com" className="text-emerald-600 font-medium hover:underline">growlanzo.own@gmail.com</a>. We acknowledge grievances within 24 hours and aim to resolve them within 15 days, in line with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021.
+            Growlanzo is operated by <strong>Muhammad (Founder &amp; CEO)</strong>, India. For legal notices, grievances, or complaints, contact our grievance officer at <a href="mailto:support@growlanzo.com" className="text-emerald-600 font-medium hover:underline">support@growlanzo.com</a>. We acknowledge grievances within 24 hours and aim to resolve them within 15 days, in line with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021.
           </p>
           <p className="text-slate-600 leading-relaxed mb-2">
             If any provision of these Terms is deemed invalid or unenforceable, that specific clause shall be severed, and the remaining provisions shall continue in full force and effect.

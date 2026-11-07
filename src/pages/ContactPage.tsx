@@ -158,7 +158,7 @@ export function ContactPage() {
                   <p className="text-xs font-bold text-slate-900">Email support</p>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
                     For account, payment or verification changes AI cannot make:{' '}
-                    <a className="font-semibold text-emerald-600 hover:text-emerald-700 underline" href="mailto:growlanzo.own@gmail.com">growlanzo.own@gmail.com</a>
+                    <a className="font-semibold text-emerald-600 hover:text-emerald-700 underline" href="mailto:support@growlanzo.com">support@growlanzo.com</a>
                   </p>
                 </div>
               </div>

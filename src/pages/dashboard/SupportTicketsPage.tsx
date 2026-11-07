@@ -162,7 +162,7 @@ export default function SupportTicketsPage() {
     const answer = await ticketService.askAI(ticket);
     setThreadSending(false);
     if (!answer.success) {
-      setThreadError(answer.error || 'AI Support is temporarily unavailable. Email growlanzo.own@gmail.com for human help.');
+      setThreadError(answer.error || 'AI Support is temporarily unavailable. Email support@growlanzo.com for human help.');
       return;
     }
     await loadThread(ticket.id);
@@ -196,7 +196,7 @@ export default function SupportTicketsPage() {
             <Headphones className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">Support Tickets <InfoTip title="How support works" text="Create an in-app ticket and Growlanzo AI will work through the issue with you. Your conversation stays saved and updates live; mark it resolved only after the solution works for you. If AI cannot safely handle it, email growlanzo.own@gmail.com. Other support channels are coming soon." /></h1>
+            <h1 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">Support Tickets <InfoTip title="How support works" text="Create an in-app ticket and Growlanzo AI will work through the issue with you. Your conversation stays saved and updates live; mark it resolved only after the solution works for you. If AI cannot safely handle it, email support@growlanzo.com. Other support channels are coming soon." /></h1>
             <p className="text-slate-500 text-xs">
               In-app AI support · email fallback · other channels coming soon
               {isPro && (
@@ -452,7 +452,7 @@ export default function SupportTicketsPage() {
                     {threadError && (
                       <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 space-y-2">
                         <p>{threadError}</p>
-                        <a className="inline-flex items-center gap-1 underline font-semibold" href={`mailto:growlanzo.own@gmail.com?subject=${encodeURIComponent(`Support ticket ${ticket.id.slice(0, 8)}: ${ticket.subject}`)}`}><Mail className="w-3.5 h-3.5" /> Email support</a>
+                        <a className="inline-flex items-center gap-1 underline font-semibold" href={`mailto:support@growlanzo.com?subject=${encodeURIComponent(`Support ticket ${ticket.id.slice(0, 8)}: ${ticket.subject}`)}`}><Mail className="w-3.5 h-3.5" /> Email support</a>
                       </div>
                     )}
                     <form onSubmit={(event) => { event.preventDefault(); void handleReply(ticket); }} className="space-y-2">

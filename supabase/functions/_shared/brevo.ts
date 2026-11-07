@@ -78,12 +78,22 @@ export function parseSender(raw: string, fallbackName = 'Growlanzo'): BrevoSende
  * (admin reports, internships). New code must pass an explicit `sender` from
  * _shared/emailSenders.ts so every message uses one of the four verified
  * identities.
+ *
+ * The private owner Gmail must never be the default From on a customer-facing
+ * message. When EMAIL_FROM is unset the fallback is one of the four verified
+ * domain senders (info@growlanzo.com, the general-notifications identity) so a
+ * misconfigured deploy still sends from a professional address, not the owner's
+ * private Gmail. The owner Gmail remains the recipient for the internal admin
+ * notification path only (admin-data / send_admin_notification).
  */
 function legacySender(): BrevoSender {
-  return parseSender(
-    Deno.env.get('EMAIL_FROM') ?? 'Growlanzo <growlanzo.own@gmail.com>',
-    'Growlanzo',
-  );
+  const configured = Deno.env.get('EMAIL_FROM');
+  if (configured) {
+    return parseSender(configured, 'Growlanzo');
+  }
+  // EMAIL_FROM unset: fall back to a verified domain sender, never the owner
+  // private Gmail. info@growlanzo.com is the general-notifications identity.
+  return parseSender('Growlanzo Notifications <info@growlanzo.com>', 'Growlanzo');
 }
 
 /** Send one transactional email and report exactly what Brevo answered. */

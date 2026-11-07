@@ -6,7 +6,8 @@
  *    so the icon rendered as a blank square;
  *  - every newsletter welcome email linked to /unsubscribe, which had no route;
  *  - billing/proposal/security emails linked to paths that no longer exist;
- *  - the visible support mailbox was still support@growlanzo.com.
+ *  - the visible support mailbox used the private owner Gmail instead of the
+ *    monitored support inbox (now fixed: support@growlanzo.com everywhere public).
  */
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
@@ -19,9 +20,9 @@ const OAUTH = read('src/components/OAuthButtons.tsx');
 const FOOTER = read('src/components/SiteFooter.tsx');
 
 describe('support mailbox', () => {
-  it('the footer shows growlanzo.own@gmail.com', () => {
-    expect(FOOTER).toContain('growlanzo.own@gmail.com');
-    expect(FOOTER).not.toContain('support@growlanzo.com');
+  it('the footer shows the monitored support inbox, not the owner Gmail', () => {
+    expect(FOOTER).toContain('support@growlanzo.com');
+    expect(FOOTER).not.toContain('growlanzo.own@gmail.com');
   });
 
   for (const page of [
@@ -29,17 +30,17 @@ describe('support mailbox', () => {
     'src/pages/PrivacyPage.tsx',
     'src/pages/CookiesPage.tsx',
   ]) {
-    it(`${page} points at the Gmail inbox`, () => {
+    it(`${path.basename(page)} points at the support inbox, not the owner Gmail`, () => {
       const src = read(page);
-      expect(src).toContain('growlanzo.own@gmail.com');
-      expect(src).not.toContain('support@growlanzo.com');
+      expect(src).toContain('support@growlanzo.com');
+      expect(src).not.toContain('growlanzo.own@gmail.com');
     });
   }
 
-  it('transactional emails use the Gmail mailbox', () => {
+  it('transactional emails link to the support inbox, not the owner Gmail', () => {
     const src = read('supabase/functions/email-notifications/index.ts');
-    expect(src).toContain('mailto:growlanzo.own@gmail.com');
-    expect(src).not.toContain('support@growlanzo.com');
+    expect(src).toContain('mailto:support@growlanzo.com');
+    expect(src).not.toContain('mailto:growlanzo.own@gmail.com');
   });
 });
 

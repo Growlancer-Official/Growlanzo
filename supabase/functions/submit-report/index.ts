@@ -1,14 +1,16 @@
 // Submit Report / Feedback Edge Function
 // Users report bugs, request features, or share feedback. Each report is:
 //   1) Stored in public.user_reports (service role — RLS still guards the table)
-//   2) Emailed to the company inbox (growlanzo.own@gmail.com) via Brevo when
-//      BREVO_API_KEY is configured (graceful no-op fallback otherwise)
+//   2) Emailed to the monitored support inbox (support@growlanzo.com) via Brevo
+//      when BREVO_API_KEY is configured (graceful no-op fallback otherwise).
+//      Customer replies to this address reach the support team; the raw owner
+//      Gmail is never exposed to the reporter.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { sendEmail } from '../_shared/brevo.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { SITE_URL } from '../_shared/site.ts'
 
-const REPORT_EMAIL = Deno.env.get('REPORT_EMAIL') ?? 'growlanzo.own@gmail.com'
+const REPORT_EMAIL = Deno.env.get('REPORT_EMAIL') ?? 'support@growlanzo.com'
 const APP_URL = SITE_URL
 
 // ─── HTML Escape Helper ──────────────────────────────────────────────────────

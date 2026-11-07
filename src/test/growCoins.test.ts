@@ -197,7 +197,10 @@ describe('legal pages — coin terms, legal identity, no invented claims', () =>
   it('Terms and Privacy name a real operator and grievance contact', () => {
     for (const page of [TERMS_PAGE, PRIVACY_PAGE]) {
       expect(page).toMatch(/Muhammad \(Founder/);
-      expect(page).toMatch(/mailto:growlanzo\.own@gmail\.com/);
+      // The public grievance/DPO contact is the monitored support inbox, never the
+      // private owner Gmail (which is the internal admin-alert recipient only).
+      expect(page).toMatch(/mailto:support@growlanzo\.com/);
+      expect(page).not.toMatch(/mailto:growlanzo\.own@gmail\.com/);
     }
     // The jurisdiction is stated, not left as "the Platform's incorporation".
     expect(TERMS_PAGE).toMatch(/laws of India/);

@@ -111,8 +111,8 @@ export function SiteFooter({ onOpenSignup }: SiteFooterProps) {
               </div>
               <div className="mt-1 text-xs text-slate-400">
                 Operated from India · Grievances:{' '}
-                <a href="mailto:growlanzo.own@gmail.com" className="text-slate-500 hover:text-emerald-600 transition-colors">
-                  growlanzo.own@gmail.com
+                <a href="mailto:support@growlanzo.com" className="text-slate-500 hover:text-emerald-600 transition-colors">
+                  support@growlanzo.com
                 </a>
                 {' '}— acknowledged within 24 hours, resolved within 15 days.
               </div>
@@ -155,8 +155,8 @@ export function SiteFooter({ onOpenSignup }: SiteFooterProps) {
                   </svg>
                 </a>
                 <a
-                  href="mailto:growlanzo.own@gmail.com"
-                  aria-label="Email Growlanzo"
+                  href="mailto:support@growlanzo.com"
+                  aria-label="Email Growlanzo support"
                   className="inline-flex items-center justify-center h-9 w-9 rounded-full ring-1 ring-slate-200 text-slate-500 hover:text-emerald-600 hover:ring-emerald-300 hover:bg-emerald-50 transition-all duration-200"
                 >
                   <Mail className="w-4 h-4" />

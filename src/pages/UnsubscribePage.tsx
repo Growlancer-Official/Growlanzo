@@ -16,7 +16,7 @@ import { BrandLogo } from '../components/BrandLogo';
  * When a signed unsubscribe endpoint exists, replace the mailto with it — do
  * not add a delete-by-email RPC.
  */
-const SUPPORT_EMAIL = 'growlanzo.own@gmail.com';
+const SUPPORT_EMAIL = 'support@growlanzo.com';
 
 export function UnsubscribePage() {
   const [searchParams] = useSearchParams();

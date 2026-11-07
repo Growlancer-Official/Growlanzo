@@ -505,7 +505,7 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
       priority: 'high',
     });
     if (!result.success || !result.ticket) {
-      setEscalation({ busy: false, ticketId: null, error: result.error || 'Could not open a ticket. Email growlanzo.own@gmail.com instead.' });
+      setEscalation({ busy: false, ticketId: null, error: result.error || 'Could not open a ticket. Email support@growlanzo.com instead.' });
       return;
     }
     setEscalation({ busy: false, ticketId: result.ticket.id, error: null });
@@ -888,7 +888,7 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
                   {escalation.busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Headphones className="w-4 h-4" aria-hidden="true" />}
                   Still not fixed? Open a saved support ticket
                 </button>
-                <a href="mailto:growlanzo.own@gmail.com" className="text-xs font-semibold text-emerald-700 underline inline-flex items-center gap-1">
+                <a href="mailto:support@growlanzo.com" className="text-xs font-semibold text-emerald-700 underline inline-flex items-center gap-1">
                   <Mail className="w-3.5 h-3.5" aria-hidden="true" /> Email support
                 </a>
               </div>

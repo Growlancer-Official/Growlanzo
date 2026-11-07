@@ -101,7 +101,10 @@ describe('ai-ticket-responder edge function', () => {
 
   it('degrades honestly when the AI or secrets are unavailable', () => {
     expect(source).toContain('503');
-    expect(source).toMatch(/growlanzo\.own@gmail\.com/);
+    // The AI failure path points the user at the monitored support inbox, never
+    // the private owner Gmail.
+    expect(source).toMatch(/support@growlanzo\.com/);
+    expect(source).not.toMatch(/growlanzo\.own@gmail\.com/);
     // Rate limiting fails closed — every call costs real gateway credits.
     expect(source).toContain('increment_rate_limit');
     expect(source).toMatch(/failed closed/);
@@ -147,7 +150,8 @@ describe('SupportTicketsPage conversation flow', () => {
   });
 
   it('keeps a working email fallback and marks other channels as coming soon', () => {
-    expect(page).toContain('mailto:growlanzo.own@gmail.com');
+    expect(page).toContain('mailto:support@growlanzo.com');
+    expect(page).not.toContain('mailto:growlanzo.own@gmail.com');
     expect(page.toLowerCase()).toContain('coming soon');
     // Email is the current human channel; phone/live-chat must not be claimed.
     expect(page.toLowerCase()).not.toMatch(/call us|live chat now|24\/7 human/);
@@ -189,7 +193,8 @@ describe('AI chat escalates unsolved issues into a saved ticket', () => {
 
   it('never resolves the ticket from the chat and keeps an email fallback visible', () => {
     expect(chat).not.toContain('resolveTicket');
-    expect(chat).toContain('mailto:growlanzo.own@gmail.com');
+    expect(chat).toContain('mailto:support@growlanzo.com');
+    expect(chat).not.toContain('mailto:growlanzo.own@gmail.com');
     expect(service).toContain('priority');
   });
 });

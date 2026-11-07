@@ -7,7 +7,8 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendEmail } from '../_shared/brevo.ts'
+import { sendEmail } from '../_shared/brevo.ts';
+import { getSender } from '../_shared/emailSenders.ts';
 import { SITE_URL } from '../_shared/site.ts';
 
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') ?? 'growlanzo.own@gmail.com';
@@ -128,6 +129,7 @@ Deno.serve(async (req) => {
       to: ADMIN_EMAIL,
       subject: `🚨 Growlanzo Security: ${critical} critical / ${high} high finding(s)`,
       html: buildAlertHtml(list.length, list),
+      sender: getSender('security'),
     });
 
     return new Response(JSON.stringify({ success: true, emailed, count: list.length }), {

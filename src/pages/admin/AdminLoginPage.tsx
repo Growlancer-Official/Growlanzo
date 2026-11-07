@@ -163,7 +163,7 @@ export function AdminLoginPage() {
                 aria-label="Admin email"
                 value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="growlanzo.own@gmail.com"
+              placeholder="your admin email"
               autoFocus
               className="w-full px-4 py-3 bg-slate-800/50 border border-white/5 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
             />

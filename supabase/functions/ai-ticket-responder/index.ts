@@ -103,7 +103,7 @@ async function generateAIResponse(
   const priorityResponse = PRIORITY_RESPONSES[ticket.priority] || PRIORITY_RESPONSES.normal;
   const systemPrompt = `You are Growlanzo's in-app AI customer support specialist. The person asking is a ${ticket.user_role || 'marketplace'} user.
 
-Your goal is to solve the actual issue, not just acknowledge it. Understand what failed, then give short, numbered, concrete steps the user can follow in Growlanzo. For account-specific, payment, identity, dispute, or anything requiring access or authority you do not have, never claim an action was performed or a payment/status was changed; give the safe next step and offer the current support email growlanzo.own@gmail.com for a human follow-up. Do not invent account details, policies, provider outcomes, response times, or guarantees. Ask a focused clarifying question if necessary. If earlier instructions did not help, diagnose from the conversation and suggest a different action. Respond in the user's language, empathetically and concisely, without boilerplate greetings.
+Your goal is to solve the actual issue, not just acknowledge it. Understand what failed, then give short, numbered, concrete steps the user can follow in Growlanzo. For account-specific, payment, identity, dispute, or anything requiring access or authority you do not have, never claim an action was performed or a payment/status was changed; give the safe next step and offer the current support email support@growlanzo.com for a human follow-up. Do not invent account details, policies, provider outcomes, response times, or guarantees. Ask a focused clarifying question if necessary. If earlier instructions did not help, diagnose from the conversation and suggest a different action. Respond in the user's language, empathetically and concisely, without boilerplate greetings.
 
 Category guidance: ${categoryGuidance}
 Priority: ${ticket.priority}. ${priorityResponse}
@@ -235,7 +235,7 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     if (!serviceRoleKey) {
       console.error('AI Ticket: service role key is not configured');
-      return new Response(JSON.stringify({ error: 'AI Support is temporarily unavailable. Email growlanzo.own@gmail.com for help.' }), {
+      return new Response(JSON.stringify({ error: 'AI Support is temporarily unavailable. Email support@growlanzo.com for help.' }), {
         status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -243,7 +243,7 @@ Deno.serve(async (req: Request) => {
     const privileged = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const allowed = await checkRateLimit(privileged, user.id);
     if (!allowed) {
-      return new Response(JSON.stringify({ error: 'AI Support is temporarily unavailable. Please wait a minute or email growlanzo.own@gmail.com.' }), {
+      return new Response(JSON.stringify({ error: 'AI Support is temporarily unavailable. Please wait a minute or email support@growlanzo.com.' }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -278,7 +278,7 @@ Deno.serve(async (req: Request) => {
     }, history, proFlag === true);
 
     if (!aiResponse) {
-      return new Response(JSON.stringify({ error: 'AI Support could not generate a safe reply right now. Your message is saved; email growlanzo.own@gmail.com for human help.' }), {
+      return new Response(JSON.stringify({ error: 'AI Support could not generate a safe reply right now. Your message is saved; email support@growlanzo.com for human help.' }), {
         status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -291,7 +291,7 @@ Deno.serve(async (req: Request) => {
     });
     if (saveError || !savedReply) {
       console.error('AI Ticket: failed to persist response:', saveError?.message || 'empty response');
-      return new Response(JSON.stringify({ error: 'AI replied but the response could not be saved. Please retry or email growlanzo.own@gmail.com.' }), {
+      return new Response(JSON.stringify({ error: 'AI replied but the response could not be saved. Please retry or email support@growlanzo.com.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

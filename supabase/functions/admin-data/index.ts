@@ -659,7 +659,7 @@ Deno.serve(async (req) => {
 
     // ─── POST: test_email — sends a live Brevo test email ──
     if (req.method === 'POST' && action === 'test_email') {
-      const testTo = body?.to || 'growlanzo.own@gmail.com'
+      const testTo = body?.to || 'support@growlanzo.com'
       const sent = await sendNotificationEmail('Growlanzo Test Email ✅', '<p>This is a test email from Growlanzo via Brevo.</p>', { email: testTo, name: 'Test' })
       return new Response(JSON.stringify({ success: sent, error: sent ? undefined : 'Email delivery failed (Brevo not configured or API error)' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -843,7 +843,7 @@ Deno.serve(async (req) => {
             <tr>
               <td style="padding: 8px 16px; background: #faf5ff; border-radius: 8px;">
                 <p style="font-size: 11px; color: #6d28d9; margin: 0;">
-                  🌐 ${APP_URL} &nbsp;|&nbsp; ✉️ growlanzo.own@gmail.com
+                  🌐 ${APP_URL} &nbsp;|&nbsp; ✉️ support@growlanzo.com
                 </p>
               </td>
             </tr>
@@ -916,7 +916,7 @@ Deno.serve(async (req) => {
             <tr>
               <td style="padding: 8px 16px; background: #f1fcef; border-radius: 8px;">
                 <p style="font-size: 11px; color: #10591a; margin: 0;">
-                  🌐 ${APP_URL} &nbsp;|&nbsp; ✉️ growlanzo.own@gmail.com
+                  🌐 ${APP_URL} &nbsp;|&nbsp; ✉️ support@growlanzo.com
                 </p>
               </td>
             </tr>

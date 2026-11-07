@@ -614,7 +614,7 @@ Growlanzo is being continuously developed toward a production-grade professional
 
 [![Website](https://img.shields.io/badge/Website-growlanzo.com-22c55e?style=for-the-badge\&logo=googlechrome\&logoColor=white)](https://growlanzo.com)
 
-[![Email](https://img.shields.io/badge/Email-growlanzo.own%40gmail.com-2563eb?style=for-the-badge\&logo=gmail\&logoColor=white)](mailto:growlanzo.own@gmail.com)
+[![Email](https://img.shields.io/badge/Email-support@growlanzo.com-2563eb?style=for-the-badge\&logo=gmail\&logoColor=white)](mailto:support@growlanzo.com)
 
 [![Twitter](https://img.shields.io/badge/X-Twitter-000000?style=for-the-badge\&logo=x\&logoColor=white)](https://x.com/Growlanzo)
 [![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge\&logo=instagram\&logoColor=white)](https://www.instagram.com/invites/contact/?utm_source=ig_contact_invite&utm_medium=copy_link&utm_content=6xoewwb)

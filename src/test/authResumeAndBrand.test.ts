@@ -107,9 +107,12 @@ describe('a signed-in visitor is never asked to sign in again', () => {
 });
 
 describe('the final brand email is the one users can actually reach', () => {
-  const BRAND_EMAIL = 'growlanzo.own@gmail.com';
+  // The public contact address is the monitored support inbox. The private owner
+  // Gmail (growlanzo.own@gmail.com) is the RECIPIENT for internal admin alerts only
+  // (spec §7) and is never a customer-facing From / contact link.
+  const SUPPORT_EMAIL = 'support@growlanzo.com';
 
-  it('the footer, legal pages and report form all show it', () => {
+  it('the footer, legal pages and report form all show the support inbox', () => {
     for (const rel of [
       'src/components/SiteFooter.tsx',
       'src/pages/TermsPage.tsx',
@@ -117,22 +120,41 @@ describe('the final brand email is the one users can actually reach', () => {
       'src/pages/CookiesPage.tsx',
       'src/pages/ReportFeedbackPage.tsx',
     ]) {
-      expect(readSource(rel), rel).toContain(BRAND_EMAIL);
+      expect(readSource(rel), rel).toContain(SUPPORT_EMAIL);
     }
   });
 
-  it('the mail sender default matches it', () => {
-    expect(readSource('supabase/functions/_shared/brevo.ts')).toContain(BRAND_EMAIL);
+  it('the mail sender default is a verified domain sender, not the owner Gmail', () => {
+    const BREVO = readSource('supabase/functions/_shared/brevo.ts');
+    // The legacy default must not be the owner Gmail.
+    expect(BREVO).not.toContain('growlanzo.own@gmail.com');
+    // It falls back to a verified @growlanzo.com sender.
+    expect(BREVO).toContain('info@growlanzo.com');
   });
 
-  it('the superseded address is gone from the shipped surfaces', () => {
+  it('the owner Gmail is absent from customer-facing shipped surfaces', () => {
     for (const rel of [
       'src/components/SiteFooter.tsx',
       'src/pages/TermsPage.tsx',
+      'src/pages/PrivacyPage.tsx',
+      'src/pages/CookiesPage.tsx',
+      'src/pages/ReportFeedbackPage.tsx',
       'supabase/functions/_shared/brevo.ts',
       'public/manifest.json',
     ]) {
-      expect(readSource(rel), rel).not.toContain('growlancer.own@gmail.com');
+      expect(readSource(rel), rel).not.toContain('growlanzo.own@gmail.com');
+    }
+  });
+
+  it('the owner Gmail remains only as the internal admin-alert recipient', () => {
+    const ALERT_FILES = [
+      'supabase/functions/admin-data/index.ts',
+      'supabase/functions/security-alert-notify/index.ts',
+      'supabase/functions/internship-applications/index.ts',
+      'supabase/functions/proposal-notifications/index.ts',
+    ];
+    for (const rel of ALERT_FILES) {
+      expect(readSource(rel), rel).toContain('growlanzo.own@gmail.com');
     }
   });
 });
