@@ -816,6 +816,39 @@ export function AuthCallbackPage() {
         const check = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
         const rawStored = localStorage.getItem(sbKey);
         if (!check.data?.session?.user && (!rawStored || rawStored === 'null')) {
+          // One retry covers the common host-prefix storage race (the callback page
+          // reads the in-memory session, writes it under the wrong key prefix, and
+          // the next page load — reading the correct prefix — sees nothing). Without
+          // the retry this is the "login works, back to homepage" bug.
+          const retry = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+          if (retry.data?.session?.user) {
+            localStorage.setItem(sbKey, JSON.stringify(retry.data.session));
+            localStorage.setItem(`${sbKey}-user`, JSON.stringify({ user: retry.data.session.user }));
+          } else {
+            // Still nothing — try once more to re-establish from the URL tokens if
+            // they are still present (implicit-flow or a refresh that re-appended
+            // the hash).
+            const parsed = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+            const accessToken = parsed.get('access_token');
+            const refreshToken = parsed.get('refresh_token');
+            if (accessToken && refreshToken) {
+              const re = await supabase.auth
+                .setSession({ access_token: accessToken, refresh_token: refreshToken })
+                .catch(() => ({ data: { session: null } }));
+              if (re.data?.session?.user) {
+                localStorage.setItem(sbKey, JSON.stringify(re.data.session));
+                localStorage.setItem(`${sbKey}-user`, JSON.stringify({ user: re.data.session.user }));
+              }
+            }
+          }
+        }
+
+        // Final confirmation before redirecting. If even the retry left nothing,
+        // the session genuinely did not survive — render an error, never a silent
+        // homepage drop.
+        const confirm = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+        const confirmStored = localStorage.getItem(sbKey);
+        if (!confirm.data?.session?.user && (!confirmStored || confirmStored === 'null')) {
           setStatus('error');
           setErrorMessage('Session could not be persisted. Please try again.');
           return;
@@ -902,12 +935,80 @@ export function AuthCallbackPage() {
           devLog('[AuthCallback] update_user_country RPC warning:', countryErr.message);
         }
 
-        // Now determine redirect based on profile
+        // Resolve the profile for the redirect. A brand-new OAuth user's profile
+        // row can lag behind the auth.users row by a few hundred ms, so retry once.
+        let profile = await fetchUserProfile(userId);
+        if (!profile) {
+          await new Promise(r => setTimeout(r, 300));
+          profile = await fetchUserProfile(userId);
+        }
+
         // 🛡️ FULL PAGE redirect — same reason as the main callback flow above.
         // Avoids the ProtectedRoute bounce-back race after country selection.
         // Country gate is only reachable for OAuth flows — one onboarding for
         // everyone (role chosen on the welcome step).
-        const profile = await fetchUserProfile(userId);
+        //
+        // Persist-and-confirm the session the SAME way the main callback does,
+        // because the country gate can be reached after a callback that did not
+        // finish persisting (e.g. a refresh mid-flow). A redirect that fires with
+        // a dead token is exactly the "logged in, back to homepage" bug.
+        const sbUrl = import.meta.env.VITE_SUPABASE_URL || '';
+        const sbKey = `sb-${new URL(sbUrl).host.split('.')[0]}-auth-token`;
+
+        const sessionReady = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+        let session = sessionReady.data?.session ?? null;
+
+        if (!session?.user && window.location.hash) {
+          const parsed = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+          const accessToken = parsed.get('access_token');
+          const refreshToken = parsed.get('refresh_token');
+          if (accessToken && refreshToken) {
+            const re = await supabase.auth
+              .setSession({ access_token: accessToken, refresh_token: refreshToken })
+              .catch(() => ({ data: { session: null } }));
+            session = re.data?.session ?? null;
+          }
+        }
+
+        // If the callback left a persisted session, make sure it still reads back.
+        // One retry covers the common host-prefix storage race without hiding a
+        // genuine failure behind a misleading success.
+        if (!session?.access_token) {
+          const retry = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+          session = retry.data?.session ?? null;
+        }
+
+        if (session?.access_token && session?.refresh_token) {
+          localStorage.setItem(sbKey, JSON.stringify(session));
+          localStorage.setItem(`${sbKey}-user`, JSON.stringify({ user: session.user }));
+        }
+
+        const check = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+        const rawStored = localStorage.getItem(sbKey);
+        if (!check.data?.session?.user && (!rawStored || rawStored === 'null')) {
+          // The session did not survive — re-establish from the provider redirect
+          // tokens if they are still in the URL, otherwise ask the user to retry.
+          const parsed = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+          const accessToken = parsed.get('access_token');
+          const refreshToken = parsed.get('refresh_token');
+          if (accessToken && refreshToken) {
+            const re = await supabase.auth
+              .setSession({ access_token: accessToken, refresh_token: refreshToken })
+              .catch(() => ({ data: { session: null } }));
+            if (re.data?.session?.user) {
+              localStorage.setItem(sbKey, JSON.stringify(re.data.session));
+              localStorage.setItem(`${sbKey}-user`, JSON.stringify({ user: re.data.session.user }));
+            }
+          }
+        }
+
+        const finalCheck = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+        if (!finalCheck.data?.session?.user) {
+          setCountryGateError('Your sign-in did not finish persisting. Please try again.');
+          setCountryGateLoading(false);
+          return;
+        }
+
         redirectAfterAuth(profile);
       } else {
         // Non-India country — insert into waitlist, redirect to /waitlist
