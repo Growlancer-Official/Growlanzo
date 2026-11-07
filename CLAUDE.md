@@ -244,3 +244,61 @@
 ### (1) 2026-11-07 · Status log established at the start of this work
 - Baseline: `main` at `a3d6a31`, branch `freebuff/70241dbd803b648fce1d7732`,
   cloud workspace with no `gh` auth and no Supabase/Brevo credentials.
+
+### (9) 2026-11-07 · Security-surface hardening — admin-data money-state write block enforced at the proxy
+- **Audit found, then fixed, one real gap.** Reading the real edge-function bodies
+  (not the doc summary) showed the `admin-data` generic proxy was blocking
+  `wallets`/`escrow`/`transactions` for writes but was still letting an admin raw-UPDATE
+  the money-state tables `contracts` and `subscriptions` through the same service-role
+  path. That bypasses the contract lifecycle (`create_contract_with_escrow` /
+  `admin_fund_escrow` / `release_escrow` / `_book_escrow_release`) and the live-DB
+  `enforce_subscription_client_update_guard` that already says subscription status is
+  server-authoritative.
+- **Fix (small, existing pattern):** added `'contracts'` and `'subscriptions'` to
+  `WRITE_BLOCKED_TABLES` in `supabase/functions/admin-data/index.ts`, with an expanded
+  comment naming the lifecycle RPCs and the subscription guard, and a 403 message that
+  says to add a narrow RPC rather than widen the proxy. The proxy still READS those
+  tables for admin reporting.
+- **Doc-corrected stale comment:** `AdminSubscriptionsPage` had a comment claiming
+  `end_date` "does not exist on the live table, so this update used to fail" — that
+  describes the pre-`20270103000002` reconcile bug, not current behavior. Reworded to
+  reflect the live canonical columns. Also dropped the now-redundant `updated_at` from
+  the cancel update payload (kept only the real state columns + the allowed
+  `cancel_at_period_end` toggle).
+- **Docs refreshed:** `docs/blueprint/DOMAIN-FLOWS.md` §7 G7 now says the block is
+  enforced at the proxy (not still open); `docs/LAUNCH-READINESS.md` §B2 rewritten to
+  match; `CLAUDE.md` §11 snapshot updated below.
+- **Guard test added:** `src/test/adminMoneyStateProxyBlock.test.ts` pins the
+  blocked list (`wallets`/`escrow`/`transactions`/`contracts`/`subscriptions`), that the
+  console can still read `contracts`/`subscriptions`, and that the non-money tables the
+  admin console actually writes stay allowed — all read straight from the source, so it
+  cannot drift silently.
+- **Decision left for you, not silently changed:** the admin console buttons for contract
+  status / escrow toggle / subscription cancel+reactivate now hit the 403. If you want
+  those transitions to keep working from the console, add a narrow SECURITY DEFINER RPC
+  for each rather than widening the proxy (AGENTS.md §8: widening a money path needs your
+  go-ahead).
+- Verified: will run `npm run verify` after this edit; base was green at `c84cf42`
+  (916 tests / 80 files).
+
+### (10) 2026-11-07 · (placeholder — to be filled after `npm run verify` + commit + push)
+- Pending.
+
+**Current state snapshot:** engineering is green at HEAD pending this edit (typecheck,
+lint, **916 tests / 80 test files** pass, build 0, docs map current as of the prior
+`npm run docs:map`). Public paid launch is still **NO** for the same owner-only reasons
+in `docs/LAUNCH-READINESS.md`: payouts disabled (A1), no real payment ever run (A2),
+Brevo IP restriction (A9), KYC in development mode (A4), legal identity / grievance
+contact (A10), empty marketplace (A8), Grow Coin deploy (A11). Public posture until
+A1+A2: **invite-only beta, money handled manually**.
+
+**Cloud/sandbox limit:** a cloud workspace has no Supabase credentials and no `gh`
+auth, so migration diffing, the privilege pentests in `scripts/e2e/*`, live-DB proof,
+and the Backend Deploy run state are **unverifiable there**. Run the DB-level proof in
+CI (which holds the secrets) or on a machine with `.env.local` — and never report a
+live-DB result you did not actually get.
+
+Working tree note: the professional referral-code change (migration
+`20270201000000`, `src/lib/referralCode.ts`, `ReferralInviteCard`) may be
+uncommitted when a session starts. Check `git status` first; do not overwrite
+or discard another session's work.

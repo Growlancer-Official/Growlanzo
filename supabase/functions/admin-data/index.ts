@@ -48,9 +48,32 @@ const ALLOWED_TABLES = [
 // code writes them through this proxy — every call site is a read or a realtime
 // subscription — so this only closes the hole, it does not remove a capability.
 // Anything that genuinely needs to move money must go through an RPC.
-const WRITE_BLOCKED_TABLES = ['wallets', 'escrow', 'transactions'];
+const WRITE_BLOCKED_TABLES = ['wallets', 'escrow', 'transactions', 'contracts', 'subscriptions'];
 
-/** 403 body when an admin tries to write a ledger-bearing table. */
+/**
+ * 403 body when an admin tries to write a ledger- or money-state-bearing table.
+ *
+ * These tables are still readable here (the admin console lists them). What they
+ * are not is writable through this generic proxy: a raw row update bypasses the
+ * balance / escrow / contract / subscription invariants that Security Principle
+ * §2 requires to live only in SECURITY DEFINER RPCs (row locking, idempotency
+ * guard, ledger entry, status-transition rules).
+ *
+ * - `contracts` carries status, platform_fee, escrow_funded, milestones, start
+ *   date — all of which are moved by `create_contract_with_escrow` /
+ *   `admin_fund_escrow` / `release_escrow` / `_book_escrow_release` / dispute
+ *   resolution, never by a bare proxy UPDATE.
+ * - `subscriptions` carries status, billing dates, payment_provider and
+ *   payment_subscription_id. The live DB already enforces this via
+ *   `enforce_subscription_client_update_guard` (browser sessions may only toggle
+ *   `cancel_at_period_end`), so the proxy must not do the opposite and let an
+ *   admin rewrite status/billing through a raw UPDATE.
+ *
+ * Anything that genuinely needs to move money or mutate money-state must go
+ * through a SECURITY DEFINER RPC. If the admin console needs a specific
+ * transition that does not yet have one, add a narrow RPC — do not widen this
+ * proxy to allow it.
+ */
 function writeBlockedResponse(
   table: string,
   verb: string,
@@ -59,7 +82,7 @@ function writeBlockedResponse(
   if (!WRITE_BLOCKED_TABLES.includes(table)) return null;
   return new Response(
     JSON.stringify({
-      error: `${table} is read-only through this endpoint (${verb} blocked). Financial rows must change through their SECURITY DEFINER RPC so the ledger invariants hold.`,
+      error: `${table} is read-only through this endpoint (${verb} blocked). Financial and money-state rows must change through their SECURITY DEFINER RPC so the ledger and status-transition invariants hold. If the admin console needs this transition, add a narrow RPC rather than widening this proxy.`,
     }),
     { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );

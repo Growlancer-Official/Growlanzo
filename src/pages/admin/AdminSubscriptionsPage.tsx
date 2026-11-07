@@ -125,15 +125,16 @@ export function AdminSubscriptionsPage() {
             }
           }
 
-          // Write the canonical end column (plus the legacy mirror) — `end_date`
-          // does not exist on the live table, so this update used to fail.
+          // Write the canonical end columns on the live table. The legacy
+          // `end_date` / `auto_renew` columns were already dropped in the live
+          // schema reconcile migration; this path writes the live canonical
+          // columns only (subscription_end_date / expiry_date).
           const cancelledAt = new Date().toISOString();
           await adminUpdate('subscriptions', subId, {
             status: 'cancelled',
             subscription_end_date: cancelledAt,
             expiry_date: cancelledAt,
             cancel_at_period_end: true,
-            updated_at: cancelledAt,
           });
           await fetchData();
           toast.success(`Subscription cancelled for "${userName}"`);
