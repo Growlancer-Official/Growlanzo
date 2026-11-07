@@ -88,6 +88,10 @@ describe('admin-data money-state write block', () => {
     expect(BLOCKED).toContain('subscriptions');
   });
 
+  it('blocks dispute money-decision-audit writes through the proxy', () => {
+    expect(BLOCKED).toContain('disputes');
+  });
+
   it('still lists the money-state tables, so the console can read them', () => {
     // The console lists these for reporting; only writes are blocked.
     expect(ALLOWED).toContain('contracts');
@@ -108,22 +112,32 @@ describe('admin-data money-state write block', () => {
 
   it('keeps every blocked table out of the allowed-write path, and documents why', () => {
     // The comment above WRITE_BLOCKED_TABLES must still say these are blocked for an
-    // invariant reason (ledger / money-state / status-transition), not by accident.
-    expect(ADMIN_DATA).toMatch(/ledger- or money-state-bearing table/);
+    // invariant reason (ledger / money-state / status-transition / money-audit), not by
+    // accident.
+    expect(ADMIN_DATA).toMatch(/money-audit/);
     expect(ADMIN_DATA).toMatch(/create_contract_with_escrow/);
     expect(ADMIN_DATA).toMatch(/admin_fund_escrow/);
     expect(ADMIN_DATA).toMatch(/enforce_subscription_client_update_guard/);
   });
 
-  // Positive control: the only money-state tables the admin console currently writes
-  // through the proxy are the ones this guard intentionally blocks. If a new
-  // money-state table enters ALLOWED_TABLES, add it here and block it.
-  it('names the money-state tables the admin console writes today (so new ones are noticed)', () => {
-    const moneyStateTables = ['contracts', 'subscriptions', 'transactions', 'wallets', 'escrow'];
+  // Positive control: the only money-/money-audit-state tables the admin console
+  // currently writes through the proxy are the ones this guard intentionally
+  // blocks. If a new such table enters ALLOWED_TABLES, add it here and block it.
+  it('names the money-state + money-audit tables the admin console writes today (so new ones are noticed)', () => {
+    const moneyStateTables = ['contracts', 'subscriptions', 'transactions', 'wallets', 'escrow', 'disputes'];
     for (const table of ADMIN_WRITE_SITES) {
       if (moneyStateTables.includes(table.table)) {
         expect(BLOCKED).toContain(table.table);
       }
     }
+    // disputes is also the one whose own RLS migration grants admins UPDATE but has
+    // no DELETE policy, so the only working DELETE path before this block was the
+    // service-role proxy. The guard reads the ADMIN_DATA proxy source here, so it pins
+    // the proxy's own state; the disputes-RWS fact lives in the migration and is
+    // asserted by src/test/profiles... tests, not by this proxy-source guard.
+    const DISPUTES_BLOCKED_LINE = BLOCKED.find((t) => t === 'disputes');
+    expect(DISPUTES_BLOCKED_LINE, 'disputes must be in WRITE_BLOCKED_TABLES').toBe('disputes');
+    expect(BLOCKED.indexOf('disputes')).toBeGreaterThanOrEqual(0);
+    expect(ADMIN_DATA).toMatch(/admin_decide_dispute/);
   });
 });

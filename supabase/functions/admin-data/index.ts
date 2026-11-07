@@ -48,31 +48,39 @@ const ALLOWED_TABLES = [
 // code writes them through this proxy — every call site is a read or a realtime
 // subscription — so this only closes the hole, it does not remove a capability.
 // Anything that genuinely needs to move money must go through an RPC.
-const WRITE_BLOCKED_TABLES = ['wallets', 'escrow', 'transactions', 'contracts', 'subscriptions'];
+const WRITE_BLOCKED_TABLES = ['wallets', 'escrow', 'transactions', 'contracts', 'subscriptions', 'disputes'];
 
 /**
- * 403 body when an admin tries to write a ledger- or money-state-bearing table.
+ * 403 body when an admin tries to write a ledger-, money-state-, or money-audit-
+ * bearing table.
  *
  * These tables are still readable here (the admin console lists them). What they
  * are not is writable through this generic proxy: a raw row update bypasses the
- * balance / escrow / contract / subscription invariants that Security Principle
- * §2 requires to live only in SECURITY DEFINER RPCs (row locking, idempotency
- * guard, ledger entry, status-transition rules).
+ * balance / escrow / contract / subscription / dispute invariants that Security
+ * Principle §2 requires to live only in SECURITY DEFINER RPCs (row locking,
+ * idempotency guard, ledger entry, status-transition rules, decision audit trail).
  *
- * - `contracts` carries status, platform_fee, escrow_funded, milestones, start
- *   date — all of which are moved by `create_contract_with_escrow` /
- *   `admin_fund_escrow` / `release_escrow` / `_book_escrow_release` / dispute
- *   resolution, never by a bare proxy UPDATE.
- * - `subscriptions` carries status, billing dates, payment_provider and
+ * - `wallets`, `escrow`, `transactions` — the balance / escrow / ledger tables.
+ * - `contracts` — status, platform_fee, escrow_funded, milestones, start date.
+ *   Moved by `create_contract_with_escrow` / `admin_fund_escrow` /
+ *   `release_escrow` / `_book_escrow_release` / dispute resolution, never by a
+ *   bare proxy UPDATE.
+ * - `subscriptions` — status, billing dates, payment_provider,
  *   payment_subscription_id. The live DB already enforces this via
  *   `enforce_subscription_client_update_guard` (browser sessions may only toggle
- *   `cancel_at_period_end`), so the proxy must not do the opposite and let an
- *   admin rewrite status/billing through a raw UPDATE.
+ *   `cancel_at_period_end`), so the proxy must not do the opposite.
+ * - `disputes` — status, resolution, resolved_by, resolved_at, decision,
+ *   decision_amount. Dispute state and the money-decision audit record are written
+ *   only by `admin_decide_dispute`; a raw proxy UPDATE/DELETE could silently erase
+ *   the audit trail of where escalated money went without reconciling the contract
+ *   freeze. Note: the disputes table's own RLS grants admins UPDATE but not DELETE,
+ *   so the only DELETE path that currently works is the service-role proxy — which
+ *   is exactly the hole this blocks.
  *
- * Anything that genuinely needs to move money or mutate money-state must go
- * through a SECURITY DEFINER RPC. If the admin console needs a specific
- * transition that does not yet have one, add a narrow RPC — do not widen this
- * proxy to allow it.
+ * Anything that genuinely needs to move money, mutate money-state, or change a
+ * money-audit record must go through a SECURITY DEFINER RPC. If the admin console
+ * needs a specific transition that does not yet have one, add a narrow RPC — do
+ * not widen this proxy to allow it.
  */
 function writeBlockedResponse(
   table: string,
@@ -82,7 +90,7 @@ function writeBlockedResponse(
   if (!WRITE_BLOCKED_TABLES.includes(table)) return null;
   return new Response(
     JSON.stringify({
-      error: `${table} is read-only through this endpoint (${verb} blocked). Financial and money-state rows must change through their SECURITY DEFINER RPC so the ledger and status-transition invariants hold. If the admin console needs this transition, add a narrow RPC rather than widening this proxy.`,
+      error: `${table} is read-only through this endpoint (${verb} blocked). Financial, money-state, and money-audit rows must change through their SECURITY DEFINER RPC so the ledger, status-transition, and decision-audit invariants hold. If the admin console needs this transition, add a narrow RPC rather than widening this proxy.`,
     }),
     { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
