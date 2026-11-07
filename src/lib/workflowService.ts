@@ -86,7 +86,30 @@ export async function inviteFreelancerToProject(
 ): Promise<{ success: boolean; error?: string }> {
   const ok = await invitesService.create(clientId, projectId, freelancerId, message);
   if (!ok) return { success: false, error: 'Could not send invite (duplicate or permission denied)' };
+  // The invite row exists now, so the freelancer can be told. The function
+  // re-checks that the invite exists and resolves their address server-side.
+  void sendProjectNotification(projectId, 'project_invitation', { freelancer_id: freelancerId });
   return { success: true };
+}
+
+/**
+ * Tell the project's client that a new proposal arrived. Called by the
+ * freelancer's submit handler after the proposal row is inserted; the function
+ * authorises the caller as the proposal's freelancer and derives the client.
+ */
+export async function notifyProposalSubmitted(proposalId: string): Promise<void> {
+  try {
+    const { error } = await supabase.functions.invoke('proposal-notifications', {
+      method: 'POST',
+      body: { proposal_id: proposalId, action: 'submitted' },
+    });
+    if (error) {
+      console.error('[proposal-notifications] submitted notice failed:', error.message);
+    }
+  } catch (err) {
+    // Intentionally silent: the proposal is already saved; this is background work.
+    console.error('[proposal-notifications] submitted notice error:', err);
+  }
 }
 
 export async function rejectProposal(proposalId: string): Promise<boolean> {
@@ -98,8 +121,8 @@ export async function rejectProposal(proposalId: string): Promise<boolean> {
   return ok;
 }
 
-/** Project lifecycle emails the freelancer receives when a project finishes. */
-export type ProjectEmailEvent = 'project_completed' | 'review_request';
+/** Project lifecycle emails: completion/review to the freelancer, invitation to the invited freelancer. */
+export type ProjectEmailEvent = 'project_completed' | 'review_request' | 'project_invitation';
 
 /**
  * Call the project-notifications edge function. The recipient and the ownership
@@ -107,11 +130,15 @@ export type ProjectEmailEvent = 'project_completed' | 'review_request';
  * a caller can only produce mail about a project they own.
  * Fire-and-forget — the project is already complete whether or not it sends.
  */
-async function sendProjectNotification(projectId: string, event: ProjectEmailEvent): Promise<void> {
+async function sendProjectNotification(
+  projectId: string,
+  event: ProjectEmailEvent,
+  extra: Record<string, unknown> = {}
+): Promise<void> {
   try {
     const { error } = await supabase.functions.invoke('project-notifications', {
       method: 'POST',
-      body: { project_id: projectId, event },
+      body: { project_id: projectId, event, ...extra },
     });
     if (error) {
       console.error(`[project-notifications] ${event} failed:`, error.message);

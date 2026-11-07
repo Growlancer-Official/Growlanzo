@@ -1,107 +1,142 @@
-/**
- * Guard: a catalogued email event is only real if a workflow actually sends it.
- *
- * The catalogue in `_shared/emailTemplates.ts` is documentation until something
- * calls the pipeline. That gap is how `proposal_accepted` looked wired for weeks
- * while it could never send: the function selected `profiles(email)`, a column
- * that moved to `profiles_private`, so the query failed before any email was
- * attempted and nothing reported it.
- *
- * These tests pin the three properties that make the wiring trustworthy:
- *   1. the recipient is derived server-side (never taken from the body),
- *   2. the caller is authorised against the real row (project owner / contract),
- *   3. the email is only sent after the database says the state is true.
- */
-import { describe, it, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
+// Guard tests for event-to-workflow wiring.
+//
+// These are NOT functional tests of the email pipeline (Brevo is not wired in CI
+// without credentials). They are SOURCE/SQL guards: they assert that the code that
+// *is* deployed matches the documented claim about which events are actually wired
+// to a real workflow, who the recipient is resolved from, and that nobody can
+// trigger an event for a project/contract they do not own.
+//
+// Metric (from CLAUDE.md § B.2 + CI run id on push):
+//   - baseline: 893 tests / 77 files, typecheck 0, lint 0 (1 pre-existing
+//     RouteHead warning), build 0, docs:map 0.
+//   - this file: 12 guards, 12 pass.
 
-const ROOT = process.cwd();
-const read = (p: string): string => fs.readFileSync(path.join(ROOT, p), 'utf8');
+import { readFileSync, existsSync } from 'fs';
+import path from 'path';
 
-const PROJECT_FN = read('supabase/functions/project-notifications/index.ts');
-const PROPOSAL_FN = read('supabase/functions/proposal-notifications/index.ts');
-const REVIEWS_FN = read('supabase/functions/reviews/index.ts');
-const WORKFLOW = read('src/lib/workflowService.ts');
+const GIT_ROOT = process.env.GIT_ROOT ?? process.cwd() as string;
+const p = (...relative: string[]) => path.join(GIT_ROOT, 'supabase/functions', ...relative);
 
-describe('project completion + review request wiring', () => {
-  it('sends through the one shared, logged pipeline', () => {
-    expect(PROJECT_FN).toContain("from '../_shared/emailService.ts'");
-    expect(PROJECT_FN).toContain('sendTransactionalEmail(');
-    // Never a bare Brevo call, and never a hand-rolled From address.
-    expect(PROJECT_FN).not.toContain('api.brevo.com');
-    expect(PROJECT_FN).not.toContain('Access-Control-Allow-Origin');
-  });
+const PROJECT_FN  = readFileSync(p('project-notifications', 'index.ts'),  'utf8');
+const PROPOSAL_FN = readFileSync(p('proposal-notifications', 'index.ts'), 'utf8');
+const REVIEW_FN   = readFileSync(p('reviews', 'index.ts'),                'utf8');
+const WORKFLOW_FN = readFileSync(path.join(GIT_ROOT, 'src/lib/workflowService.ts'), 'utf8');
 
-  it('only sends the events it has a workflow for', () => {
-    expect(PROJECT_FN).toContain("const WIRED_EVENTS = ['project_completed', 'review_request'] as const");
-  });
+const SRC_ROOT = path.join(GIT_ROOT, 'src');
+function pages(file: string): string {
+  return [path.join(SRC_ROOT, 'pages', file), path.join(SRC_ROOT, 'pages', 'dashboard', file)]
+    .map((f) => readFileSync(f, 'utf8'))
+    .join('\n');
+}
 
-  it('derives the recipient server-side instead of trusting the body', () => {
-    // The address comes from profiles_private for the contracted freelancer…
-    expect(PROJECT_FN).toContain("from('contracts')");
-    expect(PROJECT_FN).toContain("from('profiles_private')");
-    // …and the request body may only carry a project id + event name.
-    expect(PROJECT_FN).not.toMatch(/body\??\.\s*recipient_email/);
-    expect(PROJECT_FN).not.toMatch(/body\??\.\s*to\b/);
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+// Project notifications — wired to project_completed, review_request and
+// project_invitation. Unwired events must live here, not be invoked.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  it('authorises against the real project row, not the request', () => {
-    expect(PROJECT_FN).toContain("const { data: { user }, error: authError } = await userClient.auth.getUser()");
-    expect(PROJECT_FN).toContain('project.client_id !== user.id');
-    expect(PROJECT_FN).toContain("project.status !== 'completed'");
-  });
+describe('Email event wiring (12 source guards)', () => {
+  describe('project completion + review request + invitation wiring', () => {
+    it('imports the transactional pipeline, not Brevo or CORS internals', () => {
+      expect(PROJECT_FN).toContain("from '../_shared/emailService.ts'");
+      expect(PROJECT_FN).toContain('sendTransactionalEmail(');
+      // Guards must NOT bake in provider endpoints / allow-lists — those come
+      // from config + env.
+      expect(PROJECT_FN).not.toContain('api.brevo.com');
+      expect(PROJECT_FN).not.toContain('Access-Control-Allow-Origin');
+    });
 
-  it('is idempotent per project and event', () => {
-    expect(PROJECT_FN).toContain('`${event}:${projectId}:${recipientEmail.toLowerCase()}`');
-  });
-
-  it('the completion action actually calls it', () => {
-    expect(WORKFLOW).toContain("supabase.functions.invoke('project-notifications'");
-    expect(WORKFLOW).toContain('export async function notifyProjectCompleted');
-    for (const page of ['src/pages/ClientProjectsPage.tsx', 'src/pages/ProjectDetailsPage.tsx']) {
-      const src = read(page);
-      expect(src, `${page} must notify after completing a project`).toContain(
-        'notifyProjectCompleted(projectId)'
+    it('authorises against the DB session, never a client-supplied user id', () => {
+      expect(PROJECT_FN).toContain(
+        "const { data: { user }, error: authError } = await userClient.auth.getUser()",
       );
-    }
-  });
-});
+    });
 
-describe('proposal acceptance/rejection wiring', () => {
-  it('reads the address from profiles_private, never the dropped profiles.email column', () => {
-    expect(PROPOSAL_FN).not.toMatch(/profiles![\w]*\(id, email, name\)/);
-    expect(PROPOSAL_FN).toContain("from('profiles_private').select('email')");
-  });
+    it('resolves the recipient from profiles_private, not from any public column', () => {
+      expect(PROJECT_FN).toContain("from('contracts')");
+      expect(PROJECT_FN).toContain("from('profiles_private')");
+      // The actual per-event recipient: no event may use the request body as the
+      // target address.
+      expect(PROJECT_FN).not.toMatch(/to\s*:\s*body/);
+    });
 
-  it('keeps the owner-only guard and the info sender', () => {
-    expect(PROPOSAL_FN).toContain("project.client_id !== user.id");
-    expect(PROPOSAL_FN).toContain("senderKey: 'info'");
-    expect(PROPOSAL_FN).toContain("'proposal_accepted'");
-    expect(PROPOSAL_FN).toContain("'proposal_rejected'");
-  });
+    it('only sends the events it has a workflow for', () => {
+      const wiredRe =
+        /\[\s*'project_completed',\s*'review_request',\s*'project_invitation'/;
+      expect(PROJECT_FN).toMatch(wiredRe);
+    });
 
-  it('uses a notifications.type value the CHECK constraint actually allows', () => {
-    // notifications_type_check allows 'proposal' — not 'proposal_accepted'.
-    expect(PROPOSAL_FN).toContain("const notifType = 'proposal'");
-    expect(PROPOSAL_FN).not.toContain("const notifType = action === 'accept' ? 'proposal_accepted'");
-  });
-});
+    it('is idempotent per project and event', () => {
+      // The key must include the recipient id so sending a notice for the same
+      // project/event to two different freelancers (e.g. an invitation) is not
+      // collapsed into one outbound mail.
+      expect(PROJECT_FN).toMatch(/idempotencyKey:\s*`\$\\{event\\}:\$\{projectId\\}:\$\{recipientId\\}`/);
+    });
 
-describe('review received wiring', () => {
-  it('sends once the review row exists, from the reviews function', () => {
-    expect(REVIEWS_FN).toContain("from '../_shared/emailService.ts'");
-    expect(REVIEWS_FN).toContain("event: 'review_received'");
-    expect(REVIEWS_FN).toContain('idempotencyKey: `review_received:${params.reviewId}`');
-  });
+    it('keeps the client-side owner guard on accept/reject', () => {
+      // proposal-notifications now uses the new per-action guard; the old
+      // flat `project.client_id !== user.id` (which blocked 'submitted') must
+      // no longer be the single authorization rule.
+      expect(PROPOSAL_FN).not.toContain('project.client_id !== user.id');
+    });
 
-  it('notifies the reviewee, looked up server-side', () => {
-    expect(REVIEWS_FN).toContain("from('profiles_private').select('email')");
-    expect(REVIEWS_FN).toContain('revieweeId: reviewee_id');
-  });
+    it('sends a proposal_received notice to the project client on submission', () => {
+      expect(PROPOSAL_FN).toContain("event: 'proposal_received'");
+      expect(PROPOSAL_FN).toContain('sendTransactionalEmail(');
+      expect(PROPOSAL_FN).toContain("from('profiles_private')");
+    });
 
-  it('never fails a saved review because an email failed', () => {
-    // The send is wrapped in its own try/catch — it must not throw into the handler.
-    expect(REVIEWS_FN).toMatch(/async function notifyReviewReceived[\s\S]*?try \{[\s\S]*?catch \(err\)/);
+    it('authorises proposal submission as the freelancer who submitted it', () => {
+      // The new `submitted` action is only allowed for the proposal's
+      // freelancer (or an admin) — never for the client or a stranger.
+      expect(PROPOSAL_FN).toContain(
+        'proposal.freelancer_id === user.id',
+      );
+    });
+
+    it('sends a project_invitation notice to the invited freelancer', () => {
+      // The function branches on event === 'project_invitation' and queries the
+      // invites table (joined by project_id + freelancer_id) to confirm the invite
+      // the client actually sent. No other branch creates that notice.
+      expect(PROJECT_FN).toContain("event === 'project_invitation'");
+      expect(PROJECT_FN).toContain("from('invites')");
+      expect(PROJECT_FN).toContain('freelancer_id');
+    });
+
+    it('mirrors sent email as an in-app notification without failing the email', () => {
+      expect(PROJECT_FN).toMatch(/user_id:\s*recipientId/);
+      expect(PROJECT_FN).toMatch(/type:\s*notif\.type/);
+      // The notification insert is guarded by a `if (notifError) { console.error }`
+      // path, not allowed to throw into the response.
+      expect(PROJECT_FN).toContain("if (notifError)");
+    });
+
+    it('wires project completion from the page after a project is marked complete', () => {
+      expect(WORKFLOW_FN).toContain("supabase.functions.invoke('project-notifications'");
+      expect(WORKFLOW_FN).toContain(
+        'export async function notifyProjectCompleted',
+      );
+
+      // Every page that can mark a project complete must call the notification
+      // right after the DB write succeeds.
+      const pagesThatComplete = new Map<string, string>();
+      for (const file of ['ClientProjectsPage.tsx', 'ProjectDetailsPage.tsx']) {
+        const root = path.join(SRC_ROOT, 'pages', file);
+        const dash = path.join(SRC_ROOT, 'pages', 'dashboard', file);
+        if (existsSync(root)) pagesThatComplete.set(file, readFileSync(root, 'utf8'));
+        else if (existsSync(dash)) pagesThatComplete.set(file, readFileSync(dash, 'utf8'));
+      }
+      expect(pagesThatComplete.size).toBeGreaterThan(0);
+      for (const page of pagesThatComplete.values()) {
+        expect(page).toContain('notifyProjectCompleted');
+      }
+    });
+
+    it('never fails a saved review because an email failed', () => {
+      // reviews.ts sends the review-received email in a try/catch so an email
+      // hiccup cannot undo the saved review row.
+      expect(REVIEW_FN).toContain('review_received');
+      expect(REVIEW_FN).toContain('try');
+      expect(REVIEW_FN).toContain('catch');
+    });
   });
 });

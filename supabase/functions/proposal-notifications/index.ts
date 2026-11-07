@@ -5,7 +5,7 @@
 // Also creates in-app notifications for the freelancer.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { sendLoggedEmail } from '../_shared/emailService.ts'
+import { sendLoggedEmail, sendTransactionalEmail } from '../_shared/emailService.ts'
 import { brandedEmailHtml, htmlToText } from '../_shared/emailTemplates.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { SITE_URL } from '../_shared/site.ts'
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json()
-    const { proposal_id, action } = body // action: 'accept' | 'reject'
+    const { proposal_id, action } = body // action: 'accept' | 'reject' | 'submitted'
 
     if (!proposal_id || !action) {
       return new Response(
@@ -207,9 +207,9 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (!['accept', 'reject'].includes(action)) {
+    if (!['accept', 'reject', 'submitted'].includes(action)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid action. Must be "accept" or "reject".' }),
+        JSON.stringify({ error: 'Invalid action. Must be "accept", "reject" or "submitted".' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
     // query fail and took every proposal email down with it.
     const { data: proposal, error: propError } = await supabaseClient
       .from('proposals')
-      .select('id, project_id, freelancer_id, status, projects!proposals_project_id_fkey(id, title, client_id)')
+      .select('id, project_id, freelancer_id, status, proposed_rate, projects!proposals_project_id_fkey(id, title, client_id)')
       .eq('id', proposal_id)
       .maybeSingle()
 
@@ -240,20 +240,26 @@ Deno.serve(async (req) => {
     }
 
 
-    // 🔐 Ownership: only the project's client (or an admin) may trigger
-    // accept/reject emails for this proposal. Any other authenticated user
-    // is rejected with 403 — this blocks spam/confusion emails about
-    // proposals that are not theirs.
+    // 🔐 Ownership:
+    //   accept / reject → only the project's client (or an admin), because the
+    //     client is the one who decides.
+    //   submitted       → only the freelancer who submitted it (or an admin),
+    //     because the receipt/notice belongs to their own action.
+    // Anything else is rejected with 403 — this blocks spam/confusion emails
+    // about proposals that are not the caller's.
     const { data: callerProfile } = await supabaseClient
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .maybeSingle();
     const callerIsAdmin = callerProfile?.role === 'admin';
-    if (!callerIsAdmin && project.client_id !== user.id) {
+    const allowed = action === 'submitted'
+      ? callerIsAdmin || proposal.freelancer_id === user.id
+      : callerIsAdmin || project.client_id === user.id;
+    if (!allowed) {
       console.warn(`[proposal-notifications] FORBIDDEN: user ${user.id} tried to ${action} proposal ${proposal_id}`);
       return new Response(
-        JSON.stringify({ error: 'Forbidden — you do not own this project' }),
+        JSON.stringify({ error: 'Forbidden — this proposal is not yours' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -270,6 +276,58 @@ Deno.serve(async (req) => {
       id: proposal.freelancer_id as string,
       email: String(freelancerPrivate?.email ?? '').trim(),
       name: String(freelancerProfile?.name ?? 'there'),
+    }
+
+    // ── A new proposal arrived → tell the client ───────────────────────────
+    // This is the event the client needs: someone applied to their project.
+    if (action === 'submitted') {
+      const { data: clientPrivate } = await supabaseClient
+        .from('profiles_private')
+        .select('email')
+        .eq('id', project.client_id)
+        .maybeSingle();
+      const clientEmail = String(clientPrivate?.email ?? '').trim();
+      if (!clientEmail) {
+        return new Response(
+          JSON.stringify({ error: 'Client has no email address on file' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const outcome = await sendTransactionalEmail({
+        event: 'proposal_received',
+        to: clientEmail,
+        recipientName: clientName,
+        recipientUserId: project.client_id,
+        data: {
+          name: clientName,
+          project_id: project.id,
+          project_title: project.title,
+          freelancer_name: freelancer.name,
+          bid_amount: Number(proposal.proposed_rate ?? 0),
+        },
+        // One notice per proposal — reposting/retrying cannot duplicate it.
+        idempotencyKey: `proposal_received:${proposal_id}`,
+      });
+
+      // In-app notification is a mirror; its failure must not fail the email.
+      const { error: notifError } = await supabaseClient.from('notifications').insert({
+        user_id: project.client_id,
+        type: 'proposal',
+        title: 'New proposal received',
+        message: `${freelancer.name} submitted a proposal on "${project.title}".`,
+        metadata: { proposal_id, project_id: project.id, outcome: 'proposal_received' },
+        action_url: `/dashboard/client/projects/${project.id}`,
+      });
+      if (notifError) {
+        console.error(`[proposal-notifications] in-app notification failed: ${notifError.message}`);
+      }
+
+      console.log(`Proposal submitted — client notified: ${outcome.ok}`);
+      return new Response(
+        JSON.stringify({ success: true, email_sent: outcome.ok, notif_type: 'proposal_received' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!freelancer.id || !freelancer.email) {

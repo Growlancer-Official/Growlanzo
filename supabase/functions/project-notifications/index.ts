@@ -1,23 +1,29 @@
 // Project Notifications Edge Function
 //
-// Wires the project-lifecycle email events to the real workflow that produces
-// them (the client marking a project complete). Two events, both `info` sender
-// through the one shared transactional pipeline:
+// Wires project-lifecycle email events to the workflow that actually produces
+// them. Every event goes through the one shared transactional pipeline, so each
+// message is sender-routed, audited in email_logs and idempotent:
 //
-//   1) project_completed → the freelancer who delivered the work
-//   2) review_request    → the same freelancer, asking for a review
+//   project_completed  (project_id)                  → the hired freelancer
+//   review_request     (project_id)                  → the hired freelancer
+//   project_invitation (project_id + freelancer_id)   → the invited freelancer
 //
-// The recipient is NEVER taken from the request body: the caller must own the
-// project, and the address is resolved server-side from the contract (or the
-// hired proposal) + profiles_private. That is the same trust model as
-// proposal-notifications, so this endpoint cannot be used as a mail relay.
+// The recipient is NEVER taken from the request body: it is resolved
+// server-side from the contract, the hired proposal or profiles_private, after
+// the caller is authorised against the real row (project owner, or the invited
+// freelancer's invite row must exist). This endpoint therefore cannot be used
+// as a mail relay.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { sendTransactionalEmail } from '../_shared/emailService.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import type { EmailEventKey } from '../_shared/emailTemplates.ts'
 
 /** Only these events are wired to a real workflow yet. */
-const WIRED_EVENTS = ['project_completed', 'review_request'] as const
+const WIRED_EVENTS = [
+  'project_completed',
+  'review_request',
+  'project_invitation',
+] as const
 type WiredEvent = (typeof WIRED_EVENTS)[number]
 
 function isWiredEvent(value: unknown): value is WiredEvent {
@@ -98,7 +104,7 @@ Deno.serve(async (req) => {
 
     const { data: project, error: projectError } = await admin
       .from('projects')
-      .select('id, title, client_id, status')
+      .select('id, title, client_id, status, budget_min, budget_max')
       .eq('id', projectId)
       .maybeSingle()
 
@@ -106,60 +112,103 @@ Deno.serve(async (req) => {
       return json({ error: 'Project not found' }, 404)
     }
 
-    // 🔐 Only the project's client (or an admin) may trigger lifecycle emails.
+    // 🔐 Only the project's client (or an admin) may trigger these emails.
+    // Completed/review events are sent once (the project status gate handles
+    // restaging), so a non-owner attempt is simply rejected with 403.
     const { data: callerProfile } = await admin
       .from('profiles')
-      .select('role')
+      .select('role, name')
       .eq('id', user.id)
       .maybeSingle()
     const callerIsAdmin = callerProfile?.role === 'admin'
-    if (!callerIsAdmin && project.client_id !== user.id) {
+    if (event !== 'project_invitation' && !callerIsAdmin && project.client_id !== user.id) {
       console.warn(`[project-notifications] FORBIDDEN: user ${user.id} on project ${projectId}`)
       return json({ error: 'Forbidden — you do not own this project' }, 403)
     }
 
-    // These emails claim a project is complete, so they may only go out once
-    // the database actually says so. No premature "you're done" mail.
-    if (project.status !== 'completed') {
-      return json({ error: 'Project is not completed yet' }, 409)
-    }
-
-    // ── Resolve the counterparty server-side ───────────────────────────────
-    let freelancerId: string | null = null
+    // ── Resolve the recipient server-side ──────────────────────────────────
+    let recipientId: string | null = null
     let amount: number | null = null
+    let notif: { type: string; title: string; message: string; action_url: string }
 
-    const { data: contract } = await admin
-      .from('contracts')
-      .select('freelancer_id, amount')
-      .eq('project_id', projectId)
-      .limit(1)
-      .maybeSingle()
-
-    if (contract?.freelancer_id) {
-      freelancerId = contract.freelancer_id as string
-      amount = contract.amount === null || contract.amount === undefined
-        ? null
-        : Number(contract.amount)
-    } else {
-      const { data: hired } = await admin
-        .from('proposals')
-        .select('freelancer_id')
+    if (event === 'project_invitation') {
+      const freelancerId = typeof body?.freelancer_id === 'string' ? body.freelancer_id : ''
+      if (!freelancerId) {
+        return json({ error: 'freelancer_id is required for project_invitation' }, 400)
+      }
+      // The invite row must really exist — an invitation email cannot be
+      // conjured for someone the client never invited.
+      const { data: invite } = await admin
+        .from('invites')
+        .select('id')
         .eq('project_id', projectId)
-        .eq('status', 'hired')
+        .eq('freelancer_id', freelancerId)
         .limit(1)
         .maybeSingle()
-      if (hired?.freelancer_id) freelancerId = hired.freelancer_id as string
-    }
+      if (!invite) {
+        return json({ error: 'No invitation exists for that freelancer' }, 404)
+      }
+      recipientId = freelancerId
+      notif = {
+        type: 'invite',
+        title: 'You have a project invitation ✉️',
+        message: `A client invited you to apply for "${project.title}".`,
+        action_url: '/dashboard/invites',
+      }
+    } else {
+      // Completion / review events claim the work is done, so they may only go
+      // out once the database actually says so — never optimistically.
+      if (project.status !== 'completed') {
+        return json({ error: 'Project is not completed yet' }, 409)
+      }
 
-    if (!freelancerId) {
-      // Nobody was hired through Growlanzo — there is no one to tell, and
-      // inventing a recipient would be worse than sending nothing.
-      return json({ success: true, email_sent: false, reason: 'no_hired_freelancer' })
+      const { data: contract } = await admin
+        .from('contracts')
+        .select('freelancer_id, amount')
+        .eq('project_id', projectId)
+        .limit(1)
+        .maybeSingle()
+
+      if (contract?.freelancer_id) {
+        recipientId = contract.freelancer_id as string
+        amount = contract.amount === null || contract.amount === undefined
+          ? null
+          : Number(contract.amount)
+      } else {
+        const { data: hired } = await admin
+          .from('proposals')
+          .select('freelancer_id')
+          .eq('project_id', projectId)
+          .eq('status', 'hired')
+          .limit(1)
+          .maybeSingle()
+        if (hired?.freelancer_id) recipientId = hired.freelancer_id as string
+      }
+
+      if (!recipientId) {
+        // Nobody was hired through Growlanzo — there is no one to tell, and
+        // inventing a recipient would be worse than sending nothing.
+        return json({ success: true, email_sent: false, reason: 'no_hired_freelancer' })
+      }
+
+      notif = event === 'project_completed'
+        ? {
+            type: 'contract',
+            title: 'Project completed ✅',
+            message: `"${project.title}" has been marked complete by the client.`,
+            action_url: '/dashboard/contracts',
+          }
+        : {
+            type: 'review',
+            title: 'Leave a review ⭐',
+            message: `How did "${project.title}" go? A short review helps the next client decide.`,
+            action_url: '/dashboard/reviews',
+          }
     }
 
     const [{ data: recipientProfile }, { data: recipientPrivate }] = await Promise.all([
-      admin.from('profiles').select('name').eq('id', freelancerId).maybeSingle(),
-      admin.from('profiles_private').select('email').eq('id', freelancerId).maybeSingle(),
+      admin.from('profiles').select('name').eq('id', recipientId).maybeSingle(),
+      admin.from('profiles_private').select('email').eq('id', recipientId).maybeSingle(),
     ])
 
     const recipientEmail = String(recipientPrivate?.email ?? '').trim()
@@ -174,36 +223,32 @@ Deno.serve(async (req) => {
       project_title: project.title,
     }
     if (amount !== null) templateData.amount = amount
+    if (event === 'project_invitation') {
+      templateData.client_name = String(callerProfile?.name ?? 'A client')
+      const min = project.budget_min as number | null
+      const max = project.budget_max as number | null
+      if (min !== null && min !== undefined) {
+        templateData.budget = max !== null && max !== undefined && max !== min
+          ? `${min}–${max}`
+          : min
+      }
+    }
 
     const outcome = await sendTransactionalEmail({
       event: event as EmailEventKey,
       to: recipientEmail,
       recipientName,
-      recipientUserId: freelancerId,
+      recipientUserId: recipientId,
       data: templateData,
-      // One mail per project per event — a double-click, a retry or a second
-      // tab cannot send it twice.
-      idempotencyKey: `${event}:${projectId}:${recipientEmail.toLowerCase()}`,
+      // One mail per project per event (and per freelancer for an invitation) —
+      // a double-click, a retry or a second tab cannot send it twice.
+      idempotencyKey: `${event}:${projectId}:${recipientId}`,
     })
 
     // In-app notification mirrors the email. Failure here must never turn a
     // sent email into an error response.
-    const notif = event === 'project_completed'
-      ? {
-          type: 'contract',
-          title: 'Project completed ✅',
-          message: `"${project.title}" has been marked complete by the client.`,
-          action_url: '/dashboard/contracts',
-        }
-      : {
-          type: 'review',
-          title: 'Leave a review ⭐',
-          message: `How did "${project.title}" go? A short review helps the next client decide.`,
-          action_url: '/dashboard/reviews',
-        }
-
     const { error: notifError } = await admin.from('notifications').insert({
-      user_id: freelancerId,
+      user_id: recipientId,
       type: notif.type,
       title: notif.title,
       message: notif.message,
@@ -214,7 +259,9 @@ Deno.serve(async (req) => {
       console.error(`[project-notifications] in-app notification failed: ${notifError.message}`)
     }
 
-    console.log(`[project-notifications] ${event} — sent: ${outcome.ok} duplicate: ${!!outcome.duplicate}`)
+    console.log(
+      `[project-notifications] ${event} — sent: ${outcome.ok} duplicate: ${!!outcome.duplicate}`,
+    )
 
     return json({
       success: true,

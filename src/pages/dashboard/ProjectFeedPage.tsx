@@ -11,6 +11,7 @@ import { PageSkeleton } from '../../components/PageSkeleton';
 import AIGenerateModal from '../../components/AIGenerateModal';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { notifyProposalSubmitted } from '../../lib/workflowService';
 import type { Tables } from '../../types/supabase';
 
 interface AIMatchRow {
@@ -728,7 +729,7 @@ export function ProjectFeedPage() {
       }
 
       // Create proposal with bid-war free model
-      const { error: proposalError } = await supabase
+      const { data: createdProposal, error: proposalError } = await supabase
         .from('proposals')
         .insert({
           project_id: selectedMatch.project_id,
@@ -744,6 +745,10 @@ export function ProjectFeedPage() {
         .single();
 
       if (proposalError) throw proposalError;
+
+      // The client is told a proposal arrived (fire-and-forget; the function
+      // authorises this caller as the proposal's freelancer).
+      if (createdProposal?.id) void notifyProposalSubmitted(createdProposal.id);
 
       // Update local state
       setAppliedProjects(prev => new Set(prev).add(selectedMatch.project_id));
