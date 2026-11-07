@@ -1,5 +1,53 @@
 ## Status log (chronological, newest at bottom)
 
+### (7) 2026-11-07 · OAuth→dashboard redirect hardened + invariant guard test; pushed to main
+- **Problem:** reported bug "GitHub/LinkedIn login works, then back to homepage".
+  After reading the real chain (`AuthContext.signInWithOAuth` →
+  `AuthCallbackPage` → `redirectAfterAuth` → `ProtectedRoute` → role
+  dashboard), the normal-case redirect is already correct by construction:
+  the OAuth `redirectTo` is hardcoded to `${origin}/auth/callback`;
+  `AuthCallbackPage` persists the session under supabase-js's storage keys,
+  confirms the write, then calls `redirectAfterAuth(profile)` (a full-page
+  `window.location.replace` to `/onboarding` for a new user or the role
+  dashboard for a completed user); `getPostAuthPath` never returns `/` for a
+  valid profile; `ProtectedRoute` is intentionally NOT wrapped around
+  `/auth/callback`.
+- **What was actually weak (the real bug surface):**
+  1. no test asserted the callback→dashboard invariant, so a future edit to
+     `getPostAuthPath` or the callback's persist/redirect path could silently
+     reintroduce the homepage drop with nothing catching it;
+  2. the India country-gate branch (`handleCountrySelect`) re-fetched the
+     profile and redirected without re-confirming the session survived the
+     callback — a session that didn't persist could be redirected from the
+     country gate with a dead token; and its only error exit told the user to
+     "log in again" with no retry, which is wrong for a still-valid OAuth session;
+  3. the persist-confirmation gate had no retry, so a single transient
+     host-prefix storage race rendered an error screen instead of resolving.
+- **AuthCallbackPage.tsx:** added one retry to the session-persist
+  confirmation gate (covers the common storage race; still renders an error
+  when the session genuinely didn't survive — never a silent homepage drop);
+  hardened the country-gate branch the same way (profile re-fetch + retry,
+  persist-and-confirm the session before `redirectAfterAuth`, one retry from
+  URL tokens, error-only-when-genuinely-dead exit).
+- **authCallbackRedirectGuard.test.ts (new, 7 guards):** pins the exact
+  invariant the reported bug violates — `getPostAuthPath` never returns `/`
+  for a valid profile; the callback calls `redirectAfterAuth(profile)` only
+  AFTER profile creation and AFTER session persist+confirm; a new user is
+  routed to `/onboarding` not the homepage; the OAuth `redirectTo` is
+  `/auth/callback` not the homepage; `ProtectedRoute` does not wrap
+  `/auth/callback` (no Navigate race).
+- **INVENTORY.md:** refreshed for the new test file (78→79 tests).
+- Verified: `npm run verify` — 0 tsc errors, 0 lint errors, **910 tests /
+  79 files pass**, build 0, docs map current.
+- Commit `65f8733` pushed to `origin/main` via `cloud_git push --branch main`.
+- **Deploy:** not yet observed. Owner-only blocker unchanged: the
+  `backend-deploy` workflow's step-8 "Migration drift check (repo vs live DB)"
+  has been failing on `main` for the last 12 pushed commits (no GitHub/auth
+  or Supabase creds in the workspace to read the step log or run
+  `supabase db push`). The diff is additive-only on auth routing + a new test
+  + the generated inventory — no migration, no DB object, no new secret — so it
+  does not change the drift situation either way.
+
 ### (6) 2026-11-07 · Respan Gateway wired as the local AI router; smoke check green
 - `supabase/functions/_shared/ai.ts`: new `AI_GATEWAY_URL` → gateway mode. Base
   URL becomes `{AI_GATEWAY_URL}/v1`, the default models become the logical
