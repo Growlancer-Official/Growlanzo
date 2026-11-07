@@ -1294,3 +1294,21 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
      asserts the logged path (`sendLoggedEmail`) and that the bare Brevo import is gone — same intent (the
      function really sends), current implementation.
   Verify: **76/76 test files, 881/881 tests**, typecheck 0, lint 0 (1 pre-existing warning), build 0, docs map 0.
+
+- **2026-11-07 (3) — pushed to main: CI green, Backend Deploy blocked at the drift gate**: `385ed5b..d894cbc`
+  pushed to `main`. Runs on `d894cbc`:
+  * **CI — Regression Guard + Element Audit #42350944614 → success** (typecheck, lint, unit tests + production
+    build, element audit 375/768/1280 all green — the first green CI since the suite went red).
+  * **Code Quality: Push on main #42350944240 → success**.
+  * **Backend Deploy (Supabase) #42350944530 → failure at step 8 "Migration drift check (repo vs live DB —
+    fail-closed)"**, so steps 9–12 (`db push`, post-push verify, functions deploy, pentest) were **skipped**:
+    the `email_logs` migration is **not** applied and `brevo-webhook` / `email-admin` are **not** deployed.
+    `pre` mode only fails on a remote-only version or a duplicate repo version; there are **no duplicate
+    versions** in the repo (checked), so the live DB almost certainly holds a migration the repo does not —
+    i.e. pre-existing drift, not this change. Confirmed pre-existing: run #42242614080 on `385ed5b`
+    (2026-11-06, before the email system existed) failed at the **same** step 8.
+  Owner action: `npx supabase migration list --db-url <live>` → for each version in the remote column with no
+  repo file, either `npx supabase migration fetch` (adopt what is live) or
+  `npx supabase migration repair --status reverted <version>` if it was a dashboard experiment; then re-run
+  Backend Deploy. The exact version is only in the Actions log (needs an authenticated `gh` token — this
+  workspace has none and the unauthenticated API rate limit was exhausted).
