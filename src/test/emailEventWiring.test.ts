@@ -11,6 +11,7 @@
 //     RouteHead warning), build 0, docs:map 0.
 //   - this file: 12 guards, 12 pass.
 
+import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 
@@ -69,7 +70,7 @@ describe('Email event wiring (12 source guards)', () => {
       // The key must include the recipient id so sending a notice for the same
       // project/event to two different freelancers (e.g. an invitation) is not
       // collapsed into one outbound mail.
-      expect(PROJECT_FN).toMatch(/idempotencyKey:\s*`\$\\{event\\}:\$\{projectId\\}:\$\{recipientId\\}`/);
+      expect(PROJECT_FN).toMatch(/idempotencyKey:\s*`\$\{event\}:\$\{projectId\}:\$\{recipientId\}`/);
     });
 
     it('keeps the client-side owner guard on accept/reject', () => {

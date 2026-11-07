@@ -1,6 +1,6 @@
 import { PageSkeleton } from '../components/PageSkeleton';
 import { Link } from 'react-router-dom';
-import { Award, Bell, CheckCircle2, ClipboardCheck, MailCheck, ShieldCheck, Sparkles, Trophy, Zap } from 'lucide-react';
+import { Award, Bell, CheckCircle, ShieldAlert, ShieldCheck, Sparkles, Sprout, Trophy, UserX } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useReferralsData } from '../hooks/useReferralsData';
 import { useGrowCoinBalance } from '../hooks/useGrowCoinBalance';
@@ -138,9 +138,19 @@ export function ClientReferralsPage() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
-              <Award className="w-4 h-4 text-emerald-400" />
-            </div>
+            {(() => {
+              const tierIcons = {
+                Starter: <Sprout className="w-4 h-4" />,
+                Growth: <ShieldCheck className="w-4 h-4" />,
+                Pro: <Sparkles className="w-4 h-4" />,
+                Elite: <Trophy className="w-4 h-4" />,
+              };
+              return (
+                <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                  {tierIcons[tier.label] ?? <Award className="w-4 h-4" />}
+                </div>
+              );
+            })()}
             <p className="text-xs text-slate-300">
               {tier.next ? (
                 <>Get <span className="font-bold text-white">{tier.remaining} more</span> to unlock {tier.next} tier perks.</>
@@ -152,42 +162,38 @@ export function ClientReferralsPage() {
         </div>
       </section>
 
-      {/* Benefits: Hiring Experience Rewards */}
+      {/* Referral Benefits */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display text-xl font-bold">Referral Benefits</h3>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Referral Engine</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
+        </div>          <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
           <div className="bg-white p-6 rounded-xl border border-slate-100 hover:border-emerald-100 transition-all group">
             <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-2.5 group-hover:scale-110 transition-transform">
-              <Zap className="w-4 h-4" />
+              <Award className="w-4 h-4" />
             </div>
             <h4 className="font-bold mb-2">Referral Points &amp; Tiers</h4>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Every completed referral adds points and moves you through the{' '}
+              Every confirmed referral counts once toward the{' '}
               <span className="font-bold text-emerald-600">Starter → Growth → Pro → Elite</span> tiers shown on this page.
             </p>
           </div>
           <div className="bg-white p-6 rounded-xl border border-slate-100 hover:border-emerald-100 transition-all group">
-            <div className="h-12 w-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 mb-2.5 group-hover:scale-110 transition-transform">
-              <Sparkles className="w-4 h-4" />
+            <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 mb-2.5 group-hover:scale-110 transition-transform">
+              <GrowCoinIcon size={22} />
             </div>
-            <h4 className="font-bold mb-2">Merit-Based Matching</h4>
+            <h4 className="font-bold mb-2">Grow Coins (₹ value)</h4>
             <p className="text-sm text-slate-500 leading-relaxed">
-              AI matching is identical for every client — freelancers are ranked purely on{' '}
-              <span className="font-bold text-orange-600">skills, ratings and fit</span>. Referrals never change who you see.
+              Every approved referral pays <span className="font-bold">5 Grow Coins</span> to you and 5 to your referral at the same instant, and every project that referral completes pays 5 + 5 again — no lifetime cap. Open the coin rewards panel to spend them at checkout or on Premium.
             </p>
           </div>
           <div className="bg-white p-6 rounded-xl border border-slate-100 hover:border-emerald-100 transition-all group">
             <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center text-white mb-2.5 group-hover:scale-110 transition-transform">
-              <ShieldCheck className="w-4 h-4" />
+              <Trophy className="w-4 h-4" />
             </div>
-            <h4 className="font-bold mb-2">Referral Leaderboard</h4>
+            <h4 className="font-bold mb-2">Leaderboard (no ranking boost)</h4>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Active referrers appear on the referrals leaderboard, recognised for{' '}
-              <span className="font-bold text-slate-900">helping the community grow</span>.
+              Top referrers appear on the referrals leaderboard. Coins never influence search, matching or visibility — those stay 100% merit-based.
             </p>
           </div>
         </div>
@@ -204,41 +210,45 @@ export function ClientReferralsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ul className="space-y-1.5">
-              <li className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                  <MailCheck className="w-4 h-4 text-emerald-600" />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <ul className="space-y-4">
+              <li className="flex items-start gap-3 text-sm">
+                <CheckCircle className="text-emerald-500 mt-0.5 w-5 h-5" />
                 <div>
-                  <p className="text-sm font-bold">Email Verification</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    The referred business account must be fully verified via corporate email.
-                  </p>
+                  <p className="font-bold">Same Side Only</p>
+                  <p className="text-xs text-slate-400">same-side: a client code can only refer other clients — a freelancer account using it won't count.</p>
                 </div>
               </li>
-              <li className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                  <ClipboardCheck className="w-4 h-4 text-emerald-600" />
-                </div>
+              <li className="flex items-start gap-3 text-sm">
+                <CheckCircle className="text-emerald-500 mt-0.5 w-5 h-5" />
                 <div>
-                  <p className="text-sm font-bold">Post First Project</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Referral only counts once the new client posts a valid project with defined budget. For clients, referral rewards apply when the referred client passes KYC verification. Codes are same-side — a client code can only refer other clients.
-                  </p>
+                  <p className="font-bold">Identity Verified</p>
+                  <p className="text-xs text-slate-400">The referred client must complete identity verification. A signup alone pays nothing.</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <CheckCircle className="text-emerald-500 mt-0.5 w-5 h-5" />
+                <div>
+                  <p className="font-bold">A Real Milestone — Not a Signup</p>
+                  <p className="text-xs text-slate-400">5 coins land for both of you when their identity is approved, and again for every project they complete.</p>
                 </div>
               </li>
             </ul>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <p className="text-xs font-bold text-slate-400 uppercase mb-2 tracking-widest">Why no cash?</p>
-              <p className="text-xs text-slate-600 leading-relaxed mb-2">
-                We believe high-quality ecosystems are built on shared trust. Instead of cash, we provide the
-                infrastructure for you to hire faster and better than your competition.
-              </p>
-              <div className="flex items-center gap-3 text-emerald-600">
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="text-xs font-bold">Quality over Quantity</span>
+            <div className="bg-red-50 p-4 rounded-[2.5rem] border border-red-100">
+              <h3 className="font-display text-lg font-bold text-red-900 mb-3">Anti-Spam Policy</h3>
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <ShieldAlert className="text-red-600 w-6 h-6 shrink-0" />
+                  <p className="text-xs text-red-800 leading-relaxed">Self-referrals or creating multiple accounts to farm referrals will result in permanent suspension of the primary account.</p>
+                </div>
+                <div className="flex gap-3">
+                  <UserX className="text-red-600 w-6 h-6 shrink-0" />
+                  <p className="text-xs text-red-800 leading-relaxed">Duplicate emails or bot-like registration patterns are automatically flagged by our AI security engine.</p>
+                </div>
+                <div className="bg-red-600 text-white p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-center">
+                  Zero Tolerance Policy
+                </div>
               </div>
             </div>
           </div>
