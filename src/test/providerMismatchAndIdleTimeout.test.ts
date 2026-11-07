@@ -169,9 +169,11 @@ describe('a new account hears about it in real time', () => {
     expect(EMAIL_FUNCTION).toContain("case 'email_verified':");
     expect(EMAIL_FUNCTION).toContain('function buildWelcomeHtml(');
     expect(EMAIL_FUNCTION).toContain('function buildEmailVerifiedHtml(');
-    // Templates go through the same branded shell and the same Brevo sender
-    // as every other transactional email.
+    // Templates go through the same branded shell and the same logged send
+    // path as every other transactional email (sender routing + email_logs
+    // audit + idempotency), not a bare Brevo call.
     expect(EMAIL_FUNCTION).toContain('baseEmailHtml(');
-    expect(EMAIL_FUNCTION).toContain("import { sendEmail } from '../_shared/brevo.ts'");
+    expect(EMAIL_FUNCTION).toContain("import { sendLoggedEmail } from '../_shared/emailService.ts'");
+    expect(EMAIL_FUNCTION).not.toMatch(/from '\.\.\/_shared\/brevo\.ts'/);
   });
 });

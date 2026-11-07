@@ -1326,6 +1326,27 @@
   html.dark :where(.hover\:ring-orange-200):hover {
     --tw-ring-color: rgba(251, 146, 60, 0.35);
   }
+  /* Footer social buttons (X / Instagram / LinkedIn / mail): the pale hover wash
+     and the coloured hover ring are brand cues, so on dark chrome they stay the
+     same hue — just translucent — instead of flashing near-white. */
+  html.dark :where(.hover\:bg-sky-50):hover {
+    background-color: rgba(56, 189, 248, 0.18);
+  }
+  html.dark :where(.hover\:bg-pink-50):hover {
+    background-color: rgba(236, 72, 153, 0.18);
+  }
+  html.dark :where(.hover\:ring-sky-300):hover {
+    --tw-ring-color: rgba(56, 189, 248, 0.45);
+  }
+  html.dark :where(.hover\:ring-pink-300):hover {
+    --tw-ring-color: rgba(236, 72, 153, 0.45);
+  }
+  html.dark :where(.hover\:ring-blue-300):hover {
+    --tw-ring-color: rgba(59, 130, 246, 0.45);
+  }
+  html.dark :where(.hover\:ring-emerald-300):hover {
+    --tw-ring-color: rgba(79, 203, 69, 0.45);
+  }
   html.dark :where(.hover\:ring-orange-200\/50):hover {
     --tw-ring-color: rgba(251, 146, 60, 0.28);
   }

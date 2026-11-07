@@ -1270,3 +1270,27 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   Pre-existing red: 12 test files / 80 tests fail on `main` (domain-guard tests still pinned to the older
   `growlancer.com` / `growlanzo.vercel.app` URLs, plus 3 jsdom `localStorage`-undefined files); reproduced
   unchanged on a clean checkout of `HEAD`, so they are not from this change.
+
+- **2026-11-07 (2) — the 12 red test files are green (881/881)**: the suite had been red since the domain
+  round-trip, and the failures were real regressions, not stale tests:
+  1. `scripts/push_redirect_urls.mjs` had been rewritten into a hard-coded `growlanzo.com` list (15 duplicate
+     entries) by a blind find/replace. Restored the APP_URL-derived version: `site_url` comes from `APP_URL` and
+     fails closed ("refusing to guess the site_url", "APP_URL is not an absolute URL"), apex + www redirect
+     entries are derived from `new URL(SITE_URL).host`, and the only literals left are the live Vercel origin.
+     A domain switch is one env var again, not an edit to a URL list that silently misses the new domain.
+  2. `supabase/functions/_shared/cors.ts` was mangled the same way — four identical `https://growlanzo.com`
+     entries and a fabricated `growlancer.mrkhan154212s-projects.vercel.app` host. Restored the real allowlist
+     (growlanzo.com + www, the Vercel project origin, `growlancer.vercel.app`, `growlanzo.vercel.app`, the two
+     former-brand hosts until they 301) with the patterns unchanged. This was a live bug: a browser on the
+     Vercel origin could not read an edge-function response.
+  3. `src/test/setup.ts` now restores jsdom's Storage. Node 22+ installs its own experimental Web Storage getter
+     (`internal/webstorage`) on the jsdom window, shadowing jsdom's instance (kept at `window._localStorage`),
+     so bare `localStorage` was `undefined` and every consent/theme test threw before asserting anything.
+     Repaired in setup, not by editing assertions — no app code changed.
+  4. `SiteFooter` gained three social brand marks, so the icon allowlist moves 3 → 6 (still an exact pin, not a
+     floor), and the six new light-on-dark utilities (`hover:bg-sky-50/pink-50`, `hover:ring-sky|pink|blue|
+     emerald-300`) got real `.dark` remaps in `globals.css` instead of excuses.
+  5. `providerMismatchAndIdleTimeout` asserted the old `import { sendEmail } from '../_shared/brevo.ts'`; it now
+     asserts the logged path (`sendLoggedEmail`) and that the bare Brevo import is gone — same intent (the
+     function really sends), current implementation.
+  Verify: **76/76 test files, 881/881 tests**, typecheck 0, lint 0 (1 pre-existing warning), build 0, docs map 0.

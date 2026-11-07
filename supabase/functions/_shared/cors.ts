@@ -7,20 +7,18 @@
 
 const ALLOWED_ORIGINS = [
   'https://growlanzo.com',
-  'https://growlanzo.com',
-  // The alias the site is actually served on today (growlancer.vercel.app
-  // 307-redirects here, and growlanzo.com does not resolve yet). Without this
-  // entry every browser call from the live site to an edge function is blocked
-  // by CORS, and the sections that depend on one stay on their spinner forever.
-  'https://growlanzo.com',
-  'https://growlanzo.com',
   'https://www.growlanzo.com',
-  // The former brand domain. Kept until its DNS points at the new deployment:
-  // while the cutover is in progress both hosts serve the same app, and a
-  // browser on the old origin must still be able to read authenticated API
-  // responses. Remove these two once growlancer.com redirects.
-  'https://growlancer.mrkhan154212s-projects.vercel.app',
-  'https://www.growlancer.mrkhan154212s-projects.vercel.app',
+  // The Vercel deployment origin of this project. A live CORS failure on it
+  // left every admin-data section spinning in production, so it stays listed.
+  'https://growlancer-mrkhan154212s-projects.vercel.app',
+  // Vercel alias + former brand domain. Kept while the cutover is in progress:
+  // both hosts still serve the same app, and a browser sitting on one of them
+  // must be able to read authenticated API responses. Remove them once both
+  // permanently 301 to growlanzo.com.
+  'https://growlancer.vercel.app',
+  'https://growlanzo.vercel.app',
+  'https://growlancer.com',
+  'https://www.growlancer.com',
   'http://localhost:5173',
 ];
 

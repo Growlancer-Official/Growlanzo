@@ -82,7 +82,9 @@ describe('justified brand marks and artwork are preserved', () => {
   const ALLOWLIST: [string, number][] = [
     ['src/components/OAuthButtons.tsx', 2], // GitHub + LinkedIn
     ['src/components/PayPalCheckout.tsx', 1], // PayPal logo
-    ['src/components/SiteFooter.tsx', 3], // Razorpay + PayPal + Mastercard
+    // Payment marks (Razorpay + PayPal + Mastercard) plus the social marks the
+    // footer's "Follow us" row now carries (X + Instagram + LinkedIn).
+    ['src/components/SiteFooter.tsx', 6],
     ['src/pages/CertificateVerifyPage.tsx', 1], // animated seal artwork
     // The share buttons (and their brand marks) now live in ONE component that
     // both referral pages render, so the counts moved with them.
