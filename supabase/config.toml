@@ -464,6 +464,16 @@ verify_jwt = false
 [functions.security-alert-notify]
 verify_jwt = false
 
+# Brevo delivery webhook — server-to-server, authenticated by
+# BREVO_WEBHOOK_SECRET (verified inside the function, fail-closed), never a JWT.
+[functions.brevo-webhook]
+verify_jwt = false
+
+# Admin email console — called from the browser with the admin's JWT; the
+# function re-verifies profiles_private.is_admin server-side.
+[functions.email-admin]
+verify_jwt = true
+
 # ai-writer is called from the app with the user's JWT (it re-validates the
 # user via auth.getUser() and enforces the daily free/Pro allowance), so it
 # keeps the default verify_jwt = true.

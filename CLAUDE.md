@@ -1236,3 +1236,37 @@ baar) → dark visitor ko cream body + **cream boot splash** dikhta tha, phir Re
   0 `http://` links, 0 `target="_blank"` without `noopener`. The 7 `console.log` calls in `src/` are all inside
   `import.meta.env.DEV`/`isDev` guards, so they do not ship — left alone deliberately.
   Verify: typecheck 0, lint 0, **76/76 test files**, build 0 (66 HTML), docs map/check 0.
+
+- **2026-11-07 (1) — Brevo transactional email system (4 senders, routed events, delivery tracking, admin console)**:
+  Added a single email pipeline instead of one-off `fetch` calls per function.
+  1. `supabase/functions/_shared/emailSenders.ts` — the four verified identities (`security@`, `support@`,
+     `hello@`, `info@growlanzo.com`), resolved from `BREVO_FROM_*` with those as defaults and a one-time warning
+     when overridden, so a typo cannot silently send from an unverified address.
+  2. `emailTemplates.ts` — one 600px responsive layout (preheader, branded header, rows, CTA, footer with
+     website/support plus **X, Instagram, LinkedIn "Follow us"**), `escapeHtml` for every interpolation,
+     `htmlToText()` for the plain-text alternative, and a ~34-event catalogue mapping event → sender/subject/body.
+  3. `emailService.ts` — `sendTransactionalEmail({event, recipient, data, idempotencyKey})`: render → insert the
+     `email_logs` row (idempotency unique index) → send with 3 attempts (400 ms/1200 ms backoff) → update status.
+     `sent` means **Brevo accepted**, never "delivered".
+  4. `brevo.ts` extended (not replaced) with `sendEmailDetailed`; the legacy `sendEmail()` boolean contract that 8
+     existing callers use is unchanged.
+  5. `brevo-webhook` — Brevo does not HMAC-sign transactional webhooks, so the endpoint requires
+     `BREVO_WEBHOOK_SECRET` (query token / `x-brevo-webhook-secret` / basic-auth) compared in constant time,
+     **fails closed** (503 unset, 401 mismatch), and is idempotent via `email_log_events(brevo_message_id,event,event_at)`
+     with a monotonic status rank so `delivered` is only ever written by a real webhook.
+  6. `email-admin` — stats/list/detail/retry/test behind a server-side `profiles_private.is_admin` check; `test`
+     always sends to the calling admin's own address (cannot be used as a relay); 30 sends/hour per admin.
+     UI at `/admin/emails` (`AdminEmailsPage.tsx`, `src/lib/emailAdmin.ts`).
+  7. Migration `20270307000000_email_logs.sql`: `email_logs` (every required column, `metadata`, timestamps,
+     status CHECK), unique partial index on `idempotency_key`, `email_log_events`, RLS enabled with **no policies**
+     plus `REVOKE ALL` from anon/authenticated (logs hold recipient PII), and `get_email_log_stats()` is
+     `SECURITY DEFINER` + admin-gated.
+  8. `email-notifications` and `proposal-notifications` now send through `sendLoggedEmail` with per-reference
+     idempotency keys, so registration/proposal mails are logged and cannot double-send.
+  Events whose workflow does not exist yet (payouts, refunds, some review flows) are catalogued but **not wired**.
+  Verify: typecheck 0, lint 0 (1 pre-existing `RouteHead.tsx` react-refresh warning), build 0, docs map/check 0.
+  **Not verified here:** migration not applied, functions not deployed, no live send/webhook/delivery proof —
+  this workspace has no Supabase or Brevo credentials, and Brevo DNS auth + the webhook URL are owner-only.
+  Pre-existing red: 12 test files / 80 tests fail on `main` (domain-guard tests still pinned to the older
+  `growlancer.com` / `growlanzo.vercel.app` URLs, plus 3 jsdom `localStorage`-undefined files); reproduced
+  unchanged on a clean checkout of `HEAD`, so they are not from this change.

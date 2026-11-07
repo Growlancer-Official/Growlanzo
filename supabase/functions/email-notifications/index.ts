@@ -13,7 +13,9 @@
 // Reuses the same branded template pattern from proposal-notifications
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendEmail } from '../_shared/brevo.ts';
+import { sendLoggedEmail } from '../_shared/emailService.ts'
+import { brandedEmailHtml, htmlToText } from '../_shared/emailTemplates.ts'
+import type { EmailSenderKey } from '../_shared/emailSenders.ts';
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { SITE_URL } from '../_shared/site.ts'
 
@@ -150,62 +152,68 @@ function buildEmailVerifiedHtml(name: string, email: string, provider: unknown):
   )
 }
 
-// ─── Email Sender (Brevo) ────────────────────────────────────────────────
-// Real transactional email via the shared Brevo helper. Falls back to a
-// logged no-op (email_sent: false) when BREVO_API_KEY is missing.
+// ─── Email Sender (central service) ──────────────────────────────────────
+// Every message goes through _shared/emailService so it gets sender routing,
+// an email_logs audit row, idempotency and retry — not a bare Brevo call.
+//
+// Purpose → verified sender:
+//   welcome/verification → hello · support → support · money/account → info
+type NotificationType = string;
+
+const EVENT_SENDER: Record<NotificationType, EmailSenderKey> = {
+  welcome_account: 'hello',
+  email_verified: 'hello',
+  support_ticket_created: 'support',
+  withdrawal_completed: 'info',
+  withdrawal_failed: 'info',
+  dispute_opened: 'info',
+  dispute_resolved: 'info',
+  escrow_funded: 'info',
+  milestone_released: 'info',
+  verification_approved: 'info',
+  verification_rejected: 'info',
+  account_suspended: 'info',
+};
+
 async function sendNotificationEmail(
   to: string,
   toName: string,
   subject: string,
-  htmlContent: string
+  htmlContent: string,
+  type: NotificationType,
+  data: Record<string, unknown> = {}
 ): Promise<boolean> {
-  void toName; // reserved for future personalization
-  return sendEmail({ to, subject, html: htmlContent });
+  // Reference id from the workflow, so a duplicated call cannot email twice.
+  const ref =
+    (data.contract_id as string | undefined) ??
+    (data.dispute_id as string | undefined) ??
+    (data.ticket_id as string | undefined) ??
+    (data.withdrawal_id as string | undefined) ??
+    null;
+
+  const outcome = await sendLoggedEmail({
+    event: type,
+    to,
+    subject,
+    html: htmlContent,
+    text: htmlToText(htmlContent),
+    senderKey: EVENT_SENDER[type] ?? 'info',
+    templateId: type,
+    recipientName: toName,
+    recipientUserId: (data.user_id as string | undefined) ?? null,
+    idempotencyKey: ref ? `${type}:${ref}:${String(to).toLowerCase()}` : null,
+    metadata: ref ? { reference: ref } : {},
+  });
+
+  return outcome.ok;
 }
 
 function baseEmailHtml(title: string, bodyHtml: string): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f1f5f9; padding: 24px 12px; margin: 0; -webkit-font-smoothing: antialiased;">
-  <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:640px;"><tr><td style="padding: 24px 16px;" align="center"><![endif]-->
-  <div style="max-width: 600px; width: 100%; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);">
-    <!-- Logo Bar -->
-    <div style="background: #ffffff; padding: 20px 24px 0; text-align: center;">
-      <img src="${APP_URL}/growlanzo-full.png" alt="Growlanzo" style="height: 40px; width: auto;" />
-    </div>
-    <!-- Header -->
-    <div style="background: linear-gradient(135deg, #14861f 0%, #0f6f1a 100%); margin: 12px 12px 0; border-radius: 12px; padding: 28px 24px; text-align: center;">
-      <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; margin: 0; letter-spacing: -0.3px;">${title}</h1>
-    </div>
-    <!-- Body -->
-    <div style="padding: 28px 24px; line-height: 1.6;">
-      ${bodyHtml}
-    </div>
-    <!-- Footer -->
-    <div style="padding: 20px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
-        <tr>
-          <td style="padding-bottom: 12px;">
-            <a href="${APP_URL}" target="_blank" rel="noopener noreferrer" style="color: #14861f; font-size: 12px; font-weight: 600; text-decoration: none; padding: 0 8px;">Website</a>
-            <span style="color: #cbd5e1; font-size: 12px;">|</span>
-            <a href="${APP_URL}/help-center" target="_blank" rel="noopener noreferrer" style="color: #14861f; font-size: 12px; font-weight: 600; text-decoration: none; padding: 0 8px;">Help Center</a>
-            <span style="color: #cbd5e1; font-size: 12px;">|</span>
-            <a href="${APP_URL}/contact" target="_blank" rel="noopener noreferrer" style="color: #14861f; font-size: 12px; font-weight: 600; text-decoration: none; padding: 0 8px;">Contact</a>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <p style="color: #94a3b8; font-size: 11px; margin: 0; line-height: 1.5;">Growlanzo — AI-Powered Freelancing Marketplace</p>
-          </td>
-        </tr>
-      </table>
-    </div>
-  </div>
-  <!--[if mso]></td></tr></table><![endif]-->
-</body>
-</html>`
+  // Shared branded shell: logo, gradient header, responsive 600px layout and
+  // the social follow-us footer (X / Instagram / LinkedIn). The local name is
+  // kept so the template builders below stay unchanged, but the markup now
+  // lives in _shared/emailTemplates.ts — one place, every email.
+  return brandedEmailHtml({ title, bodyHtml })
 }
 
 // ─── Email Builders ────────────────────────────────────────────────────────
@@ -728,7 +736,7 @@ Deno.serve(async (req) => {
     }
 
     // Send the email
-    const emailSent = await sendNotificationEmail(recipient_email, recipient_name, subject, htmlContent)
+    const emailSent = await sendNotificationEmail(recipient_email, recipient_name, subject, htmlContent, type, data)
 
     console.log(`Email notification ${type} — sent: ${emailSent}`)
 

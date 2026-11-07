@@ -145,6 +145,7 @@ const AdminFinancePage = lazy(() => import('@pages/admin/AdminFinancePage').then
 const AdminWithdrawalsPage = lazy(() => import('@pages/admin/AdminWithdrawalsPage').then(m => ({ default: m.AdminWithdrawalsPage })));
 const AdminDisputesPage = lazy(() => import('@pages/admin/AdminDisputesPage').then(m => ({ default: m.AdminDisputesPage })));
 const AdminSubscriptionsPage = lazy(() => import('@pages/admin/AdminSubscriptionsPage').then(m => ({ default: m.AdminSubscriptionsPage })));
+const AdminEmailsPage = lazy(() => import('@pages/admin/AdminEmailsPage').then(m => ({ default: m.AdminEmailsPage })));
 const AdminReportsPage = lazy(() => import('@pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
 const AdminInternshipsPage = lazy(() => import('@pages/admin/AdminInternshipsPage').then(m => ({ default: m.AdminInternshipsPage })));
 const AdminCertificatesPage = lazy(() => import('@pages/admin/AdminCertificatesPage').then(m => ({ default: m.AdminCertificatesPage })));
@@ -449,6 +450,7 @@ function App() {
                 <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
                 <Route path="disputes" element={<AdminDisputesPage />} />
                 <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+                <Route path="emails" element={<AdminEmailsPage />} />
                 <Route path="reports" element={<AdminReportsPage />} />
                 <Route
                   path="internships"

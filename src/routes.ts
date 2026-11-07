@@ -97,6 +97,7 @@ export const ROUTES = {
     ROOT: '/admin',
     DASHBOARD: '/admin',
     USERS: '/admin/users',
+    EMAILS: '/admin/emails',
     PROJECTS: '/admin/projects',
     CONTRACTS: '/admin/contracts',
     PAYMENTS: '/admin/payments',

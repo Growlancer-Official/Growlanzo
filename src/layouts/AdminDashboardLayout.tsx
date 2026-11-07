@@ -21,6 +21,7 @@ import {
   Database,
   Inbox,
   LogOut,
+  Mail,
 } from 'lucide-react';
 import { AdminDashboardFallback } from '../components/LoadingSkeleton';
 import { NotificationsPanel } from '../components/NotificationsPanel';
@@ -60,6 +61,7 @@ const sidebarSections: SidebarItem[] = [
   { id: 'identity-verification', path: '/admin/identity-verification', icon: ShieldCheck, label: 'Verification' },
   { id: 'support-tickets', path: '/admin/support-tickets', icon: AlertOctagon, label: 'Support Tickets' },
   { id: 'user-reports', path: '/admin/user-reports', icon: Inbox, label: 'User Reports' },
+  { id: 'emails', path: '/admin/emails', icon: Mail, label: 'Emails' },
   { id: 'waitlist', path: '/admin/waitlist', icon: Globe, label: 'Waitlist' },
   { id: 'data-isolation', path: '/admin/data-isolation', icon: Database, label: 'Data Isolation' },
 ];
