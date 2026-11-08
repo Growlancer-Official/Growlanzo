@@ -62,8 +62,11 @@ describe('referral monthly invite cap', () => {
     expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.process_referral[^;]*\banon\b/);
   });
 
-  it('shows the same limit on the invite card', () => {
-    expect(card).toMatch(/MONTHLY_INVITE_CAP\s*=\s*5/);
-    expect(card).toContain('{MONTHLY_INVITE_CAP} new people per month');
+  it('does not advertise a limit the live database cannot enforce yet', () => {
+    // The migration is repo-only until db push runs. The card must not print a
+    // number the server would not honour — no hardcoded cap constant, and no
+    // rendered "per month" promise.
+    expect(card).not.toMatch(/MONTHLY_INVITE_CAP\s*=/);
+    expect(card).not.toContain('new people per month');
   });
 });

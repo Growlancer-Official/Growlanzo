@@ -13,13 +13,12 @@ import {
   type ReferralSharePlatform,
 } from '../lib/referralShare';
 
-/**
- * Mirrors `public.referral_monthly_invite_cap()` in the database. The server is
- * the authority — `process_referral` rejects the 6th invitation in a calendar
- * month — this constant only keeps the copy honest so nobody invites six
- * people expecting all six to count.
- */
-const MONTHLY_INVITE_CAP = 5;
+// NOTE: the card deliberately does not print the monthly invite limit yet.
+// `public.referral_monthly_invite_cap()` (migration 20270401000000) returns 5 and
+// `process_referral` enforces it — but that migration is not applied to the live
+// database yet, so advertising "5 per month" here would promise a limit the
+// server does not currently enforce. Add the line once `supabase db push` has
+// run and `POST /rpc/referral_monthly_invite_cap` returns 5 in production.
 
 type Props = {
   code: string;
@@ -213,10 +212,6 @@ export function ReferralInviteCard({ code, link, name, role, live = false, class
           </p>
           <p className="mt-1 text-xs text-slate-500">
             Share this code or the link below. Both credit you the same way.
-          </p>
-          <p className="mt-1 text-xs text-slate-400">
-            Up to {MONTHLY_INVITE_CAP} new people per month — the monthly invite limit keeps
-            the leaderboard spam-free.
           </p>
         </div>
 
