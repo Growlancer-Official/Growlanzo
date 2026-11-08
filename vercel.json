@@ -5,7 +5,11 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/:route(about|admin|auth|careers|categories|certificate|client|contact|contests|cookies|dashboard|debug|escrow-policy|features|freelancer|freelancers|guidelines|help-center|how-it-works|internships|login|not-found|onboarding|payment|philosophy|pricing|privacy|projects|refund-policy|report|safety|services|signup|status|terms|unsubscribe|verify-certificate|waitlist)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:route(about|admin|auth|careers|categories|certificate|client|contact|contests|cookies|dashboard|debug|escrow-policy|features|freelancer|freelancers|guidelines|help-center|how-it-works|internships|login|not-found|onboarding|payment|philosophy|pricing|privacy|projects|refund-policy|report|safety|services|signup|status|terms|unsubscribe|verify-certificate|waitlist)/:rest*",
       "destination": "/index.html"
     }
   ],

@@ -11,15 +11,25 @@
  *
  * Vercel SPA Routing Strategy (VERIFIED):
  * ─────────────────────────────────────────
- * - public/_redirects  →  `/* /index.html 200`  (edge-level SPA fallback)
- * - public/404.html    →  DELETED (was overriding rewrites)
- * - vercel.json        →  `rewrites: [{"source":"/(.*)","destination":"/index.html"}]`
- * - build.mjs          →  Validates dist/client/index.html & dist/index.html exist
+ * - vercel.json        →  `rewrites` enumerating ONLY the SPA route segments
+ *                         (admin|dashboard|client|freelancers|… — the same list
+ *                         as spa-route-segments.json, derived from App.tsx)
+ * - build.mjs          →  Generates dist/404.html from the SPA shell
+ * - public/_redirects  →  REMOVED. Its `/* /index.html 200` blanket rule made
+ *                         every unknown URL answer 200, which is a soft-404:
+ *                         search engines index an endless supply of real-looking
+ *                         pages and a typo'd URL never says "not found".
  *
- * The _redirects file is authoritative on Vercel's edge network and
- * takes precedence over both vercel.json rewrites AND static 404.html.
- * Removing 404.html from public/ ensures it is never copied into the
- * build output in the first place.
+ * Why enumerated (measured 2026-11-08): `https://growlanzo.com/this-route-does-
+ * not-exist` returned **200** because the blanket rewrite caught it before the
+ * static 404 handler. With the allowlist, a known segment still gets the SPA
+ * (index.html, 200) and anything else falls through to dist/404.html, which
+ * Vercel serves with a real 404 status — while the app still renders its own
+ * NotFound page inside that shell.
+ *
+ * src/test/soft404Routing.test.ts is the guard: it re-derives the segments from
+ * src/app/App.tsx and fails if a route is added without updating the list, or if
+ * a blanket rewrite is ever reintroduced here or in vercel.json.
  *
  * Why the fallback shell exists:
  * Vercel's git-triggered builds occasionally skip Vike's prerender step, so
@@ -498,24 +508,63 @@ ok(`dist/index.html exists`);
   ok('index.html contains #root + both Vike context elements (white-screen guard ✓)');
 }
 
-// ── Step 5: Remove any stray 404.html from dist/ ───────────────
-console.log(`\n${YELLOW}[5/5]${RESET} Cleaning up stray files...`);
+// ── Step 5: Generate dist/404.html (a REAL 404 status for unknown paths) ──
+// Unknown URLs must answer 404, but they must still land on the app's own
+// NotFound screen instead of a bare server page. Copying the SPA shell gives
+// both: the hosting platform sends the file with a 404 status, and the app boots
+// and renders <NotFoundPage /> for the unmatched path. `noindex` keeps search
+// engines from treating the shell as a real page.
+console.log(`\n${YELLOW}[5/5]${RESET} Generating 404 shell...`);
 const FALLBACK_404 = resolve(DIST, '404.html');
-if (existsSync(FALLBACK_404)) {
-  unlinkSync(FALLBACK_404);
-  ok('Removed stray 404.html from dist/ — prevents Vercel SPA fallback override');
-} else {
-  ok('No 404.html found in dist/ — all clean');
+{
+  const shell = readFileSync(DIST_HTML, 'utf8');
+  const noindex = '<meta name="robots" content="noindex, nofollow">';
+  const withNoindex = shell.includes('<head>')
+    ? shell.replace('<head>', `<head>\n    ${noindex}`)
+    : `${noindex}\n${shell}`;
+  writeFileSync(FALLBACK_404, withNoindex);
+  ok('dist/404.html written from the SPA shell (real 404 + in-app not-found page)');
 }
 
-// ── Check for _redirects in dist/ ───────────────────────────────
-// public/_redirects should be automatically copied by Vite
+// ── Step 5b: Refuse to ship a blanket SPA rewrite ──────────────
+// The soft-404 regression was a `/* → /index.html 200` catch-all. If either
+// place ever regains one, every unknown URL answers 200 again — so fail the
+// build instead of silently undoing this fix.
+{
+  const vercel = JSON.parse(readFileSync(resolve(ROOT, 'vercel.json'), 'utf8'));
+  const blanket = (vercel.rewrites || []).find((r) => {
+    const src = String(r.source || '');
+    return src === '/(.*)' || src === '/:path*' || src === '/*';
+  });
+  if (blanket) {
+    fail(
+      `vercel.json rewrites contains a blanket rule (${blanket.source} → ${blanket.destination}).\n` +
+        `  That makes every unknown URL answer 200 (soft-404) and defeats dist/404.html.\n` +
+        `  Enumerate the SPA route segments instead (see spa-route-segments.json).`
+    );
+  }
+  ok('vercel.json has no blanket rewrite (unknown paths reach a real 404)');
+}
+
+// ── Check: no blanket _redirects in dist/ ──────────────────────
+// public/_redirects used to carry `/* /index.html 200`, which Vercel applies
+// BEFORE vercel.json and therefore turned every unknown URL into a 200. It is
+// removed on purpose; a reappearing blanket rule would silently restore the
+// soft-404 for the whole site.
 const REDIRECTS_DIST = resolve(DIST, '_redirects');
 if (existsSync(REDIRECTS_DIST)) {
-  ok('_redirects copied to dist/ — SPA fallback active at edge level');
+  const body = readFileSync(REDIRECTS_DIST, 'utf8');
+  if (/^\s*\/\*\s+\S+\s+200\s*$/m.test(body)) {
+    fail(
+      'dist/_redirects contains a blanket `/* … 200` rule.\n' +
+        '  On Vercel this is applied before vercel.json, so every unknown URL would\n' +
+        '  answer 200 again (soft-404) and dist/404.html would never be served.\n' +
+        '  Delete public/_redirects — vercel.json owns SPA routing now.'
+    );
+  }
+  warn('dist/_redirects present without a blanket rule — vercel.json still decides routing');
 } else {
-  warn('_redirects not found in dist/ — Vite might not copy dotfiles from public/');
-  warn('  Check if _redirects is in public/ directory');
+  ok('no _redirects in dist/ — vercel.json rewrites are the only SPA fallback');
 }
 
 // ── Summary ────────────────────────────────────────────────────
@@ -523,5 +572,5 @@ const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 console.log(`\n${GREEN}✓ Build complete in ${elapsed}s${RESET}`);
 console.log(`  dist/index.html     ${existsSync(resolve(DIST, 'index.html')) ? GREEN + '✓' : RED + '✗'}${RESET}`);
 console.log(`  dist/client/        ${existsSync(DIST_CLIENT) ? GREEN + '✓' : RED + '✗'}${RESET}`);
-console.log(`  dist/404.html       ${existsSync(FALLBACK_404) ? RED + '⚠ PRESENT (will be served)' : GREEN + '✓ absent'}${RESET}`);
-console.log(`  dist/_redirects     ${existsSync(REDIRECTS_DIST) ? GREEN + '✓' : YELLOW + '⚠ absent'}${RESET}`);
+console.log(`  dist/404.html       ${existsSync(FALLBACK_404) ? GREEN + '✓ (real 404 status)' : RED + '✗ MISSING'}${RESET}`);
+console.log(`  dist/_redirects     ${existsSync(REDIRECTS_DIST) ? YELLOW + '⚠ present' : GREEN + '✓ none (good)'}${RESET}`);

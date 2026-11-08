@@ -12,6 +12,15 @@ const app = express();
 const PORT = process.env.PORT || 4173;
 const DIST_DIR = join(__dirname, 'dist');
 
+// First path segments the SPA owns (single source of truth for the app router).
+// Anything NOT in this list is an unknown URL and must answer a real 404 — while
+// still rendering the app's own NotFound screen from dist/404.html. Mirrors
+// vercel.json's rewrite allowlist; src/test/soft404Routing.test.ts keeps the two
+// (and src/app/App.tsx) in sync.
+const SPA_ROUTE_SEGMENTS = JSON.parse(
+  fs.readFileSync(join(__dirname, 'spa-route-segments.json'), 'utf8')
+).segments;
+
 // Enable compression
 app.use(compression());
 
@@ -88,6 +97,22 @@ app.use((req, res) => {
     });
   }
 
+  // Unknown path → REAL 404 (soft-404 fix, 2026-11-08).
+  // This used to fall through to index.html with a 200, so every typo'd URL
+  // looked like a valid page to crawlers and to link-checkers. The response is
+  // still the app shell (so the in-app NotFoundPage renders), just with a 404
+  // status; dist/404.html carries the same shell plus noindex.
+  const firstSegment = safePath.split('/').filter(Boolean)[0] || '';
+  if (!SPA_ROUTE_SEGMENTS.includes(firstSegment)) {
+    const notFound = join(DIST_DIR, '404.html');
+    const target = fs.existsSync(notFound) ? notFound : join(DIST_DIR, 'index.html');
+    return res.status(404).sendFile(target, (err) => {
+      if (err && !res.headersSent) {
+        res.status(404).json({ error: 'Not found' });
+      }
+    });
+  }
+
   // Client-only route: serve the app shell (boot splash covers the
   // homepage-HTML flash; #root is cleared pre-hydration so React does a
   // clean client render — see BOOT_SPLASH_HTML in vite.config.ts).
@@ -107,5 +132,5 @@ app.use((err, req, res, _next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✓ Server running at http://0.0.0.0:${PORT}`);
   console.log(`✓ Serving SPA from ${DIST_DIR}`);
-  console.log(`✓ SPA routing enabled - all routes fallback to index.html`);
+  console.log(`✓ SPA routing enabled - known segments serve index.html, unknown paths answer 404`);
 });
