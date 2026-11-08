@@ -454,12 +454,22 @@ export function OnboardingPage() {
 
       // Apply referral code (optional — never blocks onboarding)
       if (referralStatus === 'valid' && referralCode.trim()) {
-        const { error: refErr } = await supabase.rpc('process_referral', {
+        const { data: refData, error: refErr } = await supabase.rpc('process_referral', {
           p_referral_code: referralCode.trim(),
           p_new_user_id: user.id,
           p_new_user_email: user.email || '',
         });
-        if (refErr) console.error('Referral apply error:', refErr);
+        if (refErr) {
+          console.error('Referral apply error:', refErr);
+        } else if ((refData as any)?.success === false && (refData as any)?.error_code === 'monthly_cap') {
+          // The referrer already invited their 5 people this month. The code is
+          // valid; this signup simply carries no attribution. Say so instead of
+          // silently dropping it — never block onboarding on a referral.
+          toast.info(
+            'Referral limit reached',
+            'That code has already been used for the maximum number of referrals this month, so this account is not linked to it.'
+          );
+        }
       }
 
       // Complete any pending referral now that onboarding is done — this is

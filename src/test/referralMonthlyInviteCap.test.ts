@@ -62,6 +62,21 @@ describe('referral monthly invite cap', () => {
     expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.process_referral[^;]*\banon\b/);
   });
 
+  it('enforces the cap on a direct INSERT, not only inside the RPC', () => {
+    // `Users can insert referrals` had WITH CHECK (true), so POST
+    // /rest/v1/referrals could record a referral without process_referral.
+    // A trigger is the only enforcement point every path goes through.
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.enforce_referral_monthly_cap\(\)/);
+    expect(sql).toMatch(/BEFORE INSERT ON public\.referrals/);
+    expect(sql).toContain('pg_advisory_xact_lock');
+    expect(sql).toContain('IF auth.uid() IS NULL THEN');
+    expect(sql).toMatch(/DROP POLICY IF EXISTS "Users can insert referrals" ON public\.referrals/);
+  });
+
+  it('reloads the PostgREST schema cache so the RPCs answer immediately', () => {
+    expect(sql).toContain("NOTIFY pgrst, 'reload schema'");
+  });
+
   it('does not advertise a limit the live database cannot enforce yet', () => {
     // The migration is repo-only until db push runs. The card must not print a
     // number the server would not honour — no hardcoded cap constant, and no

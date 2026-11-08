@@ -166,4 +166,61 @@ $$;
 REVOKE ALL ON FUNCTION public.process_referral(text, uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.process_referral(text, uuid, text) TO authenticated, service_role;
 
+-- ─── 4. The cap must not be bypassable by a direct INSERT ──────────────────
+-- `20260620000000` created `Users can insert referrals` WITH CHECK (true), and
+-- `20270101000013` hardened only the UPDATE policy — so any authenticated user
+-- could POST /rest/v1/referrals and record themselves as a referrer without
+-- going through process_referral at all. A check inside the RPC alone is
+-- therefore decorative. This trigger enforces the cap on every insert path.
+CREATE OR REPLACE FUNCTION public.enforce_referral_monthly_cap()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_catalog
+AS $$
+DECLARE
+  v_cap integer := public.referral_monthly_invite_cap();
+  v_used integer;
+BEGIN
+  -- Server-side callers (seed/backfill/migration) have no end-user session.
+  -- The cap is a rule for people, not for data repair.
+  IF auth.uid() IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  -- Two signups completing at the same moment must not both pass at used = 4.
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended('referral_cap:' || NEW.referrer_id::text, 0)
+  );
+
+  v_used := public.referral_invites_this_month(NEW.referrer_id);
+
+  IF v_used >= v_cap THEN
+    RAISE EXCEPTION
+      'referral monthly invite cap reached (% per calendar month)', v_cap
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.enforce_referral_monthly_cap() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS trg_enforce_referral_monthly_cap ON public.referrals;
+CREATE TRIGGER trg_enforce_referral_monthly_cap
+  BEFORE INSERT ON public.referrals
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_referral_monthly_cap();
+
+-- ─── 5. No client-side referral writes ─────────────────────────────────────
+-- Referrals are recorded only by SECURITY DEFINER RPCs (process_referral runs
+-- as the owner and is unaffected by RLS). Dropping the permissive INSERT policy
+-- closes the direct-PostgREST path now that a trigger — not just an RPC — is
+-- responsible for the rule. SELECT stays open for the leaderboard.
+DROP POLICY IF EXISTS "Users can insert referrals" ON public.referrals;
+
+-- Make both new RPCs callable immediately instead of waiting for a cache reload.
+NOTIFY pgrst, 'reload schema';
+
 COMMIT;
