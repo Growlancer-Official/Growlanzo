@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, dbFunctions } from '../lib/supabase';
-import { FALLBACK_CATEGORIES } from '../lib/categories';
 
 // Ensures each hook instance gets a unique channel to avoid 'cannot add callbacks after subscribe()'
 let channelInstanceId = 0;
@@ -60,17 +59,20 @@ export function useCategories(): UseCategoriesReturn {
       ]);
 
       if (catsResult.error) {
+        // ⚠️ No silent static fallback here, deliberately.
+        //
+        // This used to substitute the hardcoded FALLBACK_CATEGORIES list on any
+        // error, with only a console.warn. That made a backend outage look like a
+        // healthy, populated marketplace: observed live with a placeholder anon
+        // key, every request returned 401 and the homepage still advertised "145
+        // live categories" and rendered an invented catalogue. Meanwhile a second
+        // useCategories() instance on the same page reported 0, so the page showed
+        // "Show All Categories (145)" next to "Explore all 0 categories".
+        // Empty + an error the UI can offer a retry on is the honest state; fake
+        // inventory is worse than an error, because nobody notices it.
         console.warn('Categories query failed:', catsResult.error.message);
-        // Fall back to static FALLBACK_CATEGORIES so the homepage always shows categories
-        const fallback = FALLBACK_CATEGORIES.map((name, i) => ({
-          id: `fallback-${i}`,
-          name,
-          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-          icon: 'Layers',
-          description: null,
-          display_order: i + 1,
-        }));
-        setCategories(fallback);
+        setCategories([]);
+        setError(catsResult.error.message || 'Could not load categories');
       } else if (catsResult.data) {
         // A-Z sort (localeCompare) for consistent display across all pages
         const raw = catsResult.data as Category[];

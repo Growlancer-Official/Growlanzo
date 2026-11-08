@@ -44,8 +44,10 @@ export function useIndustries(): UseIndustriesReturn {
         .order('name', { ascending: true });
 
       if (err) {
-        // Fall back to a small static list so forms never break (same
-        // resilience pattern as FALLBACK_CATEGORIES in useCategories).
+        // Fall back to a small static list so forms never break. This is
+        // form-safety only — a dropdown needs *some* options — and it never
+        // claims to be live data, so it is not the "invented inventory"
+        // pattern that useCategories deliberately dropped.
         console.warn('Industries query failed:', err.message);
         setIndustries(
           ['Technology', 'E-commerce & Retail', 'Marketing', 'Finance', 'Healthcare', 'Education', 'Other'].map(

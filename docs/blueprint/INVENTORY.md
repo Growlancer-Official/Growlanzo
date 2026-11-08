@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **722 files** across 12 groups.
+Total tracked structure: **727 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -13,12 +13,12 @@ Total tracked structure: **722 files** across 12 groups.
 | Components | 52 |
 | Context & hooks | 10 |
 | Client libraries & services | 71 |
-| Edge functions | 36 |
-| Edge shared modules | 11 |
+| Edge functions | 37 |
+| Edge shared modules | 12 |
 | Database migrations | 314 |
 | Archived migrations (not applied) | 6 |
-| Test suite | 81 |
-| Operational scripts | 36 |
+| Test suite | 83 |
+| Operational scripts | 37 |
 | CI / deploy workflows | 4 |
 
 ## Pages (97)
@@ -280,7 +280,7 @@ All data access, business rules and formatting live here — pages call services
 - `src/lib/withdrawal.ts`
 - `src/lib/workflowService.ts`
 
-## Edge functions (36)
+## Edge functions (37)
 
 One directory per deployed function; `_shared` is imported, never deployed on its own.
 
@@ -296,6 +296,7 @@ One directory per deployed function; `_shared` is imported, never deployed on it
 - `supabase/functions/delete-account/index.ts`
 - `supabase/functions/email-admin/index.ts`
 - `supabase/functions/email-notifications/index.ts`
+- `supabase/functions/exa-search/index.ts`
 - `supabase/functions/file-upload/index.ts`
 - `supabase/functions/internship-applications/index.ts`
 - `supabase/functions/invoice/index.ts`
@@ -321,7 +322,7 @@ One directory per deployed function; `_shared` is imported, never deployed on it
 - `supabase/functions/verify-document/index.ts`
 - `supabase/functions/withdrawal/index.ts`
 
-## Edge shared modules (11)
+## Edge shared modules (12)
 
 The runtime contract every function imports: CORS, site URL, auth, rate limits, email, money helpers.
 
@@ -332,6 +333,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/emailService.ts`
 - `supabase/functions/_shared/emailTemplates.ts`
 - `supabase/functions/_shared/errors.ts`
+- `supabase/functions/_shared/exa.ts`
 - `supabase/functions/_shared/features.ts`
 - `supabase/functions/_shared/paypalGate.ts`
 - `supabase/functions/_shared/site.ts`
@@ -667,7 +669,7 @@ Kept for history only. `db push` reads the top level of `supabase/migrations`, s
 - `supabase/migrations/archived/20260806000000_restore_auto_confirm_trigger.sql`
 - `supabase/migrations/archived/20260830000000_consolidated_email_verification_final.sql`
 
-## Test suite (81)
+## Test suite (83)
 
 Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invariants have guard tests here.
 
@@ -682,6 +684,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/authResumeAndBrand.test.ts`
 - `src/test/authRouteSurface.test.ts`
 - `src/test/authService.test.ts`
+- `src/test/categoriesNoFakeFallback.test.ts`
 - `src/test/ciGuardrails.test.ts`
 - `src/test/clientDashboardIcons.test.ts`
 - `src/test/commissionAndPaymentSecurity.test.ts`
@@ -706,6 +709,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/emailIdentityHygiene.test.ts`
 - `src/test/errorBoundary.test.tsx`
 - `src/test/escrow.test.ts`
+- `src/test/exaSearchWiring.test.ts`
 - `src/test/featureFlags.test.ts`
 - `src/test/featureFlagsEnv.test.ts`
 - `src/test/growCoins.test.ts`
@@ -753,7 +757,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/typographyFonts.test.ts`
 - `src/test/waitlistPage.test.tsx`
 
-## Operational scripts (36)
+## Operational scripts (37)
 
 Build, preflight, security audit and the E2E harnesses. Nothing here is imported by the app.
 
@@ -772,6 +776,7 @@ Build, preflight, security audit and the E2E harnesses. Nothing here is imported
 - `scripts/e2e/devices.mjs`
 - `scripts/e2e/element-audit.mjs`
 - `scripts/e2e/email-tests.mjs`
+- `scripts/e2e/exa-search-smoke.mjs`
 - `scripts/e2e/login.mjs`
 - `scripts/e2e/logout-flow.mjs`
 - `scripts/e2e/nav-flows.mjs`

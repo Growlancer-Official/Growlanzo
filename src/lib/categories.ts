@@ -6,7 +6,10 @@
  * This file provides static icon, color, and description mappings for display.
  * Use `resolveCategoryMeta(name)` to look up metadata for any category name.
  *
- * For static fallback (before DB loads), use `FALLBACK_CATEGORIES`.
+ * `FALLBACK_CATEGORIES` is the canonical category NAME list used for types,
+ * pickers and static copy. It is NOT an API-error fallback: `useCategories`
+ * surfaces an error + retry instead of substituting this list, so a backend
+ * outage is never presented as live inventory.
  */
 
 import {

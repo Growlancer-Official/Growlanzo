@@ -611,7 +611,9 @@ function CategoriesSection({ onOpenSignup }: { onOpenSignup: SignupHandler }) {
             <p className="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
               {loading
                 ? 'Loading categories...'
-                : `${categories.length} live categories — from development and design to marketing and operations.`}
+                : error
+                  ? 'Live category data is temporarily unavailable.'
+                  : `${categories.length} live categories — from development and design to marketing and operations.`}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -640,7 +642,7 @@ function CategoriesSection({ onOpenSignup }: { onOpenSignup: SignupHandler }) {
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-emerald-600 font-sans font-semibold rounded-xl border border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300 transition-all text-sm shadow-sm"
           >
             <Layers className="w-4 h-4" />
-            Explore all {categories.length} categories
+            {error || loading ? 'Browse all categories' : `Explore all ${categories.length} categories`}
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
