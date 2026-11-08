@@ -255,7 +255,7 @@ fresh visitor can browse a real listing, open a freelancer profile, and start a 
 
 ---
 
-### A9. Brevo rejects every API send — the account's "Authorised IPs" security setting is ON 🔴
+### A9. Brevo rejected every API send (Authorised IPs) — IPs added 2026-11-08, delivery ⚠️ / SPF still open
 
 **Why:** the founder activated Brevo (2026-10-14) and `BREVO_API_KEY` + `EMAIL_FROM` secrets are
 both set, but a **real live test email** through the deployed `admin-data` → `test_email` action
@@ -271,6 +271,31 @@ The key is valid (Brevo authenticates then refuses by IP). Supabase edge functio
 AWS IPs that **change**, so whitelisting individual IPs will break again — either disable the
 restriction or (if your org requires it) whitelist the *range*, not one address.
 
+**Status 2026-11-08 (measured, not assumed):** the owner added the egress IPs. A real probe now
+succeeds where it previously failed — `POST /auth/v1/signup` for `hello+growtest…@growlanzo.com`
+returned **HTTP 200** with `confirmation_sent_at: 2026-11-08T15:51:48Z`, i.e. GoTrue handed the
+message to Brevo without the former `Error sending confirmation email` failure. **Still not fully
+closed:** nobody has confirmed the message actually landed in `hello@growlanzo.com`, and Brevo's
+API accepting a send is not delivery. One received email closes it.
+
+**Separate DNS gap found the same day (still open):** the only SPF record is
+`v=spf1 include:zoho.in ~all` — **Brevo is not in it**, so `spf.brevo.com` IPs (`185.41.28.0/22`,
+`94.143.16.0/21`, …) softfail SPF. Mail still authenticates because DMARC only needs one aligned
+identifier and Brevo's DKIM is aligned and live (`brevo1`/`brevo2._domainkey` CNAME →
+`b1`/`b2.growlanzo-com.dkim.brevo.com`, real 2048-bit keys; `zmail._domainkey` for Zoho; `brevo-code`
+TXT at the root), but a single-identifier pass is the weakest form and hurts placement. Zoho MX
+(`mx/mx2/mx3.zoho.in`) is unaffected either way.
+
+**Fix (one DNS edit, ~1 minute):**
+
+```
+growlanzo.com  TXT  "v=spf1 include:zoho.in include:spf.brevo.com ~all"
+```
+
+Keep exactly one SPF record. Lookup cost after the change is 3 of the allowed 10
+(`growlanzo.com` → `zoho.in` → `spf.zoho.in` with no nested includes, plus `spf.brevo.com` which is
+pure `ip4`), so there is no permanent-error risk from the 10-lookup limit.
+
 **Your action** (Brevo dashboard — only the account owner can do this):
 1. Open <https://app.brevo.com/security/authorised_ips> (or: organisation name → Settings →
    Security → Authorised IPs).
@@ -279,7 +304,8 @@ restriction or (if your org requires it) whitelist the *range*, not one address.
    `.e2e/brevo-test.mjs` — the verdict must be `{"success":true}`.
 
 **How to verify it is done:** `node .e2e/brevo-test.mjs` → `{"success":{"success":true}}` and a
-"Growlanzo Test Email ✅" lands in the configured sender inbox (default `support@growlanzo.com`). Until then **every** Brevo send
+"Growlanzo Test Email ✅" lands in the configured sender inbox (default `support@growlanzo.com`),
+with `Authentication-Results` showing **both** `spf=pass` and `dkim=pass`. Until then **every** Brevo send
 (welcome, proposals, milestones, withdrawals, security alerts, admin notifications) is a
 logged no-op with `email_sent:false` — the platform is fully silent by email.
 
