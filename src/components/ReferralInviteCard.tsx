@@ -13,6 +13,14 @@ import {
   type ReferralSharePlatform,
 } from '../lib/referralShare';
 
+/**
+ * Mirrors `public.referral_monthly_invite_cap()` in the database. The server is
+ * the authority — `process_referral` rejects the 6th invitation in a calendar
+ * month — this constant only keeps the copy honest so nobody invites six
+ * people expecting all six to count.
+ */
+const MONTHLY_INVITE_CAP = 5;
+
 type Props = {
   code: string;
   link: string;
@@ -205,6 +213,10 @@ export function ReferralInviteCard({ code, link, name, role, live = false, class
           </p>
           <p className="mt-1 text-xs text-slate-500">
             Share this code or the link below. Both credit you the same way.
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Up to {MONTHLY_INVITE_CAP} new people per month — the monthly invite limit keeps
+            the leaderboard spam-free.
           </p>
         </div>
 

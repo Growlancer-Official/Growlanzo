@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **727 files** across 12 groups.
+Total tracked structure: **729 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -15,9 +15,9 @@ Total tracked structure: **727 files** across 12 groups.
 | Client libraries & services | 71 |
 | Edge functions | 37 |
 | Edge shared modules | 12 |
-| Database migrations | 314 |
+| Database migrations | 315 |
 | Archived migrations (not applied) | 6 |
-| Test suite | 83 |
+| Test suite | 84 |
 | Operational scripts | 37 |
 | CI / deploy workflows | 4 |
 
@@ -339,7 +339,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/site.ts`
 - `supabase/functions/_shared/urlGuard.ts`
 
-## Database migrations (314)
+## Database migrations (315)
 
 Ordered by filename timestamp. Applied by `supabase db push --include-all` in Backend Deploy; never by hand in the dashboard.
 
@@ -657,6 +657,7 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20270305000000_freelancer_support_tier.sql`
 - `supabase/migrations/20270306000000_support_tier_derive_role.sql`
 - `supabase/migrations/20270307000000_email_logs.sql`
+- `supabase/migrations/20270401000000_referral_monthly_invite_cap.sql`
 
 ## Archived migrations (not applied) (6)
 
@@ -669,7 +670,7 @@ Kept for history only. `db push` reads the top level of `supabase/migrations`, s
 - `supabase/migrations/archived/20260806000000_restore_auto_confirm_trigger.sql`
 - `supabase/migrations/archived/20260830000000_consolidated_email_verification_final.sql`
 
-## Test suite (83)
+## Test suite (84)
 
 Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invariants have guard tests here.
 
@@ -734,6 +735,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/referralCode.test.ts`
 - `src/test/referralInviteCard.test.tsx`
 - `src/test/referralLifetimeProjectRewards.test.ts`
+- `src/test/referralMonthlyInviteCap.test.ts`
 - `src/test/referralShare.test.ts`
 - `src/test/respanGatewayWiring.test.ts`
 - `src/test/routeHeadCoverage.test.ts`
