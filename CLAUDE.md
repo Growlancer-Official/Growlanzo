@@ -59,3 +59,13 @@
 - **Why mail still arrives despite the SPF gap:** DMARC needs only one aligned identifier, and Brevo's DKIM is aligned and live (`brevo1`/`brevo2._domainkey` CNAME → `b1`/`b2.growlanzo-com.dkim.brevo.com`, 2048-bit keys resolving); `zmail._domainkey` covers Zoho; `_dmarc` is `p=none` with a Brevo rua. One-identifier passing is the weakest state — fine for testing, not for a launch with real receipts.
 - **`docs/LAUNCH-READINESS.md` A9** now carries this measured state (heading red → ⚠️) and the exact record to add, instead of the stale "IP restriction ON" claim.
 - Migration `20270401000000_referral_monthly_invite_cap.sql` is **still unapplied** live: `POST /rest/v1/rpc/referral_monthly_invite_cap` → `404 PGRST202`. Blocked on credentials delivered through a secret store, not chat.
+
+### (17) 2026-11-08 · "Where every value goes" reference + live route-guard evidence
+- **Added** `docs/FOUNDER-RUNBOOK.md` → *Where every value goes* (six destinations: `.env`, `.env.local`, Vercel env, Supabase edge secrets, GitHub Actions secrets, DNS) with the §4 list of the 35 edge secrets and the §5 list of the 14 Actions secrets, plus the failure symptom for each wrong placement. This exists because every "feature silently dead" report so far was a correct value in the wrong store — a `VITE_` name in edge secrets, or an edge secret in `.env`, is read by nothing.
+- **Named the actual deploy gap:** `backend-deploy.yml` stops at *Guard — access token present*; the repo has no `SUPABASE_ACCESS_TOKEN` / `SUPABASE_DB_PASSWORD`, so `supabase db push` never runs. That is the whole reason `20270401000000_referral_monthly_invite_cap.sql` is committed but absent from the live schema (`404 PGRST202` on `referral_monthly_invite_cap`).
+- **Live guard checks (production, Cloud browser, no session):**
+  - `/dashboard` → lands on `/` with the "Welcome back" sign-in dialog. ✅
+  - `/client/post` → lands on `/` with the same dialog. ✅
+  - `/admin/users` → stays on the route but renders **"Restricted Access — Authorized Personnel Only"** + the admin email/password gate; `table` count 0, `tbody tr` count 0, so no row of PII is served to an anonymous visitor. ✅
+- **Route inventory measured from `src/app/App.tsx`:** 32 declared entries in the freelancer `/dashboard` block, 27 in `/client`, 21 in `/admin` (redirect-only routes included). The logged-in walkthrough of all of them is **not verified** — it needs a session.
+- **Unblock for that walkthrough:** `SUPABASE_SERVICE_ROLE_KEY` (project secret or Actions secret) → `node scripts/e2e/create-test-accounts.mjs` seeds freelancer/client/admin with confirmed emails, because `mailer_autoconfirm` is `false` and this workspace has no mailbox.

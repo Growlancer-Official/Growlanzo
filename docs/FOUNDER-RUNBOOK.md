@@ -15,6 +15,59 @@ Run everything from the repo root (`C:/Users/mdmir/Documents/GROWLANCER`).
 
 ---
 
+## Where every value goes — six places, never interchangeable
+
+Most "the feature is broken" reports in this repo trace back to a correct value in the wrong
+store. A `VITE_` name in Supabase secrets does nothing; an edge secret in Vercel does nothing; an
+edge secret in `.env` does nothing. Use this table before adding anything.
+
+| # | Destination | What belongs there | How to set it | Symptom when it is wrong |
+|---|---|---|---|---|
+| 1 | `.env` (repo root, gitignored) | **`VITE_*` only.** These are public by definition — Vite inlines them into the JS bundle | copy `.env.example` → `.env` | a non-`VITE_` name here is never read; a real secret here ships to the browser |
+| 2 | `.env.local` (gitignored) | credentials for local **scripts** only: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | paste, never commit | `scripts/e2e/*` abort with "Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY" |
+| 3 | **Vercel** → Project → Settings → Environment Variables | production `VITE_*` build vars (Production **and** Preview) | dashboard, then **Redeploy** | values are inlined at build time — editing without a redeploy changes nothing |
+| 4 | **Supabase** → Edge Functions secrets: `npx supabase secrets set NAME=value --project-ref zttwsjehcgaicziqyxpq` | every server-side secret (35 names, §4 table below) | CLI (instant, no redeploy) | the feature silently becomes a logged no-op — email, AI, payments all fail *open* by design |
+| 5 | **GitHub** → repo → Settings → Secrets and variables → **Actions** | CI + deploy secrets (14 names, §5 table below) | dashboard or `gh secret set` | `Backend Deploy` stops at *Guard — access token present*, so **no migration is ever applied** |
+| 6 | **DNS registrar** (Spaceship, `launch1/launch2.spaceship.net`) | MX, SPF, DKIM, DMARC TXT/CNAME | zone editor | only mail is affected; the app itself keeps working |
+
+### §4 names — Supabase edge-function secrets (server side only)
+
+Required for the platform to behave as documented (read straight from `Deno.env.get` calls):
+
+| Group | Names | Effect if missing |
+|---|---|---|
+| Database / function plumbing | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | functions cannot auth or write as service role |
+| Site + email | `APP_URL`, `BREVO_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `ADMIN_EMAIL`, `REPORT_EMAIL`, `BREVO_WEBHOOK_SECRET` | every email is a logged no-op (`email_sent:false`) |
+| Cron | `CRON_SECRET` | scheduled functions refuse to run (fail-closed by design) |
+| Payments | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_ACCOUNT_NUMBER`, `RAZORPAY_PAYOUT_WEBHOOK_SECRET` | checkout/webhook fail; withdrawals queue instead of paying (A1) |
+| PayPal (off) | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_SANDBOX`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_ENABLED` | PayPal stays hidden/unusable by design |
+| AI | `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL`, `AI_PRIORITY_MODEL`, `AI_GATEWAY_URL` | assistant/matching degrade to deterministic output |
+| Web search | `EXA_API_KEY` | `exa-search` fails closed with 500 "Web search is not configured" |
+| KYC | `KYC_PROVIDER`, `SUREPASS_API_TOKEN`, `SUREPASS_BASE_URL`, `KYC_DEV_MODE`, `KYC_DEV_TOKEN`, `KYC_DEV_PROJECT_REF`, `KYC_DEV_MODE_ALLOWED` | KYC rows go to `review`, never `verified` |
+| Admin | `ADMIN_SIGNUP_SECRET` | `admin-signup` returns 500 — no new admins |
+
+### §5 names — GitHub Actions secrets (this is what unblocks Backend Deploy)
+
+| Secret | Needed by | What it does |
+|---|---|---|
+| `SUPABASE_ACCESS_TOKEN` | Backend Deploy | every `supabase` CLI step; without it the workflow stops at the first guard |
+| `SUPABASE_DB_PASSWORD` **or** `SUPABASE_DB_URL` | Backend Deploy | one of these two is required — there is **no** cached DB password on a CI runner |
+| `SUPABASE_PROJECT_REF` | Backend Deploy | which project to push to |
+| `SUPABASE_SERVICE_ROLE_KEY` | Backend Deploy, CI | migration drift check + authenticated E2E |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL` | CI | build + E2E target |
+| `E2E_FREELANCER_EMAIL` / `_PASSWORD` | CI | seeded freelancer login for the authenticated sweep |
+| `E2E_CLIENT_EMAIL` / `_PASSWORD` | CI | seeded client login |
+| `E2E_ADMIN_EMAIL` / `_PASSWORD` | CI | seeded admin login |
+
+The six `E2E_*` values are generated, not invented — `node scripts/e2e/create-test-accounts.mjs
+--rotate` creates/repairs the three accounts and writes `.env.e2e` (gitignored).
+
+**Currently missing in this repo (2026-11-08):** the whole `SUPABASE_*` deploy row, which is why
+`20270401000000_referral_monthly_invite_cap.sql` is committed but not live. Adding
+`SUPABASE_ACCESS_TOKEN` + `SUPABASE_DB_PASSWORD` is enough to make the next push apply it.
+
+---
+
 ## §0. Before anything: run the pre-flight
 
 ```bash
