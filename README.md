@@ -4,7 +4,7 @@
 
 <br/>
 
-# 🚀 GROWLANCER
+# 🚀 GROWLANZO
 
 ### AI-Powered Freelancing Marketplace
 
