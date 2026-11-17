@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **731 files** across 12 groups.
+Total tracked structure: **733 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -18,7 +18,7 @@ Total tracked structure: **731 files** across 12 groups.
 | Database migrations | 315 |
 | Archived migrations (not applied) | 6 |
 | Test suite | 85 |
-| Operational scripts | 38 |
+| Operational scripts | 40 |
 | CI / deploy workflows | 4 |
 
 ## Pages (97)
@@ -760,7 +760,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/typographyFonts.test.ts`
 - `src/test/waitlistPage.test.tsx`
 
-## Operational scripts (38)
+## Operational scripts (40)
 
 Build, preflight, security audit and the E2E harnesses. Nothing here is imported by the app.
 
@@ -769,9 +769,11 @@ Build, preflight, security audit and the E2E harnesses. Nothing here is imported
 - `scripts/build.mjs`
 - `scripts/check_providers.mjs`
 - `scripts/check-mvp-scope.mjs`
+- `scripts/create_test_users_batch.mjs`
 - `scripts/create_test_users.mjs`
 - `scripts/domain-switch.mjs`
 - `scripts/e2e/ai-providers.mjs`
+- `scripts/e2e/api-flow-test.mjs`
 - `scripts/e2e/auth-flows.mjs`
 - `scripts/e2e/auth-lifecycle.mjs`
 - `scripts/e2e/create-test-accounts.mjs`
