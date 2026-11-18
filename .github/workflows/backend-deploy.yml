@@ -124,7 +124,23 @@ jobs:
           import { execSync } from 'child_process';
           const mode = process.argv[2] || 'pre';
           const dbUrl = process.env.SUPABASE_DB_URL;
-          const out = execSync('npx supabase migration list --db-url ' + JSON.stringify(dbUrl), {encoding:'utf8', stdio:['ignore','pipe','ignore'], shell:true});
+          // Redact the DB URL before anything reaches the log: it carries the
+          // database password. Measured 2026-11-18: run 77 died here in 4s with
+          // NO drift annotation at all, because stderr was discarded — so a CLI
+          // connection/auth error was indistinguishable from real drift and went
+          // undiagnosed. Keep the diagnostic, strip the credential.
+          const redact = (text) => String(text ?? '')
+            .split(dbUrl).join('[db-url]')
+            .replace(/postgres(?:ql)?:\/\/\S+/g, '[db-url]');
+          let out;
+          try {
+            out = execSync('npx supabase migration list --db-url ' + JSON.stringify(dbUrl), {encoding:'utf8', stdio:['ignore','pipe','pipe'], shell:true});
+          } catch (err) {
+            const detail = redact([err.stderr, err.stdout, err.message].filter(Boolean).join('\n')).trim();
+            console.error('::error::supabase migration list failed — the drift check could not run, so nothing was deployed. Redacted output follows:');
+            for (const line of detail.split(/\r?\n/).slice(-12)) console.error('::error::' + line.trim());
+            process.exit(1);
+          }
           const remote = new Set();
           for (const line of out.split(/\r?\n/)) {
             if (!line.includes('|')) continue;
