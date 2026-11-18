@@ -34,12 +34,23 @@ export const KYC_VERIFICATION_ENABLED = false;
 /**
  * The one copy block for the deferred KYC feature. Shared by every surface that
  * mentions KYC so the status can never drift between pages.
+ *
+ * `reasons` exists because "Coming Soon" on its own reads like an unfinished
+ * product. A user who opens the verification screen must be told WHY we are not
+ * collecting government IDs yet — and that nothing is blocked while we wait.
  */
 export const KYC_COMING_SOON = {
   title: 'KYC Verification',
   status: 'Coming Soon',
   description:
-    'Advanced identity verification will be introduced in a future Growlanzo update. For now, users can access available Beta features through the existing account verification process.',
+    'Full identity verification (government ID and document checks) is not part of the Growlanzo Beta. Everything available today is unlocked through the account verification above — your name, a confirmed email and a confirmed phone.',
+  reasons: [
+    'We are an early-stage platform and are completing the legal and compliance review that collecting government IDs requires.',
+    'Document checks need a licensed identity-verification provider, and that integration is still being set up.',
+    'So we do not collect ID documents we cannot protect and process properly yet — no Aadhaar, PAN, passport or bank documents are requested in the Beta.',
+  ],
+  reassurance:
+    'Nothing is blocked for you: hiring, applying, contracts and payouts all work with account verification. When KYC launches we will ask for your consent first and update the Privacy Policy before collecting anything new.',
 } as const;
 
 /**

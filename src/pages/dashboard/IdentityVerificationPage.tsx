@@ -57,20 +57,39 @@ function maskPhone(phone: string | null | undefined): string {
  */
 function KycComingSoonCard() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+    <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-          <ShieldCheck className="h-4 w-4 text-slate-500" />
+          <ShieldCheck className="h-4 w-4 text-amber-600" />
           {KYC_COMING_SOON.title}
         </h2>
-        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+        <span className="rounded-full border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-700">
           {KYC_COMING_SOON.status}
         </span>
       </div>
-      <p className="mt-2 text-xs text-slate-600">{KYC_COMING_SOON.description}</p>
+      <p className="mt-2 text-xs leading-relaxed text-slate-700">{KYC_COMING_SOON.description}</p>
+
+      <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+        Why it is coming soon
+      </p>
+      <ul className="mt-1.5 space-y-1">
+        {KYC_COMING_SOON.reasons.map((reason) => (
+          <li key={reason} className="flex gap-2 text-xs leading-relaxed text-slate-700">
+            <span
+              aria-hidden="true"
+              className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-amber-500"
+            />
+            <span>{reason}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-3 rounded-lg bg-white/80 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
+        {KYC_COMING_SOON.reassurance}
+      </p>
       <p className="mt-2 text-[11px] text-slate-500">
-        Account verification above is separate from KYC: a confirmed phone number is never shown as
-        KYC verified.
+        Account verification is separate from KYC: a confirmed phone number is never shown as KYC
+        verified.
       </p>
     </div>
   );
@@ -390,7 +409,7 @@ export function IdentityVerificationPage() {
         </div>
         <p className="text-sm text-slate-600">
           Three quick checks — name, email and phone. Takes about a minute, and every step updates
-          here automatically.
+          here automatically. Full document-based KYC is coming soon (details below).
         </p>
       </div>
       {children}
@@ -438,6 +457,10 @@ export function IdentityVerificationPage() {
 
   return shell(
     <div className="space-y-4">
+      {/* The deferred KYC module is stated FIRST: a user who opens this screen
+          must see "Coming Soon" and why, before the three checks below. */}
+      <KycComingSoonCard />
+
       {/* Progress */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3">
@@ -617,8 +640,6 @@ export function IdentityVerificationPage() {
         Beta, not KYC; nothing else is collected, and a step you finish on another device shows up
         here on its own.
       </p>
-
-      <KycComingSoonCard />
     </div>
   );
 }

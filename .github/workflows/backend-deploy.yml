@@ -32,9 +32,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # PINNED, not `latest`. Two independent reasons, both measured:
+      #
+      # 1. `version: latest` makes the action call the GitHub releases API to
+      #    resolve the newest tag. On a shared runner IP that call is rate
+      #    limited and the whole deploy dies in one second with
+      #    "Failed to resolve latest Supabase CLI release: rate limit exceeded"
+      #    (run 44299835218, 2026-11-18). Nothing downstream ran.
+      # 2. Supabase CLI v3 REMOVED `--db-url` from `migration list` and
+      #    `db push` (it was replaced by `--remote[=<ref|branch|url>]`). The
+      #    drift-check helper and the push below are written against `--db-url`,
+      #    and v3 also started requiring `--yes` for hosted changes. Resolving
+      #    "latest" would therefore have broken the deploy even without the rate
+      #    limit.
+      #
+      # v2.63.0 is the newest v2 release that still accepts `--db-url` on both
+      # commands (verified against the published linux_amd64 binary), so the
+      # reviewed migration logic below stays exactly as it was. Moving to v3 is
+      # a deliberate migration: change the helper to `--remote=<url>`, add
+      # `--yes`, and prove it against a dry run before pinning forward.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.63.0
 
       - name: Guard — access token present (fail with setup instructions)
         env:
