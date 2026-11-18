@@ -39,7 +39,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "compression": "^1.8.1",
     "exa-js": "2.28.0",
-    "express": "^4.22.2",
+    "express": "^4.22.3",
     "lucide-react": "^1.8.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
