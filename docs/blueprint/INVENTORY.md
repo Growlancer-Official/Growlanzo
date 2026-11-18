@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **743 files** across 12 groups.
+Total tracked structure: **744 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -13,11 +13,11 @@ Total tracked structure: **743 files** across 12 groups.
 | Components | 53 |
 | Context & hooks | 10 |
 | Client libraries & services | 70 |
-| Edge functions | 36 |
+| Edge functions | 35 |
 | Edge shared modules | 12 |
-| Database migrations | 323 |
+| Database migrations | 324 |
 | Archived migrations (not applied) | 6 |
-| Test suite | 85 |
+| Test suite | 86 |
 | Operational scripts | 43 |
 | CI / deploy workflows | 4 |
 
@@ -280,7 +280,7 @@ All data access, business rules and formatting live here — pages call services
 - `src/lib/withdrawal.ts`
 - `src/lib/workflowService.ts`
 
-## Edge functions (36)
+## Edge functions (35)
 
 One directory per deployed function; `_shared` is imported, never deployed on its own.
 
@@ -318,7 +318,6 @@ One directory per deployed function; `_shared` is imported, never deployed on it
 - `supabase/functions/submit-report/index.ts`
 - `supabase/functions/subscription-billing-cron/index.ts`
 - `supabase/functions/twofa-management/index.ts`
-- `supabase/functions/verify-document/index.ts`
 - `supabase/functions/withdrawal/index.ts`
 
 ## Edge shared modules (12)
@@ -338,7 +337,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/site.ts`
 - `supabase/functions/_shared/urlGuard.ts`
 
-## Database migrations (323)
+## Database migrations (324)
 
 Ordered by filename timestamp. Applied by `supabase db push --include-all` in Backend Deploy; never by hand in the dashboard.
 
@@ -665,6 +664,7 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20270403000004_referral_client_write_lockdown.sql`
 - `supabase/migrations/20270404000000_platform_kyc_email_phone.sql`
 - `supabase/migrations/20270404000100_platform_kyc_status_phone.sql`
+- `supabase/migrations/20270405000000_defer_full_kyc_beta.sql`
 
 ## Archived migrations (not applied) (6)
 
@@ -677,7 +677,7 @@ Kept for history only. `db push` reads the top level of `supabase/migrations`, s
 - `supabase/migrations/archived/20260806000000_restore_auto_confirm_trigger.sql`
 - `supabase/migrations/archived/20260830000000_consolidated_email_verification_final.sql`
 
-## Test suite (85)
+## Test suite (86)
 
 Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invariants have guard tests here.
 
@@ -692,6 +692,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/authResumeAndBrand.test.ts`
 - `src/test/authRouteSurface.test.ts`
 - `src/test/authService.test.ts`
+- `src/test/betaLaunchSessionAiAnalytics.test.ts`
 - `src/test/categoriesNoFakeFallback.test.ts`
 - `src/test/ciGuardrails.test.ts`
 - `src/test/clientDashboardIcons.test.ts`

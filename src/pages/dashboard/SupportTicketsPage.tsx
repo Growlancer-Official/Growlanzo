@@ -13,7 +13,7 @@ import { ticketService, type SupportTicket, type TicketCategory, type TicketPrio
 const CATEGORIES: { value: TicketCategory; label: string; desc: string }[] = [
   { value: 'general', label: 'General', desc: 'Platform questions, how-to, general help' },
   { value: 'billing', label: 'Billing', desc: 'Payments, wallet, withdrawals, refunds' },
-  { value: 'account', label: 'Account', desc: 'Profile, KYC, login issues, settings' },
+  { value: 'account', label: 'Account', desc: 'Profile, verification, login issues, settings' },
   { value: 'technical', label: 'Technical', desc: 'Bugs, errors, something not working' },
   { value: 'dispute', label: 'Dispute Help', desc: 'Help with contract disputes' },
   { value: 'feature_request', label: 'Feature Request', desc: 'Suggest new features or improvements' },

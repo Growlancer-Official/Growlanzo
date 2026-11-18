@@ -56,7 +56,10 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
   const [streamingContent, setStreamingContent] = useState('');
   // Real-time model name — defaults to the configured model, updates live from
   // the AI stream (the edge function relays the actual model on first chunk).
-  const [modelName, setModelName] = useState(() => (import.meta.env.VITE_AI_MODEL as string | undefined) || 'Growlanzo AI');
+  // The PRODUCT name is always Growlanzo AI. VITE_AI_MODEL / the gateway slug
+  // may name a vendor model — that is an implementation detail and must never
+  // appear in the chat header.
+  const [modelName, setModelName] = useState('Growlanzo AI');
   const toast = useToast();
   const [verifyCta, _setVerifyCta] = useState(false);
   // Escalation: a chat answer that does not fix the issue must not evaporate.
@@ -345,7 +348,9 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
           if (!jsonStr || jsonStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(jsonStr);
-              if (parsed.model) {
+              // Only accept our own product label — a raw vendor slug must never
+              // replace it in the header.
+              if (typeof parsed.model === 'string' && parsed.model.startsWith('Growlanzo AI')) {
                 setModelName(parsed.model);
               }
               // Server sends the authoritative quota in the first frame.
@@ -689,10 +694,9 @@ export function AIChatSupport({ context = 'freelancer', title = 'AI Assistant', 
         </div>
         {chatMode === 'assistant' && (
           <TipNote tone="info" compact className="mt-3">
-            This is your <strong>AI Assistant</strong> — great for day-to-day questions about{' '}
+            This is your <strong>Growlanzo AI Assistant</strong> — great for day-to-day questions about{' '}
             {context === 'freelancer' ? 'proposals, contracts, escrow and growing your business' : 'hiring, contracts, escrow and managing projects'}.
-            For account, payment or dispute issues use the <strong>AI Support</strong> chat or tap{' '}
-            <strong>AI Support</strong> tab for account, payment or dispute issues — your conversations stay separate and private.
+            For account, payment or dispute issues, open the <strong>AI Support</strong> tab — your conversations stay separate and private.
           </TipNote>
         )}
         {chatMode === 'assistant' && context === 'freelancer' && aiUsage && !userIsPro && (

@@ -18,12 +18,16 @@ import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
 /**
- * Platform-level KYC console.
+ * Account-verification console (Beta).
  *
- * KYC here is three platform checks and nothing else: legal name, confirmed
- * email and a phone number confirmed with a platform-issued one-time code.
- * There is no external KYC provider, no document upload and no PAN/Aadhaar/GST
- * collection — see supabase/migrations/20270404000000_platform_kyc_email_phone.sql.
+ * This screen is about ACCOUNT verification and nothing else: legal name,
+ * confirmed email and a phone number confirmed with a platform-issued one-time
+ * code — see supabase/migrations/20270404000000_platform_kyc_email_phone.sql.
+ *
+ * Full KYC (document / government-ID verification) is DEFERRED for the Beta
+ * (`KYC_VERIFICATION_ENABLED = false` in src/lib/featureFlags.ts): there is no
+ * document upload, no PAN/Aadhaar/GST collection and no external KYC provider.
+ * Never present the phone code below as a KYC check.
  *
  * This screen is read-mostly: it lists every account with its derived status and
  * lets an admin (a) switch the development code-delivery mode and (b) mark an
@@ -181,10 +185,11 @@ export function AdminIdentityVerificationPage() {
   return (
     <div className="space-y-8 pb-20 lg:pb-0">
       <div>
-        <h1 className="font-display text-2xl font-bold text-white">Identity Verification</h1>
+        <h1 className="font-display text-2xl font-bold text-white">Account Verification</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Platform-level KYC: legal name, confirmed email and a platform-issued phone code. No
-          external provider and no document upload.
+          Beta account verification: legal name, confirmed email and a platform-issued phone
+          code. No external provider and no document upload. Full KYC is deferred and shown to
+          users as Coming Soon.
         </p>
       </div>
 
@@ -403,7 +408,7 @@ export function AdminIdentityVerificationPage() {
           onClose={() => setConfirmRow(null)}
           onConfirm={() => void markVerified(confirmRow)}
           title="Mark this account verified?"
-          message={`${confirmRow.name || confirmRow.id} will be marked verified with method "admin_manual". Only do this after an out-of-band identity check — it unlocks KYC-gated actions for this account.`}
+          message={`${confirmRow.name || confirmRow.id} will be marked verified with method "admin_manual". Only do this after an out-of-band identity check — it marks the account verified for the Beta (account verification only — no KYC check is implied).`}
           variant="warning"
           confirmLabel="Mark verified"
         />

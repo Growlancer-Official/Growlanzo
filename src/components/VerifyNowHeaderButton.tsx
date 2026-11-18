@@ -5,16 +5,17 @@ import { useAuth } from '../context/AuthContext';
 import { supabase, realtimeChannels } from '../lib/supabase';
 import { IDENTITY_VERIFICATION_ENABLED } from '../lib/featureFlags';
 
-type KycState = 'loading' | 'verified' | 'pending' | 'needed';
+type VerificationState = 'loading' | 'verified' | 'pending' | 'needed';
 
 // ── Verify Now (top-bar chip) ────────────────────────────────────────────────
-// Compact KYC nudge shown in the dashboard header next to the AI badge until
-// the user's identity is verified. Disappears IN REAL TIME the moment
-// verification_status flips to 'verified' (realtime subscription on profiles),
-// with a focus-refetch safety net. Hidden on mobile, like the AI badge.
+// Compact ACCOUNT-verification nudge (name + email + phone) shown in the
+// dashboard header next to the AI badge until the account is verified. It is
+// not a KYC prompt — full KYC is deferred for the Beta. Disappears IN REAL TIME
+// the moment verification_status flips to 'verified' (realtime subscription on
+// profiles), with a focus-refetch safety net. Hidden on mobile, like the AI badge.
 export function VerifyNowHeaderButton() {
   const { user } = useAuth();
-  const [state, setState] = useState<KycState>('loading');
+  const [state, setState] = useState<VerificationState>('loading');
 
   useEffect(() => {
     if (!user?.id) return;
@@ -38,7 +39,7 @@ export function VerifyNowHeaderButton() {
     void load();
 
     // Real-time: hide the instant verification completes
-    const channel = realtimeChannels.profiles('header-kyc')
+    const channel = realtimeChannels.profiles('header-verification')
       .on(
         'postgres_changes',
         {
@@ -66,19 +67,20 @@ export function VerifyNowHeaderButton() {
     };
   }, [user?.id]);
 
-  // Deferred from this release — render nothing even if this chip is added back
-  // before KYC ships.
+  // Account verification entry point — off only if that feature is switched off
+  // (KYC is a different, deferred feature and never gates this chip).
   if (!IDENTITY_VERIFICATION_ENABLED) return null;
   if (state !== 'needed' && state !== 'pending') return null;
 
-  const kycPath = user?.role === 'client' ? '/client/verification' : '/dashboard/identity-verification';
+  const verificationPath =
+    user?.role === 'client' ? '/client/verification' : '/dashboard/identity-verification';
 
   // Pending — softer chip: review in progress, still links to the status page.
   if (state === 'pending') {
     return (
       <Link
-        to={kycPath}
-        title="Identity verification in review"
+        to={verificationPath}
+        title="Account verification in review"
         className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 rounded-full border border-amber-200 hover:bg-amber-100 transition-colors"
       >
         <Clock className="w-4 h-4 text-amber-600" />
@@ -90,8 +92,8 @@ export function VerifyNowHeaderButton() {
   // Needed — clear action CTA, same emerald language as the rest of the app.
   return (
     <Link
-      to={kycPath}
-      title="Verify your identity to unlock full access"
+      to={verificationPath}
+      title="Verify your account (name, email and phone)"
       className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-full hover:bg-emerald-700 transition-colors shadow-sm"
     >
       <ShieldCheck className="w-4 h-4" />

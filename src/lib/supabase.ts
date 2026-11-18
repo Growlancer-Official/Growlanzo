@@ -235,7 +235,6 @@ export const tables = {
   payoutMethods: () => t('payout_methods'),
   portfolioItems: () => t('portfolio_items'),
   disputeCases: () => t('disputes'),
-  identityVerifications: () => t('identity_verifications'),
   wallets: () => t('wallets'),
   categories: () => t('categories'),
   subcategories: () => t('subcategories'),
@@ -297,8 +296,6 @@ export const realtimeChannels = {
   // The referral code itself lives on profiles_private (owner-only RLS).
   profilesPrivate: (scope?: string) => supabase.channel(nextChannelName('profiles_private', scope)),
   portfolio: (scope?: string) => supabase.channel(nextChannelName('portfolio_items', scope)),
-  identity: (scope?: string) =>
-    supabase.channel(nextChannelName('identity_verifications', scope)),
   workspaceTasks: (scope?: string) =>
     supabase.channel(nextChannelName('workspace_tasks', scope)),
   workspaceNotes: (scope?: string) =>

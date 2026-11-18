@@ -118,6 +118,7 @@ export const analyticsService = {
         reviewsResult,
         profileResult,
         profileViewsResult,
+        profileViewsPrevResult,
         servicesResult,
         matchesResult,
         walletResult,
@@ -155,6 +156,15 @@ export const analyticsService = {
           .select('id', { count: 'exact', head: true })
           .eq('user_id', freelancerId)
           .eq('feature', 'profile_view'),
+        // Profile views in the equally long PREVIOUS window — this is what
+        // makes "vs last period" a real measurement instead of a hardcoded 0.
+        supabase
+          .from('usage_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', freelancerId)
+          .eq('feature', 'profile_view')
+          .gte('created_at', new Date(now.getTime() - timeframeDays * 2 * 24 * 60 * 60 * 1000).toISOString())
+          .lt('created_at', timeframeStart),
         // Services
         supabase
           .from('services')
@@ -195,6 +205,13 @@ export const analyticsService = {
       // Process profile
       const profileData = profileResult.data as any;
       const profileViews = profileViewsResult?.count ?? 0;
+      const profileViewsPrevious = profileViewsPrevResult?.count ?? 0;
+      // Report a change only when there is a real baseline; a first period
+      // shows no trend rather than a fabricated percentage.
+      const profileViewsChange =
+        profileViewsPrevious > 0
+          ? Math.round(((profileViews - profileViewsPrevious) / profileViewsPrevious) * 100)
+          : 0;
 
       // Process services
       const services = servicesResult.data || [];
@@ -236,7 +253,7 @@ export const analyticsService = {
         proposalConversionRate: proposals.length > 0
           ? Math.round((acceptedProposals / proposals.length) * 100) : 0,
         profileViews,
-        profileViewsChange: 0,
+        profileViewsChange,
         averageRating: Math.round(averageRating * 10) / 10,
         totalReviews: reviews.length,
         responseRate: (profileData?.response_rate as number) || 0,

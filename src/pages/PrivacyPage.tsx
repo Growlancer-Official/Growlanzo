@@ -115,41 +115,42 @@ const privacySections: Section[] = [
     },
     {
       id: 'kyc',
-      title: '6. Identity Verification (KYC) & Verified Badge',
+      title: '6. Account Verification, KYC (Coming Soon) & Verified Badge',
       icon: ShieldAlert,
       content: (
         <>
           <p className="text-slate-600 leading-relaxed mb-2">
-            Growlanzo verifies the identity of freelancers and clients to build trust, prevent fraud and duplicate accounts, and satisfy applicable anti-money-laundering (AML) obligations. This section explains exactly what we collect, why, how it is processed, and what the Verified badge means.
+            Growlanzo asks every freelancer and client to complete a short account verification so the platform knows which real person is behind an account. This section explains exactly what we collect today, what the Verified badge means, and the status of full identity verification (KYC).
           </p>
           <div className="space-y-4">
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">A. What We Collect &amp; Why</h3>
+              <h3 className="font-bold text-slate-900 text-sm">A. What We Collect Today</h3>
               <ul className="list-disc pl-5 text-slate-600 space-y-2 mt-1 text-sm">
-                <li><strong>Identity details:</strong> PAN number, full name as printed on the document, and (where provided) date of birth — used solely to verify your identity and confirm the record belongs to you.</li>
-                <li><strong>Document images:</strong> Uploaded front/back copies, used only to review your submission and removed once review is complete. We do not retain raw identity documents longer than necessary for the verification purpose.</li>
-                <li><strong>Verification records:</strong> Status, provider/reference ID, timestamps, and masked (non-sensitive) metadata. We do not store your PAN in plain text; it is stored in a format that cannot be used to reconstruct the number, and never displayed publicly. We never store Aadhaar information unless a lawful basis requires it, and we do not claim to perform government-authorized Aadhaar authentication.</li>
+                <li><strong>Full name:</strong> the name you enter on the verification screen, used so payouts and invoices match the account holder.</li>
+                <li><strong>Email confirmation:</strong> whether the email address on your account has been confirmed through the confirmation link we send you.</li>
+                <li><strong>Phone confirmation:</strong> your phone number and the time a one-time code issued by the platform was confirmed for it. A confirmed number is never displayed publicly.</li>
+                <li><strong>Verification status:</strong> the resulting status and the timestamps of the checks above, so the badge stays consistent across the platform.</li>
               </ul>
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-sm">B. Automated Processing &amp; Development Mode</h3>
-              <p className="text-slate-600 text-xs mt-1">
-                Verification is processed automatically by our systems. During Growlanzo's pre-launch / development phase, verification may be performed through our <strong>development verification mode</strong>, which runs automated platform checks instead of a third-party identity verification provider. Verification records produced this way are clearly labelled internally as such.
-              </p>
               <p className="text-slate-600 text-xs mt-2">
-                <strong>The Verified badge indicates your verification status on the Growlanzo platform. It is not a government-issued identity certification and should not be represented as one.</strong> Once a third-party verification provider is configured, new verifications run against that provider, and we may re-verify previously automated records.
+                During the Beta we do <strong>not</strong> collect government identity numbers, government identity documents or document images, and we do not send your data to an external identity-verification provider.
               </p>
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">C. Third-Party Providers &amp; Consent</h3>
+              <h3 className="font-bold text-slate-900 text-sm">B. KYC Is Coming Soon</h3>
               <p className="text-slate-600 text-xs mt-1">
-                When a verification provider is active, we share only the minimum information required for verification (e.g., PAN, name, and date of birth) with that provider, under contractual safeguards, solely for the purpose of verifying your identity. We never sell your identity data. You give explicit consent before any submission, and you may withdraw consent or delete your account at any time; withdrawal may affect your ability to use verification-gated features.
+                Advanced identity verification (KYC) is deferred for the Beta and is shown in the product as &quot;Coming Soon&quot;. If it is introduced in a future update, this section will be updated <strong>before</strong> any additional data is collected, you will be asked for explicit consent, and any collection will be limited to what the applicable legal and payment-provider requirements demand.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">C. What the Verified Badge Means</h3>
+              <p className="text-slate-600 text-xs mt-1">
+                <strong>The Verified badge means the account completed the three platform checks above — name, confirmed email and confirmed phone. It is not KYC verification and it is not a government-issued identity certification; it must not be represented as either.</strong> A confirmed phone number alone is never presented as KYC verification. Payment-provider compliance checks that apply to actual money movement are separate from this badge and are unaffected by it.
               </p>
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-sm">D. Retention &amp; Your Rights</h3>
               <p className="text-slate-600 text-xs mt-1">
-                Verification records are retained while your account is active and thereafter only where required by law (e.g., anti-money-laundering and tax record-keeping). All rights in Section 8 below (access, correction, erasure, withdrawal of consent) apply to verification data, including the right to request correction of a name mismatch or deletion of your verification records.
+                Account verification records are retained while your account is active and thereafter only where required by law (for example, tax and financial record-keeping). All rights in Section 8 below (access, correction, erasure, withdrawal of consent) apply to this data, including the right to request correction of a name you entered incorrectly or deletion of your account.
               </p>
             </div>
           </div>

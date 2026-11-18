@@ -150,7 +150,8 @@ const AdminReportsPage = lazy(() => import('@pages/admin/AdminReportsPage').then
 const AdminInternshipsPage = lazy(() => import('@pages/admin/AdminInternshipsPage').then(m => ({ default: m.AdminInternshipsPage })));
 const AdminCertificatesPage = lazy(() => import('@pages/admin/AdminCertificatesPage').then(m => ({ default: m.AdminCertificatesPage })));
 const AdminIdentityVerificationPage = lazy(() => import('@pages/admin/AdminIdentityVerificationPage').then(m => ({ default: m.AdminIdentityVerificationPage })));
-// One light-KYC screen (name + email + phone) shared by both roles.
+// One account-verification screen (name + email + phone) shared by both roles.
+// Full KYC is deferred for the Beta (src/lib/featureFlags.ts).
 const IdentityVerificationPage = lazy(() => import('@pages/dashboard/IdentityVerificationPage').then(m => ({ default: m.IdentityVerificationPage })));
 const AdminSupportTicketsPage = lazy(() => import('@pages/admin/AdminSupportTicketsPage').then(m => ({ default: m.AdminSupportTicketsPage })));
 const AdminUserReportsPage = lazy(() => import('@pages/admin/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
@@ -362,7 +363,7 @@ function App() {
                 <Route path="disputes" element={<DisputeResolutionPage />} />
                 <Route path="dispute-resolution" element={<Navigate to="/dashboard/disputes" replace />} />
                 <Route path="support-tickets" element={<SupportTicketsPage />} />
-                {/* Light KYC (name + email + phone) for freelancers; the same
+                {/* Account verification (name + email + phone) for freelancers; the same
                     component serves /client/verification. */}
                 <Route path="identity-verification" element={<IdentityVerificationPage />} />
                 <Route
@@ -406,7 +407,7 @@ function App() {
                 <Route path="inbox" element={<Navigate to="notifications" replace />} />
                 <Route path="payments" element={<ClientPaymentsPage />} />
                 <Route path="settings" element={<ClientSettingsPage />} />
-                {/* Light KYC — the same three criteria as the freelancer screen. */}
+                {/* Account verification — the same three criteria as the freelancer screen. */}
                 <Route path="verification" element={<IdentityVerificationPage />} />
                 <Route path="support-tickets" element={<SupportTicketsPage />} />
                 {/* ROUTES.CLIENT.TICKETS pointed at /client/tickets, which had no

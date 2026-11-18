@@ -1,10 +1,10 @@
 /**
  * Profile completeness for BOTH roles — the trust signal for launch.
  *
- * Identity verification (KYC) is deferred (`IDENTITY_VERIFICATION_ENABLED` in
- * `featureFlags.ts`), so nothing here may depend on a document upload. Every
- * field below is something the user can fill from the product today, which is
- * what makes 100% reachable for a brand-new account.
+ * Full KYC is deferred for the Beta (`KYC_VERIFICATION_ENABLED` in
+ * `featureFlags.ts`) and account verification is not a profile field, so nothing
+ * here may depend on either. Every field below is something the user can fill
+ * from the product today, which is what makes 100% reachable for a new account.
  *
  * One shared scorer keeps the numbers consistent between the freelancer
  * profile editor and the client dashboard, and the tests pin both the 100%

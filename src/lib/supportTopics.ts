@@ -32,28 +32,28 @@ export interface SupportTopic {
 
 const verifySteps: SupportStep[] = [
   {
-    text: 'Identity verification is quick (usually under a minute) and unlocks payments, escrow funding and withdrawals. What do you need help with?',
+    text: 'Account verification is quick (usually under a minute): your full name, a confirmed email address and a confirmed phone number. It turns on the verified badge on your profile. Advanced identity verification (KYC) is Coming Soon and is not part of the Beta. What do you need help with?',
     options: [
-      { label: 'How do I verify?', next: 1 },
-      { label: 'My verification is stuck / pending', next: 2 },
-      { label: 'My verification was rejected', next: 3 },
+      { label: 'How do I verify my account?', next: 1 },
+      { label: 'My email or phone code did not arrive', next: 2 },
+      { label: 'What about KYC?', next: 3 },
     ],
   },
   {
-    text: 'Great — go to **Verification** in your dashboard (or tap the shield icon). Upload a clear photo of a government ID (Aadhaar, PAN, Passport or Driver\u2019s License) and your details are checked instantly. Once verified, your badge goes live in real time.',
-    options: [{ label: 'Open Verification page', next: 4 }, { label: 'Got it — thanks!', done: 'You\u2019re welcome! Your verified badge and full access unlock as soon as it goes live. 🎉' }],
+    text: 'Open **Verification** in your dashboard (or tap the shield icon). Save your full name, open the confirmation link we email you, and confirm your phone with the one-time code on the same screen. Each step updates by itself — there is no document upload in the Beta.',
+    options: [{ label: 'Open Verification page', next: 4 }, { label: 'Got it — thanks!', done: 'You\u2019re welcome! Your verified badge appears as soon as all three checks are complete. 🎉' }],
   },
   {
-    text: 'Verification usually completes in seconds. If it has been more than 15 minutes, try refreshing the page or logging out and back in. The system re-checks automatically — most stuck verifications resolve on their own.',
-    options: [{ label: 'Try again', next: 1 }, { label: 'Got it — thanks!', done: 'If it\u2019s still pending after an hour, it\u2019s usually a document quality issue — retake the photo in good lighting and resubmit. 📸' }],
+    text: 'No email yet? Check your spam folder and request a fresh confirmation link from the Verification page. For the phone code, wait a minute before requesting another — requests are rate-limited — and include the country code, for example +919876543210.',
+    options: [{ label: 'Try again', next: 1 }, { label: 'Got it — thanks!', done: 'If the code still does not arrive, open a support ticket from your dashboard and the team will help. 📩' }],
   },
   {
-    text: 'Verification rejections are usually due to blurry photos, expired IDs, or name mismatches. You can resubmit anytime with a clearer photo — no penalty.',
-    options: [{ label: 'Resubmit now', next: 4 }, { label: 'Got it — thanks!', done: 'Take a clear, well-lit photo of your ID and resubmit from the Verification page. You\u2019ll be verified in no time! ✅' }],
+    text: 'Advanced identity verification (KYC) is **Coming Soon**. It will arrive in a future Growlanzo update, so there is nothing to submit today and no government-ID upload is open during the Beta. When it ships we will explain exactly what is collected and ask for your consent before any submission.',
+    options: [{ label: 'Verify my account now', next: 1 }, { label: 'Got it — thanks!', done: 'Thanks for bearing with us — account verification is all you need for Beta access today. ✅' }],
   },
   {
     text: 'You can open the verification page from your dashboard menu anytime.',
-    options: [{ label: 'Done — thanks!', done: 'You\u2019re welcome! Your verified badge and full access unlock as soon as it goes live. 🎉' }],
+    options: [{ label: 'Done — thanks!', done: 'You\u2019re welcome! Your verified badge appears as soon as all three checks are complete. 🎉' }],
   },
 ];
 
@@ -137,7 +137,7 @@ export const FREELANCER_SUPPORT_TOPICS: SupportTopic[] = [
     id: 'verification',
     title: 'Identity Verification',
     emoji: '🛡️',
-    description: 'KYC, verified badge, unlocks',
+    description: 'Name, email, phone, verified badge',
     steps: verifySteps,
   },
   {
@@ -276,7 +276,7 @@ export const CLIENT_SUPPORT_TOPICS: SupportTopic[] = [
     id: 'verification',
     title: 'Identity Verification',
     emoji: '🛡️',
-    description: 'KYC, verified badge, unlocks',
+    description: 'Name, email, phone, verified badge',
     steps: verifySteps,
   },
   {

@@ -2,17 +2,17 @@ import { supabase } from './supabase';
 import { KYC_REQUIRED_FOR_ACTIONS } from './featureFlags';
 
 /**
- * KYC gate for CRITICAL actions only (orders, escrow funding, withdrawals).
- * Browsing the dashboard is always open — this is called at the point of
- * action, returns whether the user may proceed, and hands back the KYC page
- * path (+ redirect target) when they can't.
+ * Identity gate for CRITICAL actions only (orders, escrow funding, withdrawals).
  *
- * The gate is switched by `KYC_REQUIRED_FOR_ACTIONS` (lib/featureFlags.ts),
- * currently false: the light KYC flow is live for both roles, but the phone
- * criterion depends on the project's SMS provider, so blocking escrow and
- * withdrawals on it would strand real money. Flip that constant on in the same
- * release that enables SMS — the check below already implements the rule. Server
- * ownership/permission checks are independent of this client-side gate.
+ * Full KYC is DEFERRED for the Beta (`KYC_VERIFICATION_ENABLED = false` in
+ * `lib/featureFlags.ts`) and `KYC_REQUIRED_FOR_ACTIONS` is off, so in this
+ * release the function always answers "allowed": no action is gated on identity
+ * verification, and no caller is ever told it is verified. Browsing the
+ * dashboard is always open regardless.
+ *
+ * The gate is kept — not deleted — because it is the single seam a future KYC
+ * release flips: turning the constant on re-enables the rule with no other
+ * change. Server ownership/permission checks never depend on it.
  */
 export async function requireKycForAction(
   user: { id: string } | null | undefined
@@ -33,7 +33,7 @@ export async function requireKycForAction(
       return { verified: true, kycPath: '', status: 'verified' };
     }
     const status = data?.verification_status || 'none';
-    // Role from the DB (single source of truth) decides which KYC page to send.
+    // Role from the DB (single source of truth) decides which screen to send.
     const isClient = (data as any)?.role === 'client';
     const kycPath = isClient ? '/client/verification' : '/dashboard/identity-verification';
     return { verified: status === 'verified', kycPath, status };

@@ -13,7 +13,7 @@ import { formatCurrency, currencySymbol } from '../../lib/currency';
 import { ReauthDialog } from '../../components/ReauthDialog';
 import { isReauthValid, verifyReauthBeforeAction, markReauthVerified } from '../../lib/reauth';
 import { EmailVerificationCard } from '../../components/EmailVerificationCard';
-import {AlertCircle, AlertTriangle, Bell, Briefcase, Camera, Check, CheckCircle2, Globe, Clock, Copy, CreditCard, IndianRupee, Edit2, Eye, EyeOff, Languages, Loader2, Lock, Info, Mail, MapPin, Monitor, QrCode, Save, Settings, Shield, Star, Trash2, User, X, XCircle, } from 'lucide-react';
+import {AlertCircle, AlertTriangle, Bell, Briefcase, Camera, Check, CheckCircle2, Globe, Clock, Copy, CreditCard, IndianRupee, Edit2, Eye, EyeOff, Languages, Loader2, Lock, Info, Mail, MapPin, Monitor, QrCode, RefreshCw, Save, Settings, Shield, Star, Trash2, User, X, XCircle, } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { CategoryPicker } from '../../components/CategoryPicker';
 import { ProBadge } from '../../components/ProBadge';
@@ -222,17 +222,32 @@ export function ProfessionalProfilePage() {
   ];
 
   // ── Data Fetching ──
+  // Explicit column list instead of `*`: authenticated holds a reviewed
+  // column allowlist on `profiles`, so a wildcard silently breaks the whole
+  // read the day an un-granted column is added — and an empty profile page is
+  // exactly what that looks like to the user.
+  const PROFILE_SELECT =
+    'id, name, role, avatar, is_pro, created_at, updated_at, rating, total_reviews, deleted_at, country, verification_status, kyc_verified_at, name_changed_at';
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+
   const fetchProfileData = useCallback(async () => {
     if (!user?.id) return;
     try {
       const [profileResp, freelancerResp, privateResp] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('profiles').select(PROFILE_SELECT).eq('id', user.id).single(),
         supabase.from('freelancer_profiles').select('*').eq('user_id', user.id).maybeSingle(),
         supabase.from('profiles_private').select('email, phone, onboarding_completed').eq('id', user.id).maybeSingle(),
       ]);
 
+      if (profileResp.error) {
+        console.error('Profile read failed:', profileResp.error.message);
+        setProfileLoadError('We could not load your profile just now. Your saved data is safe — retry below.');
+      } else {
+        setProfileLoadError(null);
+      }
+
       if (!profileResp.error && profileResp.data) {
-        const p = profileResp.data as Profile;
+        const p = profileResp.data as unknown as Profile;
         const priv = privateResp?.data;
         setProfile(p);
         setAccountData(prev => ({ ...prev, name: p?.name || '', email: priv?.email || '', phone: priv?.phone || '' }));
@@ -700,26 +715,6 @@ export function ProfessionalProfilePage() {
     finally { setSaving(false); }
   };
 
-  // ── Privacy Save ──
-  const handlePrivacySave = async () => {
-    if (!user) return;
-    setSaving(true); setSuccessMessage(null); setErrorMessage(null);
-    try {
-      // Note: privacy_settings is not a column in freelancer_profiles.
-      // Ignoring for now to fix save error.
-      // const { error } = await supabase
-      //   .from('freelancer_profiles')
-      //   .upsert({ user_id: user.id, privacy_settings: privacy } as any, { onConflict: 'user_id' });
-      // if (error) throw error;
-      setSuccessMessage('Privacy settings saved!');
-      autoClearMessages();
-    } catch (err) {
-      setErrorMessage(getErrorMessage(err));
-      autoClearMessages();
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // ── Payout Methods ──
   const handleAddPayout = async () => {
@@ -880,6 +875,19 @@ export function ProfessionalProfilePage() {
 
       {/* Email verification — real-time status, send/resend any time */}
       <EmailVerificationCard />
+
+      {profileLoadError && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex flex-col sm:flex-row sm:items-center gap-3">
+          <span className="flex-1">{profileLoadError}</span>
+          <button
+            type="button"
+            onClick={() => { void fetchProfileData(); }}
+            className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+          >
+            <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" /> Retry
+          </button>
+        </div>
+      )}
 
       {/* Messages */}
       {successMessage && (
@@ -1620,11 +1628,20 @@ export function ProfessionalProfilePage() {
                 <h2 className="font-display text-xl font-bold text-slate-900 mb-3 flex items-center gap-3">
                   <Globe className="w-4 h-4 text-emerald-600" /> Privacy Settings
                 </h2>
-                <div className="space-y-1.5">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Profile Visibility</label>
-                    <select value={privacy.profileVisibility} onChange={(e) => setPrivacy({ ...privacy, profileVisibility: e.target.value as any })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all">
+                                  <div className="space-y-1.5">
+                    {/* Honest state: these controls are a preview and are NOT
+                        persisted anywhere. Rendering a working Save button that
+                        writes nothing (and said "saved!") was a false
+                        confirmation, so the controls are visible but disabled. */}
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      <strong>Coming soon.</strong> These privacy controls are not live yet — nothing you
+                      change here is saved. Until they ship, your public profile shows only what is already
+                      on this page, and you can email support@growlanzo.com for a privacy request.
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Profile Visibility</label>
+                    <select value={privacy.profileVisibility} disabled aria-disabled="true"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 outline-none">
                       <option value="public">Public — Anyone can view your profile</option>
                       <option value="clients_only">Clients Only — Only clients can see you</option>
                       <option value="private">Private — Hidden from search</option>
@@ -1638,15 +1655,10 @@ export function ProfessionalProfilePage() {
                   ].map(({ key, label, desc }) => (
                     <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
                       <div><p className="font-medium text-slate-900">{label}</p><p className="text-sm text-slate-600">{desc}</p></div>
-                      <input type="checkbox" checked={(privacy as any)[key]} onChange={(e) => setPrivacy({ ...privacy, [key]: e.target.checked })}
-                        className="w-4 h-4 text-emerald-600 rounded border-slate-300 cursor-pointer" />
+                      <input type="checkbox" checked={(privacy as any)[key]} disabled aria-disabled="true" readOnly
+                        className="w-4 h-4 text-emerald-600 rounded border-slate-300 opacity-60" />
                     </div>
                   ))}
-                  <div className="flex justify-end pt-4 border-t border-slate-100">
-                    <button onClick={handlePrivacySave} disabled={saving} className="inline-flex items-center justify-center gap-3 px-3 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-50">
-                      {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save Privacy Settings</>}
-                    </button>
-                  </div>
                 </div>
               </div>
 

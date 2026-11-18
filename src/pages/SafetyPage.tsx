@@ -20,10 +20,10 @@ export function SafetyPage() {
     },
     {
       icon: UserCheck,
-      title: 'KYC Document Verification',
-      description: 'Both clients and freelancers can verify their identity by submitting government-issued documents (e.g. Aadhaar, PAN). Our system auto-checks the details in real time and issues a verified badge next to the name — verified users are clearly marked everywhere on the platform.',
+      title: 'Identity Verification — Coming Soon',
+      description: 'Advanced identity verification (KYC) will be introduced in a future Growlanzo update and is not part of the Beta. For now, freelancers and clients go through account verification: full name, confirmed email and a confirmed phone number. The verified badge reflects those checks only — it is not a KYC verification, and no government identity documents are collected during the Beta.',
       color: 'from-orange-500 to-orange-600',
-      badge: 'Identity'
+      badge: 'Coming Soon'
     },
     {
       icon: History,

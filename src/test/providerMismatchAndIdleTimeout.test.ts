@@ -14,8 +14,9 @@ import { alternateProvider, providerDisplayName } from '../lib/oauthDiagnostics'
 /**
  * The industry-level auth guarantees a founder asked for, in one place:
  *
- *  1. A user who signed up once is signed out automatically after 24 hours of
- *     inactivity — and is TOLD that is what happened, instead of staring at a
+ *  1. A user who signed up once stays signed in until THEY log out. The only
+ *     way a session ends on its own is server-side revocation (account gone),
+ *     and the person is TOLD that is what happened instead of staring at a
  *     login form that looks broken.
  *  2. Signing in with the provider the account was NOT created with (account on
  *     LinkedIn, clicks GitHub) never creates a second account: the app names
@@ -32,6 +33,7 @@ function readSource(rel: string): string {
 
 const CALLBACK = readSource('src/pages/AuthCallbackPage.tsx');
 const AUTH_CONTEXT = readSource('src/context/AuthContext.tsx');
+const SUPABASE_CLIENT = readSource('src/lib/supabase.ts');
 const LOGIN = readSource('src/components/LoginModal.tsx');
 const EMAIL_SERVICE = readSource('src/lib/emailNotificationService.ts');
 const EMAIL_FUNCTION = readSource('supabase/functions/email-notifications/index.ts');
@@ -42,26 +44,26 @@ beforeEach(() => {
   window.localStorage.clear();
 });
 
-describe('the 24-hour inactivity sign-out', () => {
-  it('carries its reason from the sign-out to the login screen', () => {
+describe('the session persists until an explicit logout', () => {
+  it('carries a reason from a server-side sign-out to the login screen', () => {
     // Without a reason this is indistinguishable from a broken login — the
     // person has no idea why they are signed out.
-    noteLogoutReason('idle_timeout');
+    noteLogoutReason('session_expired');
     const notice = readLogoutNotice();
-    expect(notice?.reason).toBe('idle_timeout');
-    expect(LOGOUT_NOTICE_COPY.idle_timeout.title).toMatch(/24 hours/i);
-    expect(LOGOUT_NOTICE_COPY.idle_timeout.message).toMatch(/sign in again/i);
+    expect(notice?.reason).toBe('session_expired');
+    expect(LOGOUT_NOTICE_COPY.session_expired.title).toMatch(/session/i);
+    expect(LOGOUT_NOTICE_COPY.session_expired.message).toMatch(/sign in again/i);
   });
 
   it('is shown once and then gone', () => {
-    noteLogoutReason('idle_timeout');
+    noteLogoutReason('session_expired');
     expect(readLogoutNotice()).not.toBeNull();
     clearLogoutNotice();
     expect(readLogoutNotice()).toBeNull();
   });
 
   it('drops a stale notice rather than blaming a fresh login for an old logout', () => {
-    noteLogoutReason('idle_timeout');
+    noteLogoutReason('session_expired');
     expect(readLogoutNotice(Date.now() + LOGOUT_NOTICE_MAX_AGE_MS + 1000)).toBeNull();
     // …and the stale entry is cleaned up, not left to be read later.
     expect(window.localStorage.getItem(KEY)).toBeNull();
@@ -74,21 +76,27 @@ describe('the 24-hour inactivity sign-out', () => {
     window.localStorage.setItem(KEY, JSON.stringify({ reason: 'who_knows', at: Date.now() }));
     expect(readLogoutNotice()).toBeNull();
 
-    window.localStorage.setItem(KEY, JSON.stringify({ reason: 'idle_timeout', at: 'yesterday' }));
+    window.localStorage.setItem(KEY, JSON.stringify({ reason: 'session_expired', at: 'yesterday' }));
     expect(readLogoutNotice()).toBeNull();
   });
 
-  it('is armed by the timeout itself, with the stored token cleared', () => {
-    // The check: 24 hours, activity events, and — critically — the persisted
-    // token must not survive, or the next page load resumes the session that
-    // was just ended.
-    expect(AUTH_CONTEXT).toContain('const SESSION_TIMEOUT_MS = 24 * 60 * 60 * 1000');
-    expect(AUTH_CONTEXT).toContain(
-      "const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll']"
-    );
-    expect(AUTH_CONTEXT).toMatch(/noteLogoutReason\('idle_timeout'\)/);
+  it('has no client-side inactivity timer that could sign a user out', () => {
+    // Beta rule: signed up once = signed in until Logout. A reload, a closed
+    // tab or an idle night must not end the session.
+    expect(AUTH_CONTEXT).not.toContain('SESSION_TIMEOUT_MS');
+    expect(AUTH_CONTEXT).not.toMatch(/idle_timeout/);
+    expect(AUTH_CONTEXT).not.toMatch(/LAST_ACTIVITY_KEY/);
+    // Persisted + auto-refreshed session is what makes that safe.
+    expect(SUPABASE_CLIENT).toContain('persistSession: true');
+    expect(SUPABASE_CLIENT).toContain('autoRefreshToken: true');
+    // A profile READ failure must never destroy the session either.
+    expect(AUTH_CONTEXT).toContain('keeping the session (profile will re-sync)');
+  });
+
+  it('still clears every stored token when the account is gone or Logout is pressed', () => {
+    expect(AUTH_CONTEXT).toMatch(/noteLogoutReason\('session_expired'\)/);
     expect(AUTH_CONTEXT).toContain('clearSupabaseAuthStorage()');
-    expect(AUTH_CONTEXT).toContain("window.location.replace('/?modal=login')");
+    expect(AUTH_CONTEXT).toContain("window.location.href = '/';");
   });
 
   it('is announced on the login form before the provider buttons', () => {

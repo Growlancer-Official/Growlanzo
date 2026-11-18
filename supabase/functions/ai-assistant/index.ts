@@ -22,6 +22,9 @@ interface ChatRequest {
   user_role: 'freelancer' | 'client';
   messages: ChatMessage[];
   context?: {
+    /** 'assistant' = day-to-day help; 'support' = account/payment/dispute help.
+     * The two chats are deliberately different products with different tone. */
+    mode?: 'assistant' | 'support';
     skills?: string[];
     hourly_rate?: number;
     ticket_category?: string;
@@ -256,6 +259,22 @@ function buildSystemPrompt(
   role: 'freelancer' | 'client',
   context?: any
 ): string {
+  const supportMode = context?.mode === 'support';
+  // Support mode is a human support agent, not a generic chatbot: own the
+  // problem, diagnose before advising, never invent an account state, and hand
+  // off honestly when the platform (or a human) has to act.
+  const supportModeBlock = supportMode
+    ? `
+
+## SUPPORT MODE — you are **Growlanzo AI Support**
+You are handling a real support conversation for a ${role}. Behave like an experienced human support specialist:
+1. **Acknowledge briefly, then diagnose.** Ask at most one focused clarifying question when the cause is genuinely unknown; never interrogate a user who already explained the problem.
+2. **Give concrete, numbered next steps** the person can follow inside Growlanzo right now. Say where in the app to go (Wallet, Contracts, Support Tickets, Account Verification, and so on).
+3. **Never claim an action you did not take.** You cannot refund, release escrow, change a payment, verify an account, suspend a user or edit a contract. Describe the real path for that action instead (the relevant page, an in-app support ticket, or support@growlanzo.com).
+4. **Do not invent status, policies, timelines or outcomes.** If you cannot see the account data needed, say what you can see and what support must check.
+5. **Be warm and calm, never robotic.** Use short paragraphs, no boilerplate greetings, no upselling during a problem.
+6. **Always offer the next real step** — either the fix, a saved support ticket, or support@growlanzo.com — so the conversation never dead-ends.`
+    : '';
   const basePrompt = `You are **Growlanzo AI** — a professional, multilingual AI assistant for the GROWLANZO freelancing platform. You help freelancers and clients with platform-related questions, project matching, profile optimization, and general freelancing advice.
 
 ## CRITICAL RULES:
@@ -264,7 +283,7 @@ function buildSystemPrompt(
 3. **Tone**: Professional, helpful, and encouraging.
 4. **Line-by-line**: Present information in digestible chunks. Use short paragraphs separated by blank lines.
 5. **Honesty**: If you don't know something, say so. Don't make up information.
-6. **Platform**: GROWLANZO connects freelancers with clients using AI-powered matching. Clients pay no subscription and exactly the agreed project amount; Growlanzo keeps a flat 5% of the freelancer's released payout (the freelancer keeps 95%). Clients use AI free for life; freelancers get a free monthly AI allowance and Premium (₹199/month) unlocks unlimited AI with priority replies. Never promise a feature, payout, refund or timeline that is not stated here.`;
+6. **Platform**: GROWLANZO connects freelancers with clients using AI-powered matching. Clients pay no subscription and exactly the agreed project amount; Growlanzo keeps a flat 5% of the freelancer's released payout (the freelancer keeps 95%). Clients use AI free for life; freelancers get a free monthly AI allowance and Premium (₹199/month) unlocks unlimited AI with priority replies. Never promise a feature, payout, refund or timeline that is not stated here.${supportModeBlock}`;
 
   if (role === 'freelancer') {
     const ticketContext = context?.ticket_category
@@ -492,11 +511,18 @@ Deno.serve(async (req: Request) => {
                       new TextEncoder().encode(`data: ${JSON.stringify({ text })}\n\n`)
                     );
                   }
-                  // Relay the actual model name once (frontend shows it in real time)
+                  // Relay the PRODUCT name once. The vendor model slug is an
+                  // implementation detail: the chat header must always read
+                  // "Growlanzo AI" (the gateway model can change without the
+                  // product name changing under the user's feet).
                   if (!modelSent && parsed.model) {
                     modelSent = true;
                     controller.enqueue(
-                      new TextEncoder().encode(`data: ${JSON.stringify({ model: parsed.model })}\n\n`)
+                      new TextEncoder().encode(
+                        `data: ${JSON.stringify({
+                          model: isPriority ? 'Growlanzo AI · Priority' : 'Growlanzo AI',
+                        })}\n\n`
+                      )
                     );
                   }
                 } catch {

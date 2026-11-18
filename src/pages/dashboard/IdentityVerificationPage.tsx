@@ -3,9 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { BadgeCheck, Check, Clock, Loader2, Mail, Phone, ShieldCheck, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase, realtimeChannels } from '../../lib/supabase';
+import { KYC_COMING_SOON } from '../../lib/featureFlags';
 
 /**
- * Identity verification — LIGHT, for both roles.
+ * ACCOUNT verification — LIGHT, for both roles.
  *
  * Founder decision (Oct 2026): as an early-stage startup the check is three
  * criteria and nothing else:
@@ -13,6 +14,11 @@ import { supabase, realtimeChannels } from '../../lib/supabase';
  *   1. Name  — the legal name on file (self-declared full name).
  *   2. Email — confirmed through the auth provider (email link).
  *   3. Phone — confirmed OTP sent to the number.
+ *
+ * This is ACCOUNT verification, not KYC. Full KYC (government-ID / document
+ * verification) is deferred for the Beta (`KYC_VERIFICATION_ENABLED` in
+ * `lib/featureFlags.ts`) and is shown here as Coming Soon only — a confirmed
+ * phone number is never presented as "KYC verified".
  *
  * Nothing else is collected here: no tax IDs, no business registration, no
  * scans. src/test/kycLightVerification.test.ts fails if any of that returns.
@@ -42,6 +48,32 @@ const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 function maskPhone(phone: string | null | undefined): string {
   if (!phone || phone.length < 4) return '';
   return `${'•'.repeat(Math.max(phone.length - 4, 1))}${phone.slice(-4)}`;
+}
+
+/**
+ * Full KYC is deferred for the Beta. This card is the only place the deferred
+ * feature is mentioned: a status, an explanation and no form, no upload and no
+ * claim that anything here is a KYC check.
+ */
+function KycComingSoonCard() {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <ShieldCheck className="h-4 w-4 text-slate-500" />
+          {KYC_COMING_SOON.title}
+        </h2>
+        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+          {KYC_COMING_SOON.status}
+        </span>
+      </div>
+      <p className="mt-2 text-xs text-slate-600">{KYC_COMING_SOON.description}</p>
+      <p className="mt-2 text-[11px] text-slate-500">
+        Account verification above is separate from KYC: a confirmed phone number is never shown as
+        KYC verified.
+      </p>
+    </div>
+  );
 }
 
 export function IdentityVerificationPage() {
@@ -128,15 +160,8 @@ export function IdentityVerificationPage() {
 
         if (nextStatus === 'verified' && !doneRef.current) {
           doneRef.current = true;
-          const submission = (authUser?.user_metadata as Record<string, unknown> | undefined)
-            ?.kyc_submitted_at;
-          if (!submission) {
-            // Stamp the completion once, for our own funnel numbers — never used
-            // for authorization.
-            void supabase.auth.updateUser({
-              data: { kyc_submitted_at: new Date().toISOString() },
-            });
-          }
+          // Header/profile state only — no KYC funnel metadata is written: the
+          // old `kyc_submitted_at` stamp belonged to the deferred KYC feature.
           updateUser({ verificationStatus: 'verified' });
         }
       } catch {
@@ -170,7 +195,7 @@ export function IdentityVerificationPage() {
   useEffect(() => {
     if (!user?.id) return;
     const channel = realtimeChannels
-      .profiles('kyc-page')
+      .profiles('account-verification')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
@@ -361,7 +386,7 @@ export function IdentityVerificationPage() {
       <div className="mb-6 flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-emerald-600" />
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Verification</h1>
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Account Verification</h1>
         </div>
         <p className="text-sm text-slate-600">
           Three quick checks — name, email and phone. Takes about a minute, and every step updates
@@ -374,11 +399,12 @@ export function IdentityVerificationPage() {
 
   if (status === 'verified') {
     return shell(
+      <div className="space-y-3">
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 sm:p-6">
         <div className="flex items-start gap-3">
           <BadgeCheck className="h-6 w-6 shrink-0 text-emerald-600" />
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-emerald-900">You're verified</h2>
+            <h2 className="text-base font-bold text-emerald-900">Your account is verified</h2>
             <p className="mt-1 text-sm text-emerald-800">
               Your name, email and phone are confirmed. The verified badge now shows on your profile.
             </p>
@@ -404,6 +430,8 @@ export function IdentityVerificationPage() {
             </Link>
           </div>
         </div>
+      </div>
+      <KycComingSoonCard />
       </div>
     );
   }
@@ -585,9 +613,12 @@ export function IdentityVerificationPage() {
       )}
 
       <p className="px-1 text-xs text-slate-500">
-        We check three things only — your name, email and phone. Nothing else is collected, and a
-        step you finish on another device shows up here on its own.
+        We check three things only — your name, email and phone. This is account verification for the
+        Beta, not KYC; nothing else is collected, and a step you finish on another device shows up
+        here on its own.
       </p>
+
+      <KycComingSoonCard />
     </div>
   );
 }

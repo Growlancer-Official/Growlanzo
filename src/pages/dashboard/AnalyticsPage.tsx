@@ -165,9 +165,9 @@ export function AnalyticsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <MetricCard
               icon={Wallet}
-              label="Total Earnings"
+              label="Wallet balance"
               value={format(data.totalEarnings)}
-              sublabel={`${format(data.monthlyEarnings)} this month`}
+              sublabel={`${format(data.monthlyEarnings)} credited this period`}
               color="text-emerald-600"
             />
             <MetricCard

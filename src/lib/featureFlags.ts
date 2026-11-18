@@ -15,8 +15,38 @@
  */
 
 /**
- * Identity verification is ON for both roles — the light three-criteria check
- * (name + confirmed email + confirmed phone), not the old document upload.
+ * FULL KYC (document / government-ID identity verification) is DEFERRED for the
+ * Beta release. The founder decision is to ship the Beta with account
+ * verification only and present advanced identity verification as "Coming
+ * Soon" until a later phase, subject to legal and payment-provider review.
+ *
+ * This switch is the single place that says so. While it is `false`:
+ *   - no KYC submission surface is advertised or reachable (no document
+ *     upload, no Aadhaar/PAN collection, no external KYC provider);
+ *   - screens that mention KYC render the Coming Soon copy instead of a form;
+ *   - nothing claims a user is KYC verified. `profiles.verification_status` and
+ *     the green badge mean ACCOUNT verification (name + email + phone) only.
+ *
+ * Turning this back on is a product + legal decision, not a config tweak.
+ */
+export const KYC_VERIFICATION_ENABLED = false;
+
+/**
+ * The one copy block for the deferred KYC feature. Shared by every surface that
+ * mentions KYC so the status can never drift between pages.
+ */
+export const KYC_COMING_SOON = {
+  title: 'KYC Verification',
+  status: 'Coming Soon',
+  description:
+    'Advanced identity verification will be introduced in a future Growlanzo update. For now, users can access available Beta features through the existing account verification process.',
+} as const;
+
+/**
+ * ACCOUNT verification is ON for both roles — the light three-criteria check
+ * (name + confirmed email + confirmed phone). It is deliberately NOT KYC and is
+ * never labelled as such: a confirmed phone number must never read as "KYC
+ * verified".
  *
  * `src/pages/dashboard/IdentityVerificationPage.tsx` is the single screen both
  * roles share; it writes nothing itself and lets `refresh_light_kyc` derive
@@ -29,12 +59,12 @@ export const IDENTITY_VERIFICATION_ENABLED = true;
  * Whether an unverified identity blocks critical money actions (orders, escrow
  * funding, withdrawals).
  *
- * OFF deliberately: the phone criterion needs the project's SMS provider
- * connected in Supabase (Auth → Providers → Phone). Until that credential is in
- * place a newly verified user could not finish step three, and blocking escrow
- * or withdrawals on it would lock real money out of the product. Flip this to
- * `true` in the same release that turns SMS on — `requireKycForAction` already
- * implements the check, so nothing else changes.
+ * OFF deliberately, for two reasons that must both be resolved before flipping
+ * it: (a) the phone criterion needs a real SMS channel — the platform-issued
+ * code is currently delivered in development mode, and (b) KYC itself is
+ * deferred for the Beta (`KYC_VERIFICATION_ENABLED = false`), so no money
+ * action may be gated on identity verification in this release. Payment-provider
+ * checks live server-side and are unaffected by this client flag.
  */
 export const KYC_REQUIRED_FOR_ACTIONS = false;
 

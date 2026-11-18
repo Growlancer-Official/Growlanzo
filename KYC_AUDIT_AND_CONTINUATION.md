@@ -1,5 +1,14 @@
 # KYC Audit and Continuation Plan
 
+> **SUPERSEDED (Beta launch, Nov 2026).** Full KYC is **deferred** for the Beta
+> release. Do **not** configure a KYC provider and do **not** re-enable document
+> collection from this plan. The Beta ships account verification only (name +
+> confirmed email + confirmed phone) and shows KYC as "Coming Soon"
+> (`KYC_VERIFICATION_ENABLED = false` in `src/lib/featureFlags.ts`). The legacy
+> document flow is deactivated non-destructively by
+> `supabase/migrations/20270405000000_defer_full_kyc_beta.sql`; historical rows
+> are retained. This document is kept for historical context only.
+
 *Based on code and migration inspection — READ ONLY, no modifications made*
 
 ---

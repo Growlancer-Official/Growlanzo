@@ -17,7 +17,8 @@ export interface AuthUser {
   onboardingCompleted?: boolean;
   country?: string;
   phone?: string;
-  /** 'verified' when the user completed KYC — drives the verified badge everywhere. */
+  /** 'verified' once ACCOUNT verification (name + email + phone) passed — drives the
+   *  verified badge everywhere. This is not KYC: full KYC is deferred for the Beta. */
   verificationStatus?: string | null;
 }
 

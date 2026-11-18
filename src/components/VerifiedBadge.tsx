@@ -18,13 +18,16 @@ interface VerifiedBadgeProps {
 }
 
 /**
- * Instagram-style verified badge — shown next to the name of
- * users who completed KYC verification. Color varies by role:
+ * Instagram-style verified badge — shown next to the name of users who
+ * completed ACCOUNT verification (name + confirmed email + confirmed phone).
+ * Color varies by role:
  * - Freelancer: GREEN (default)
  * - Client: BLUE
  *
- * Lifetime, synced everywhere (search, contracts, workspace, public profile).
- * Hovering shows a polished tooltip: "KYC Verified" / "Verified Client".
+ * It is explicitly NOT a KYC badge: full KYC is deferred for the Beta, so the
+ * label never says "KYC" — a verified phone number must not read as identity
+ * verification. Lifetime, synced everywhere (search, contracts, workspace,
+ * public profile). Hovering shows "Verified on Growlanzo" / "Verified Client".
  */
 export function VerifiedBadge({ size = 'sm', showLabel = false, className = '', tone = 'green', placement = 'top' }: VerifiedBadgeProps) {
   const sizes = {
@@ -37,7 +40,7 @@ export function VerifiedBadge({ size = 'sm', showLabel = false, className = '', 
     ? 'from-emerald-500 to-emerald-700'
     : 'from-emerald-500 to-green-600';
 
-  const label = tone === 'blue' ? 'Verified Client' : 'KYC Verified';
+  const label = tone === 'blue' ? 'Verified Client' : 'Verified on Growlanzo';
 
   const below = placement === 'bottom';
 

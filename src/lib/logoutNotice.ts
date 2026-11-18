@@ -1,19 +1,20 @@
 /**
  * logoutNotice.ts — "why am I signed out again?"
  *
- * Growlanzo signs a user out automatically after 24 hours with no activity
- * (AuthContext's session timeout). That is the right security behaviour, but
- * on its own it looks exactly like a broken login: the person opens the site
- * and is simply not signed in, with no explanation.
+ * A Growlanzo session persists until the user presses Logout (see AuthContext).
+ * The ONLY other way a session ends on its own is server-side revocation — the
+ * account was deleted/suspended and the auth server rejects the token. Without
+ * an explanation that looks exactly like a broken login: the person opens the
+ * site and is simply not signed in.
  *
- * This module carries the reason across the sign-out. The tab that times out
- * writes it; the login screen reads it once and shows "You were signed out
- * after 24 hours of inactivity", then drops it so it never shows twice.
+ * This module carries that reason across the sign-out. The tab that ends the
+ * session writes it; the login screen reads it once and explains, then drops
+ * it so it never shows twice.
  *
  * Nothing here is a credential or PII — only the reason and a timestamp.
  */
 
-export type LogoutReason = 'idle_timeout';
+export type LogoutReason = 'session_expired';
 
 export interface LogoutNotice {
   reason: LogoutReason;
@@ -31,10 +32,10 @@ export const LOGOUT_NOTICE_MAX_AGE_MS = 10 * 60 * 1000;
 
 /** Copy the login screen shows for each reason — one place, so wording matches. */
 export const LOGOUT_NOTICE_COPY: Record<LogoutReason, { title: string; message: string }> = {
-  idle_timeout: {
-    title: 'Signed out after 24 hours of inactivity',
+  session_expired: {
+    title: 'Your session has ended',
     message:
-      'We sign you out automatically when your account is idle for 24 hours — it keeps your account and your payments safe. Sign in again and you will land straight back in your dashboard.',
+      'Growlanzo ended this session because the account is no longer active. If that is unexpected, contact support@growlanzo.com. Sign in again to continue.',
   },
 };
 
