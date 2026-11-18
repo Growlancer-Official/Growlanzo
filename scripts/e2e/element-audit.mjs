@@ -95,6 +95,11 @@ const VIEWPORTS = [
 // Concrete URL list derived from src/app/App.tsx route tree. Dynamic :params
 // get a dummy value — the page must show a graceful not-found/empty state,
 // never a crash (that is exactly what we test).
+/** Deliberate 404 probe (see the soft-404 fix): the route must answer 404 with
+ * the NotFoundPage. Any OTHER 4xx is still a real failure, and a 200 here means
+ * the blanket rewrite came back — so the status is asserted, not ignored. */
+const EXPECTED_NOT_FOUND_ROUTES = new Set(['/this-route-does-not-exist']);
+
 const ROUTE_GROUPS = {
   public: [
     '/', '/how-it-works', '/features', '/categories', '/pricing', '/about',
@@ -513,6 +518,9 @@ async function auditOne(browser, route, device, storageState) {
     // Also match the error TEXT: Vercel-insights refusals report the page URL
     // as location, only the message names the _vercel script.
     if (msg.type() === 'error' && !isIgnored(loc) && !isIgnored(msg.text())) {
+      // The 404 probe's document is SUPPOSED to be 404; Chrome logs that as a
+      // console error without naming the URL. Every other page keeps it.
+      if (EXPECTED_NOT_FOUND_ROUTES.has(route) && /Failed to load resource.*404/i.test(msg.text())) return;
       consoleErrors.push(msg.text().slice(0, 200));
     }
   });
@@ -523,6 +531,8 @@ async function auditOne(browser, route, device, storageState) {
   });
   page.on('response', (res) => {
     if (res.status() < 400 || isIgnored(res.url())) return;
+    // Same rule for the document request itself: the probe's 404 is expected.
+    if (EXPECTED_NOT_FOUND_ROUTES.has(route) && res.url() === `${BASE}${route}`) return;
     failedRequests.push({ url: res.url().slice(0, 140), status: res.status() });
   });
   // GoTrue session events (see AUTH_ENDPOINT_RE). Recorded for every load; only
@@ -760,7 +770,9 @@ function issueCount(r) {
     (r.overflowOffenders?.length || 0) +
     (r.duplicateIds?.length || 0) +
     (r.headingSkips?.length || 0) +
-    (r.docIssues?.length || 0)
+    (r.docIssues?.length || 0) +
+    // A soft-404 regression (probe answers 200) must still fail the run.
+    (EXPECTED_NOT_FOUND_ROUTES.has(r.route) && r.httpStatus !== 404 ? 1 : 0)
   );
 }
 
@@ -834,7 +846,13 @@ function summarize(results) {
     duplicateIds: by('duplicateIds'),
     headingSkips: [...new Set(results.flatMap((r) => r.headingSkips || []))],
     docIssues: by('docIssues'),
-    httpFailures: results.filter((r) => r.httpStatus && r.httpStatus >= 400).map((r) => ({ route: r.route, status: r.httpStatus, device: r.device })),
+    httpFailures: results
+      .filter((r) => r.httpStatus && r.httpStatus >= 400)
+      .filter((r) => !(EXPECTED_NOT_FOUND_ROUTES.has(r.route) && r.httpStatus === 404))
+      .map((r) => ({ route: r.route, status: r.httpStatus, device: r.device })),
+    notFoundWrong: results
+      .filter((r) => EXPECTED_NOT_FOUND_ROUTES.has(r.route) && r.httpStatus !== 404)
+      .map((r) => ({ route: r.route, status: r.httpStatus, device: r.device })),
   };
 }
 
@@ -960,6 +978,9 @@ async function main() {
     `## HTTP failures: ${summary.httpFailures.length}`,
     ...summary.httpFailures.map((f) => `- ${f.route} [${f.device}] ${f.status}`),
     '',
+    `## 404-probe status wrong (expected 404): ${summary.notFoundWrong.length}`,
+    ...summary.notFoundWrong.map((f) => `- ${f.route} [${f.device}] ${f.status}`),
+    '',
     `## Theme sweep${THEME ? ` (--theme=${THEME})` : ''}: ${summary.themeViolations.length} load(s) wrong`,
     ...summary.themeViolations.map((t) => `- ${t.route} [${t.device}] ${t.errors.join('; ')}`),
   ];
@@ -1034,6 +1055,7 @@ async function main() {
     cat('console-error', uniq(summary.consoleErrors.flatMap((c) => c.errors)), (e) => e.slice(0, 120));
     cat('page-error', uniq(summary.pageErrors.flatMap((c) => c.errors)), (e) => e.slice(0, 120));
     cat('http-failure', summary.httpFailures.map((f) => `${f.route}[${f.device}] ${f.status}`));
+    cat('not-found-status', summary.notFoundWrong.map((f) => `${f.route}[${f.device}] ${f.status} (expected 404)`));
     cat('bad-text', uniq(summary.badText.map(([s]) => s)));
     cat('bad-currency', uniq(summary.badCurrency.map(([s]) => s)));
     cat('generic-button', uniq(summary.genericButtons.map(([s]) => s)));
