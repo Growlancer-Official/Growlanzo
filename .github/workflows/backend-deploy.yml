@@ -55,6 +55,26 @@ jobs:
         with:
           version: 2.63.0
 
+      # Measured 2026-11-18 (run 77 + the diagnostic run 78): every step called
+      # `npx supabase`, which bypasses the binary setup-cli just pinned. supabase
+      # is not a dependency of this repo, so npx downloaded **supabase@3.2.0**
+      # from npm on every run — and v3 rejects this repo's own config
+      # (`inbucket in supabase/config.toml is no longer supported`) before it can
+      # even connect. The drift gate therefore died in ~4s on every push (runs
+      # 73-78), so no migration and no edge function has been deployed for days.
+      # Use the pinned v2 binary from PATH and fail loudly if that ever changes.
+      - name: Guard — the pinned v2 CLI is the one that runs
+        run: |
+          v=$(supabase --version 2>&1 | head -1)
+          echo "supabase CLI: $v"
+          case "$v" in
+            *2.63*) ;;
+            *)
+              echo "::error::expected the pinned CLI from supabase/setup-cli (version 2.63.0) on PATH, got '$v'. v3 dropped --db-url and rejects this repo's config.toml (inbucket), so the drift check and db push would fail."
+              exit 1
+              ;;
+          esac
+
       - name: Guard — access token present (fail with setup instructions)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -134,7 +154,7 @@ jobs:
             .replace(/postgres(?:ql)?:\/\/\S+/g, '[db-url]');
           let out;
           try {
-            out = execSync('npx supabase migration list --db-url ' + JSON.stringify(dbUrl), {encoding:'utf8', stdio:['ignore','pipe','pipe'], shell:true});
+            out = execSync('supabase migration list --db-url ' + JSON.stringify(dbUrl), {encoding:'utf8', stdio:['ignore','pipe','pipe'], shell:true});
           } catch (err) {
             const detail = redact([err.stderr, err.stdout, err.message].filter(Boolean).join('\n')).trim();
             console.error('::error::supabase migration list failed — the drift check could not run, so nothing was deployed. Redacted output follows:');
@@ -222,7 +242,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL_RESOLVED }}
         run: |
-          npx supabase db push --db-url "$SUPABASE_DB_URL"
+          supabase db push --db-url "$SUPABASE_DB_URL"
 
       - name: Verify migrations applied (repo == live DB)
         env:
@@ -240,7 +260,7 @@ jobs:
             name=$(basename "$dir")
             if [ "$name" = "_shared" ]; then continue; fi
             echo "::group::deploy $name"
-            if ! npx supabase functions deploy "$name" --project-ref "$SUPABASE_PROJECT_REF"; then
+            if ! supabase functions deploy "$name" --project-ref "$SUPABASE_PROJECT_REF"; then
               echo "::error::functions deploy failed: $name"
               failed=1
             fi
