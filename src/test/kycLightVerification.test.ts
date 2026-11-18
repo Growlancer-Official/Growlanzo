@@ -78,12 +78,14 @@ describe('the money gate is deliberately off until SMS is configured', () => {
 });
 
 describe('the screen collects exactly name, email and phone', () => {
-  it('drives the three criteria from the auth record', () => {
+  it('drives the three criteria from the platform records', () => {
     expect(PAGE).toContain('email_confirmed_at');
-    expect(PAGE).toContain('phone_confirmed_at');
-    expect(PAGE).toContain("supabase.auth.verifyOtp");
-    expect(PAGE).toContain("type: 'phone_change'");
-    expect(PAGE).toContain("supabase.auth.updateUser({ phone:");
+    expect(PAGE).toContain("'refresh_light_kyc'");
+    // Phone is confirmed by a PLATFORM one-time code — no external SMS provider.
+    expect(PAGE).toContain("'request_phone_otp'");
+    expect(PAGE).toContain("'verify_phone_otp'");
+    expect(PAGE).not.toContain("supabase.auth.verifyOtp");
+    expect(PAGE).not.toContain("supabase.auth.updateUser({ phone:");
   });
 
   it('never writes verification_status itself — the server derives it', () => {
@@ -96,6 +98,17 @@ describe('the screen collects exactly name, email and phone', () => {
     expect(PAGE).toContain('onAuthStateChange');
     expect(PAGE).toContain('realtimeChannels');
     expect(PAGE).toContain("addEventListener('focus'");
+  });
+
+  it('the platform KYC migration is server-authoritative and hashed', () => {
+    const MIG = read('supabase/migrations/20270404000000_platform_kyc_email_phone.sql');
+    expect(MIG).toContain('CREATE OR REPLACE FUNCTION public.request_phone_otp(p_phone TEXT)');
+    expect(MIG).toContain('CREATE OR REPLACE FUNCTION public.verify_phone_otp(p_phone TEXT, p_code TEXT)');
+    expect(MIG).toContain("crypt(v_code, gen_salt('bf'))");
+    expect(MIG).toContain('REVOKE ALL ON FUNCTION public.request_phone_otp(TEXT) FROM PUBLIC, anon;');
+    expect(MIG).toContain('REVOKE ALL ON FUNCTION public.verify_phone_otp(TEXT, TEXT) FROM PUBLIC, anon;');
+    // The platform phone counts as the phone criterion without an external provider.
+    expect(MIG).toContain('v_platform_phone_at IS NOT NULL');
   });
 
   it('carries no document, tax-ID or business-registration surface', () => {

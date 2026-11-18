@@ -259,6 +259,11 @@ export default defineConfig({
     strictPort: false,
     cors: true,
     hmr: false,
+    // Dev-only: allow one extra hostname per process (e.g. a cloud preview
+    // domain) without committing a hostname to the repo. Vite 8 no longer
+    // reads __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS, so this is the supported
+    // way to reach the dev server through a forwarded preview host.
+    allowedHosts: process.env.VITE_DEV_ALLOWED_HOST ? [process.env.VITE_DEV_ALLOWED_HOST] : undefined,
     watch: {
       usePolling: false,
     },

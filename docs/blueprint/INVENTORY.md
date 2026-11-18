@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **743 files** across 12 groups.
+Total tracked structure: **742 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -12,10 +12,10 @@ Total tracked structure: **743 files** across 12 groups.
 | Layouts | 4 |
 | Components | 53 |
 | Context & hooks | 10 |
-| Client libraries & services | 71 |
-| Edge functions | 37 |
+| Client libraries & services | 70 |
+| Edge functions | 36 |
 | Edge shared modules | 12 |
-| Database migrations | 321 |
+| Database migrations | 322 |
 | Archived migrations (not applied) | 6 |
 | Test suite | 85 |
 | Operational scripts | 43 |
@@ -205,7 +205,7 @@ Cross-page state (auth, theme, currency) and reusable data hooks.
 - `src/hooks/useProStatus.ts`
 - `src/hooks/useReferralsData.ts`
 
-## Client libraries & services (71)
+## Client libraries & services (70)
 
 All data access, business rules and formatting live here — pages call services, not Supabase directly (with few explicit exceptions).
 
@@ -240,7 +240,6 @@ All data access, business rules and formatting live here — pages call services
 - `src/lib/fileUpload.ts`
 - `src/lib/growCoins.ts`
 - `src/lib/gst.ts`
-- `src/lib/identityVerification.ts`
 - `src/lib/internshipService.ts`
 - `src/lib/inviteService.ts`
 - `src/lib/kycGate.ts`
@@ -281,7 +280,7 @@ All data access, business rules and formatting live here — pages call services
 - `src/lib/withdrawal.ts`
 - `src/lib/workflowService.ts`
 
-## Edge functions (37)
+## Edge functions (36)
 
 One directory per deployed function; `_shared` is imported, never deployed on its own.
 
@@ -301,7 +300,6 @@ One directory per deployed function; `_shared` is imported, never deployed on it
 - `supabase/functions/file-upload/index.ts`
 - `supabase/functions/internship-applications/index.ts`
 - `supabase/functions/invoice/index.ts`
-- `supabase/functions/kyc-submit/index.ts`
 - `supabase/functions/milestone-auto-release/index.ts`
 - `supabase/functions/newsletter-subscribe/index.ts`
 - `supabase/functions/notification-preferences/index.ts`
@@ -340,7 +338,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/site.ts`
 - `supabase/functions/_shared/urlGuard.ts`
 
-## Database migrations (321)
+## Database migrations (322)
 
 Ordered by filename timestamp. Applied by `supabase db push --include-all` in Backend Deploy; never by hand in the dashboard.
 
@@ -665,6 +663,7 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20270403000002_referral_code_length_fix.sql`
 - `supabase/migrations/20270403000003_referral_reward_settlement_and_duplicate.sql`
 - `supabase/migrations/20270403000004_referral_client_write_lockdown.sql`
+- `supabase/migrations/20270404000000_platform_kyc_email_phone.sql`
 
 ## Archived migrations (not applied) (6)
 

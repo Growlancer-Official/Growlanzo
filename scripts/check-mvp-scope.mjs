@@ -45,7 +45,7 @@ const FEATURES = read('supabase/functions/_shared/features.ts');
 const ADMIN_DATA = read('supabase/functions/admin-data/index.ts');
 const INTERNSHIPS = read('supabase/functions/internship-applications/index.ts');
 const CRON = read('supabase/functions/subscription-billing-cron/index.ts');
-const KYC = read('supabase/functions/kyc-submit/index.ts');
+const PLATFORM_KYC = read('supabase/migrations/20270404000000_platform_kyc_email_phone.sql');
 const APP = read('src/app/App.tsx');
 
 check('deferred features default to OFF', () => {
@@ -90,15 +90,19 @@ check('subscription billing cannot charge while deferred', () => {
   return 'no gateway call can run while deferred';
 });
 
-check('KYC development mode needs an explicit deploy opt-in', () => {
-  if (!/KYC_DEV_MODE_ALLOWED'\) === 'true'/.test(KYC)) throw new Error('opt-in flag missing');
-  if (!/wantsDev && KYC_DEV_MODE_ALLOWED \? 'development' : 'production'/.test(KYC)) {
-    throw new Error('database development mode is still honoured unconditionally');
+check('platform KYC issues hashed, rate-limited codes and no external provider', () => {
+  if (!/FUNCTION public\.request_phone_otp\(p_phone TEXT\)/.test(PLATFORM_KYC)) {
+    throw new Error('request_phone_otp missing');
   }
-  if (!/if \(dbDevMode\) return KYC_DEV_MODE_ALLOWED \? devModeAdapter : null;/.test(KYC)) {
-    throw new Error('auto-verify adapter reachable without the opt-in');
+  if (!/FUNCTION public\.verify_phone_otp\(p_phone TEXT, p_code TEXT\)/.test(PLATFORM_KYC)) {
+    throw new Error('verify_phone_otp missing');
   }
-  return 'dev auto-verify impossible without KYC_DEV_MODE_ALLOWED=true';
+  if (!/crypt\(v_code, gen_salt\('bf'\)\)/.test(PLATFORM_KYC)) throw new Error('code not hashed');
+  const code = PLATFORM_KYC.replace(/--[^\n]*/g, '');
+  if (/surepass|document_url|aadhaar|gstin/i.test(code)) {
+    throw new Error('external provider or document surface reappeared');
+  }
+  return 'platform phone codes: hashed, single-use, rate-limited, no external provider';
 });
 
 check('every getCorsHeaders caller imports it', () => {

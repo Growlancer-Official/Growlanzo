@@ -24,7 +24,7 @@ const FEATURES = read('supabase/functions/_shared/features.ts');
 const ADMIN_DATA = read('supabase/functions/admin-data/index.ts');
 const INTERNSHIPS = read('supabase/functions/internship-applications/index.ts');
 const CRON = read('supabase/functions/subscription-billing-cron/index.ts');
-const KYC = read('supabase/functions/kyc-submit/index.ts');
+const PLATFORM_KYC = read('supabase/migrations/20270404000000_platform_kyc_email_phone.sql');
 
 const FUNCTIONS_DIR = path.join(ROOT, 'supabase/functions');
 
@@ -112,17 +112,25 @@ describe('subscription billing cannot charge while deferred', () => {
   });
 });
 
-describe('KYC development mode cannot auto-verify in production', () => {
-  it('requires an explicit deploy-time opt-in', () => {
-    expect(KYC).toMatch(/const KYC_DEV_MODE_ALLOWED = Deno\.env\.get\('KYC_DEV_MODE_ALLOWED'\) === 'true';/);
+describe('platform KYC has no external provider and no document surface', () => {
+  it('issues and verifies a hashed platform code', () => {
+    expect(PLATFORM_KYC).toContain('CREATE OR REPLACE FUNCTION public.request_phone_otp(p_phone TEXT)');
+    expect(PLATFORM_KYC).toContain('CREATE OR REPLACE FUNCTION public.verify_phone_otp(p_phone TEXT, p_code TEXT)');
+    expect(PLATFORM_KYC).toContain("crypt(v_code, gen_salt('bf'))");
+    expect(PLATFORM_KYC).toMatch(/interval '10 minutes'/);
+    expect(PLATFORM_KYC).toMatch(/interval '60 seconds'/);
   });
 
-  it('downgrades a database development mode to production when not opted in', () => {
-    expect(KYC).toMatch(/wantsDev && KYC_DEV_MODE_ALLOWED \? 'development' : 'production'/);
+  it('is not callable anonymously', () => {
+    expect(PLATFORM_KYC).toContain('REVOKE ALL ON FUNCTION public.request_phone_otp(TEXT) FROM PUBLIC, anon;');
+    expect(PLATFORM_KYC).toContain('REVOKE ALL ON FUNCTION public.verify_phone_otp(TEXT, TEXT) FROM PUBLIC, anon;');
+    expect(PLATFORM_KYC).toContain("IF v_uid IS NULL OR v_role NOT IN ('authenticated', 'service_role')");
   });
 
-  it('cannot reach the auto-verify adapter without the opt-in', () => {
-    expect(KYC).toMatch(/if \(dbDevMode\) return KYC_DEV_MODE_ALLOWED \? devModeAdapter : null;/);
+  it('collects no document, PAN, Aadhaar or GST data', () => {
+    // Strip SQL comments first: the header explains what was removed.
+    const code = PLATFORM_KYC.replace(/--[^\n]*/g, '');
+    expect(code).not.toMatch(/document_|aadhaar|gstin|surepass/i);
   });
 });
 

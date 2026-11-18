@@ -155,12 +155,15 @@ the only password surface left is `/admin` (`AdminLoginPage`), plus the re-auth 
 
 **Goal/entry:** make "Verified" mean something and gate money actions — `/dashboard/identity-verification`, `/client/verification`.
 
-1. Step 1: **real email confirmation** (`supabaseUser.email_confirmed_at`, never client-set), resend via Supabase auth. Step 2: freelancers submit PAN (mandatory); clients may submit PAN and/or business details (GST/Udyam/business PAN, self-attested) → **POST `kyc-submit`** with the JWT.
-2. `kyc-submit`: resolves `kyc_provider_config` (DB config wins over env), rate-limits (5/window), validates the document, checks duplicate identity/document hash, calls the provider adapter (Surepass PAN Comprehensive in production), writes `identity_verifications` with a **masked** reference and the generated `document_hash`, and syncs `profiles.verification_status` via trigger. Outcomes: `verified | rejected | review`.
-3. Development mode (`kyc_provider_config.mode='development'`, admin-flipped, audited) auto-verifies with `provider='dev_mode'`; production without a token never fabricates a verdict (review instead). Attempts: 2 submissions, then a 24h cooldown (`rejection_count`, `blocked_until`, `kyc_guard_submit_fn`). Admin sets provider/mode, clears config and inspects rows in `/admin/identity-verification`.
-4. Gate: `requireKycForAction()` (`src/lib/kycGate.ts`) runs before orders/escrow funding/withdrawals; it fails **open** on transient errors and relies on server checks for the money.
+**Platform-level only (2026-11-18):** no external KYC provider, no document upload, no PAN/Aadhaar/GST collection. Migration `20270404000000_platform_kyc_email_phone.sql` replaced the provider engine (`kyc-submit` edge function removed). Three criteria, both roles:
 
-**States/money:** `pending → verified|rejected|review` (+ cooldown); no money directly, it is a gate. **Live:** `identity_verifications = 0`, mode `development` — every submission verifies instantly. Grow Coin awards now exclude `dev_mode` (`20270129000000`), closing the A11 farming concern in code.
+1. **Name** — `refresh_light_kyc(p_full_name)` validates and stores `profiles.kyc_name` (2+ words, letters/space/'-/.).
+2. **Email** — truth is `auth.users.email_confirmed_at`; the page can resend the Supabase confirmation link.
+3. **Phone** — `request_phone_otp(p_phone)` issues a 6-digit platform code (bcrypt-hashed in `phone_verification_codes`, 10-minute expiry, one request per 60 s) and `verify_phone_otp(p_phone, p_code)` records `profiles.phone_verified_at` with `kyc_method='platform_phone'`. Codes are single-use, 5 wrong attempts maximum, and never callable anonymously. `platform_kyc_settings.dev_mode` (admin toggle `admin_set_platform_kyc_dev_mode`) makes `request_phone_otp` return the code for development delivery until an SMS channel exists.
+4. `refresh_light_kyc` is still the only writer of `verification_status`; it now counts a platform-verified phone as the phone criterion. `/admin/identity-verification` lists statuses and can mark an account verified manually (`kyc_method='admin_manual'`).
+5. Gate: `requireKycForAction()` (`src/lib/kycGate.ts`) runs before orders/escrow funding/withdrawals; it fails **open** on transient errors and relies on server checks for the money.
+
+**States/money:** `unverified → verified`; no money directly, it is a gate. **Live DB:** the migration is in the repo only until `supabase db push --include-all` runs (Backend Deploy has no `SUPABASE_ACCESS_TOKEN`), so the live project still has the legacy provider tables (`identity_verifications = 0`, `kyc_provider_config.mode='development'`) — retained for history, no longer used by the app.
 
 ### J12. Skill certifications, certificates, public verification — **PARTIAL (self-asserted results)**
 

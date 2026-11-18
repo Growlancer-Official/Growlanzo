@@ -66,6 +66,7 @@ export function IdentityVerificationPage() {
   const [otp, setOtp] = useState('');
   const [phoneBusy, setPhoneBusy] = useState(false);
   const [phoneNotice, setPhoneNotice] = useState<string | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refreshSeq = useRef(0);
@@ -82,7 +83,6 @@ export function IdentityVerificationPage() {
         if (seq !== refreshSeq.current) return;
 
         const confirmedEmail = !!authUser?.email_confirmed_at;
-        const confirmedPhone = !!authUser?.phone_confirmed_at;
 
         // Server-side evaluator: the only writer of verification_status.
         // Untyped until the generated database types are refreshed for this
@@ -99,12 +99,14 @@ export function IdentityVerificationPage() {
           status?: string;
           name?: string | null;
           verified?: boolean;
+          phone_ok?: boolean;
+          phone_masked?: string | null;
         };
 
         setEmail(authUser?.email || user.email || '');
         setEmailConfirmed(confirmedEmail);
-        setPhone(authUser?.phone || null);
-        setPhoneConfirmed(confirmedPhone);
+        setPhone(result.phone_masked || authUser?.phone || null);
+        setPhoneConfirmed(!!result.phone_ok);
         setSavedName(result.name || '');
 
         if (result.name) {
@@ -268,22 +270,40 @@ export function IdentityVerificationPage() {
       return;
     }
     setPhoneBusy(true);
-    const { error: updateError } = await supabase.auth.updateUser({ phone: cleaned });
+    setDevCode(null);
+    const { data, error: rpcError } = await (supabase.rpc as any)('request_phone_otp', {
+      p_phone: cleaned,
+    });
     setPhoneBusy(false);
-    if (updateError) {
-      const message = (updateError.message || '').toLowerCase();
-      if (message.includes('sms') || message.includes('phone') || message.includes('provider')) {
-        setPhoneNotice(
-          'Phone codes need the SMS provider switched on in Supabase (Auth → Providers → Phone). ' +
-            'Your name and email can be verified now; finish this step once SMS is live.'
-        );
+    const res = (data || {}) as {
+      success?: boolean;
+      error?: string;
+      phone_masked?: string;
+      retry_after_seconds?: number;
+      dev_mode?: boolean;
+      dev_code?: string | null;
+    };
+    if (rpcError) {
+      setError(rpcError.message || 'Could not send a code to that number.');
+      return;
+    }
+    if (res.success === false) {
+      if (res.error === 'rate_limited') {
+        setError(`Please wait ${res.retry_after_seconds ?? 60}s before requesting another code.`);
       } else {
-        setError(updateError.message || 'Could not send a code to that number.');
+        setError('Enter the number with country code, for example +919876543210.');
       }
       return;
     }
     setOtpSent(true);
-    setPhoneNotice(`Code sent to ${cleaned}. It expires in a few minutes.`);
+    if (res.dev_code) {
+      setDevCode(res.dev_code);
+      setPhoneNotice(
+        `Platform code generated for ${res.phone_masked || cleaned}. Development delivery shows the code below — no SMS is sent.`
+      );
+    } else {
+      setPhoneNotice(`Code sent to ${res.phone_masked || cleaned}. It expires in 10 minutes.`);
+    }
   };
 
   const handleVerifyOtp = async (event: React.FormEvent) => {
@@ -296,18 +316,35 @@ export function IdentityVerificationPage() {
     }
     const cleaned = phoneInput.replace(/[\s()-]/g, '');
     setPhoneBusy(true);
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      phone: cleaned,
-      token,
-      type: 'phone_change',
+    const { data, error: rpcError } = await (supabase.rpc as any)('verify_phone_otp', {
+      p_phone: cleaned,
+      p_code: token,
     });
     setPhoneBusy(false);
-    if (verifyError) {
-      setError(verifyError.message || 'That code did not match. Try again.');
+    const res = (data || {}) as { success?: boolean; error?: string; attempts_left?: number };
+    if (rpcError) {
+      setError(rpcError.message || 'That code did not match. Try again.');
+      return;
+    }
+    if (res.success === false) {
+      if (res.error === 'expired') {
+        setError('That code expired. Request a new one.');
+        setOtpSent(false);
+      } else if (res.error === 'too_many_attempts') {
+        setError('Too many attempts. Request a new code.');
+        setOtpSent(false);
+      } else {
+        setError(
+          res.attempts_left !== undefined
+            ? `That code did not match. ${res.attempts_left} attempt(s) left.`
+            : 'That code did not match. Try again.'
+        );
+      }
       return;
     }
     setOtp('');
     setOtpSent(false);
+    setDevCode(null);
     await refresh();
   };
 
@@ -484,9 +521,14 @@ export function IdentityVerificationPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
           <h2 className="text-sm font-semibold text-slate-900">Phone number</h2>
           <p className="mt-1 text-xs text-slate-500">
-            We text a one-time code to confirm the number.
+            We generate a one-time code on the platform to confirm this number.
           </p>
           {phoneNotice && <p className="mt-2 text-xs text-amber-700">{phoneNotice}</p>}
+          {devCode && (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+              Development delivery — your code: <span className="tracking-[0.3em]">{devCode}</span>
+            </p>
+          )}
           {!otpSent ? (
             <form onSubmit={handleSendOtp} className="mt-3 flex flex-col gap-2 sm:flex-row">
               <input
