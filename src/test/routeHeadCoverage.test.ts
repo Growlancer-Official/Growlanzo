@@ -67,6 +67,30 @@ describe('per-page metadata', () => {
     }
   });
 
+  it('keeps private routes out of the index and out of the crawl', () => {
+    // These paths are served the SPA shell (the homepage HTML) by vercel.json's
+    // rewrites, so the static <meta name="robots"> they ship says
+    // `index, follow` no matter what the app does after hydration. Measured
+    // 2026-11-18 on production: /login and /client/dashboard both returned the
+    // homepage <title>, canonical "/" and `index, follow`.
+    for (const url of ['/login', '/signup', '/client/dashboard', '/dashboard/wallet', '/admin/users', '/auth/callback']) {
+      expect(resolveMeta(url).noindex, `${url} must be noindex`).toBe(true);
+    }
+
+    const robots = readFileSync(join(process.cwd(), 'public/robots.txt'), 'utf8');
+    for (const prefix of ['/admin', '/auth/', '/client', '/dashboard', '/login', '/signup', '/onboarding', '/payment/']) {
+      expect(robots, `robots.txt must disallow ${prefix}`).toMatch(new RegExp(`^Disallow: ${prefix}$`, 'm'));
+    }
+
+    // The crawl block has to exist on the response as well, because a crawler
+    // that already has the URL never reads robots.txt again — it reads the
+    // header. Vercel applies these before the rewrites.
+    const vercel = JSON.parse(readFileSync(join(process.cwd(), 'vercel.json'), 'utf8')) as {
+      headers: { source: string; headers: { key: string; value: string }[] }[];
+    };
+    expect(JSON.stringify(vercel.headers)).toMatch(/X-Robots-Tag/);
+  });
+
   it('marks an unknown path noindex instead of letting it be indexed', () => {
     const meta = resolveMeta('/this-route-does-not-exist');
     expect(meta.title).toBe(NOT_FOUND_TITLE);

@@ -1,3 +1,24 @@
 User-agent: *
 Allow: /
+
+# Private and signed-in surfaces. These URLs are served the SPA shell (the
+# homepage HTML) by vercel.json's rewrites, so without this a crawler sees the
+# homepage title and `index, follow` on every one of them and files them as
+# duplicates. They also carry no content worth indexing. Vercel additionally
+# sends `X-Robots-Tag: noindex, nofollow` on these paths.
+Disallow: /admin
+Disallow: /auth/
+Disallow: /client
+Disallow: /dashboard
+Disallow: /debug
+Disallow: /login
+Disallow: /messages
+Disallow: /notifications
+Disallow: /onboarding
+Disallow: /payment/
+Disallow: /checkout
+Disallow: /settings
+Disallow: /signup
+Disallow: /wallet
+
 Sitemap: https://growlanzo.com/sitemap.xml

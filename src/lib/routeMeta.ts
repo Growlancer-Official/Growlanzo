@@ -150,6 +150,13 @@ export const ROUTE_RULES: RouteRule[] = [
         test: isPath('/auth'),
         meta: { title: `Sign In · ${SITE_NAME}`, description: 'Sign in to Growlanzo.', noindex: true },
     },
+    {
+        // Both are redirects into the homepage's auth modal, so the prerendered
+        // shell they serve is the homepage; without this rule they advertise
+        // `index, follow` on a URL that is not a page of its own.
+        test: oneOf('/login', '/signup'),
+        meta: { title: `Sign In · ${SITE_NAME}`, description: 'Sign in to Growlanzo or create an account.', noindex: true },
+    },
 
     // ── Dynamic public routes ──────────────────────────────────────────
     {
@@ -207,11 +214,19 @@ export const ROUTE_RULES: RouteRule[] = [
     },
     {
         test: exact('/pricing'),
-        meta: { title: `Pricing · ${SITE_NAME}`, description: 'Growlanzo pricing and plans.' },
+        meta: {
+            title: `Pricing · ${SITE_NAME}`,
+            description:
+                'Growlanzo pricing: free for clients and freelancers, a flat 5% commission only when a contract is paid, and an optional ₹199/month freelancer Premium plan.',
+        },
     },
     {
         test: exact('/about'),
-        meta: { title: `About · ${SITE_NAME}`, description: 'About Growlanzo and our mission.' },
+        meta: {
+            title: `About · ${SITE_NAME}`,
+            description:
+                'Growlanzo is an AI-powered freelancing marketplace built so freelancers and clients can find each other, agree fair terms and get paid on time.',
+        },
     },
     {
         test: exact('/philosophy'),
@@ -249,11 +264,19 @@ export const ROUTE_RULES: RouteRule[] = [
     },
     {
         test: exact('/terms'),
-        meta: { title: `Terms of Service · ${SITE_NAME}`, description: 'Growlanzo terms of service.' },
+        meta: {
+            title: `Terms of Service · ${SITE_NAME}`,
+            description:
+                'The terms that govern your Growlanzo account, projects, escrow payments, disputes and acceptable use — written to be read, not to be skimmed past.',
+        },
     },
     {
         test: exact('/privacy'),
-        meta: { title: `Privacy Policy · ${SITE_NAME}`, description: 'Growlanzo privacy policy.' },
+        meta: {
+            title: `Privacy Policy · ${SITE_NAME}`,
+            description:
+                'How Growlanzo collects, uses and protects your personal data, the rights you have over it, and who to contact with a privacy question or request.',
+        },
     },
     {
         test: exact('/escrow-policy'),

@@ -25,8 +25,15 @@ const vercel = JSON.parse(read('vercel.json')) as {
   headers?: { source: string; headers: { key: string; value: string }[] }[];
 };
 
+/**
+ * Only the catch-all block is compared. vercel.json also carries
+ * path-specific header blocks (e.g. `X-Robots-Tag: noindex` on the private SPA
+ * segments), which are additions for a subset of routes — not drift in the
+ * global production set this guard exists to pin.
+ */
+const globalBlocks = (vercel.headers ?? []).filter((block) => block.source === '/(.*)');
 const vercelHeaders: Record<string, string> = {};
-for (const block of vercel.headers ?? []) {
+for (const block of globalBlocks) {
   for (const header of block.headers) vercelHeaders[header.key] = header.value;
 }
 
@@ -35,6 +42,9 @@ describe('security header parity (server.js ⇄ vercel.json)', () => {
     // Self-check: if the config is restructured, fail loudly instead of
     // comparing against an empty object and passing vacuously.
     expect(Object.keys(vercelHeaders).length).toBeGreaterThan(0);
+    // Exactly one catch-all block: a second one would re-introduce the
+    // hand-maintained duplicate this guard exists to prevent.
+    expect(globalBlocks).toHaveLength(1);
   });
 
   it('every shipped header matches the production value exactly', () => {

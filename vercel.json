@@ -15,6 +15,14 @@
   ],
   "headers": [
     {
+      "source": "/:route(admin|auth|client|dashboard|debug|login|onboarding|payment|signup)/:rest*",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/:route(admin|auth|client|dashboard|debug|login|onboarding|payment|signup)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
