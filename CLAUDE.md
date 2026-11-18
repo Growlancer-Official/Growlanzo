@@ -167,3 +167,14 @@
 - **Proven, not assumed:** with a temporary `src/__leak_probe.ts` reading `import.meta.env.RAZORPAY_KEY_SECRET` the suite failed on cases 1 and 2; after deleting the probe it returned 5/5. The scan asserts it actually walked >100 files, so an empty scan cannot pass.
 - **`.env.example` now states the destinations** (`Vercel = VITE_* only`, `Supabase secrets = everything server-side`, `GitHub Actions = CI only, not injected into the Vercel build`) so the template cannot be copied into the wrong place.
 - **Verified:** new test 5/5 (plus negative control), `typecheck` 0, `docs:map` refreshed (87 tests), `docs:check` current. Vercel/Supabase/GitHub values themselves were not touched — that is the owner's rotation step.
+
+### (29) 2026-11-18 · End-to-end production readiness audit (evidence-based)
+- **Deliverable:** `docs/AUDIT-2026-11-18-END-TO-END.md` — 40 live route cases, 127 anonymous table probes, 19 curated anon RPC probes, 7 drift sweeps, 35 edge-function probes, 7 header/SEO checks, full local suite.
+- **Verdict: NOT READY** — not because of code. Green: 960 tests, typecheck 0, lint 0 errors, build 0 (67 HTML), 40/40 routes 200 with real 404 negative control, HSTS/CSP/XFO/nosniff/Referrer-Policy on every route, **0 rows leaked to anon**, 0 anon RPC successes, `check_security_drift`=0, `client_writable_money_tables`=[].
+- **Real finding (BUG-01, P2):** `client_profiles` is readable by anonymous visitors including `gst_number`, `business_pan`, `udyam_number`. Needs a column-level grant revoke or a public view.
+- **BUG-02 (P1):** four repo edge functions are still not deployed — `email-admin`, `project-notifications`, `exa-search`, `brevo-webhook` all answer 404; `paypal`/`paypal-webhook` answer 503. None of the 35 functions is open without auth.
+- **BUG-03 (P2):** `/login` and `/client/*` serve the homepage title, canonical `/` and `robots: index, follow`; `robots.txt` has no private-route `Disallow`.
+- **BUG-09 (blocker):** the 20 designated test accounts **do not exist** (auth users total 7, `@growlancer-test.com` = 0; projects/contracts/referrals = 0). Not silently recreated — provisioning needs founder approval, per this session's rules.
+- **False positives proven, not assumed:** `anon_reachable_money_rpc` → `set_platform_review_fields` is a trigger function (direct call 404, not exploitable); `self_writable_trust_columns` → `platform_reviews.rating` is guarded by a `BEFORE` trigger that derives role, requires a completed contract and pins `status`.
+- **Not tested (stated, not implied green):** every two-sided journey, payments, email delivery, admin console and all responsive/UI cases. No browser was used.
+- **Housekeeping:** temp probe scripts deleted; `npm ci` needed on a restored workspace (node_modules is not checkpointed).
