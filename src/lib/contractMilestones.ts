@@ -93,6 +93,8 @@ export interface EscrowBalance {
   fundedMilestoneCount: number;
   isFullyFunded: boolean;
   isPartiallyFunded: boolean;
+  /** Escrow has already paid out — the funding badge must not read "partial". */
+  isReleased: boolean;
   escrowRecord: Tables<'escrow'> | null;
 }
 
@@ -384,6 +386,7 @@ export const milestoneService = {
       const heldAmount = Math.max(0, fundedAmount - releasedAmount);
       const isFullyFunded = escrow ? escrow.status === 'funded' || escrow.status === 'active' : false;
       const isPartiallyFunded = escrow ? escrow.status === 'partially_funded' : false;
+      const isReleased = escrow ? escrow.status === 'released' : false;
 
       return {
         success: true,
@@ -396,6 +399,7 @@ export const milestoneService = {
           fundedMilestoneCount,
           isFullyFunded,
           isPartiallyFunded,
+          isReleased,
           escrowRecord: escrow,
         },
       };

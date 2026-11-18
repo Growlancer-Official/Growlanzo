@@ -255,7 +255,7 @@ fresh visitor can browse a real listing, open a freelancer profile, and start a 
 
 ---
 
-### A9. Brevo rejected every API send (Authorised IPs) — IPs added 2026-11-08, delivery ⚠️ / SPF still open
+### A9. Brevo rejected every API send (Authorised IPs) — regressed 2026-11-18, delivery ⚠️ / SPF still open
 
 **Why:** the founder activated Brevo (2026-10-14) and `BREVO_API_KEY` + `EMAIL_FROM` secrets are
 both set, but a **real live test email** through the deployed `admin-data` → `test_email` action
@@ -277,6 +277,21 @@ returned **HTTP 200** with `confirmation_sent_at: 2026-11-08T15:51:48Z`, i.e. Go
 message to Brevo without the former `Error sending confirmation email` failure. **Still not fully
 closed:** nobody has confirmed the message actually landed in `hello@growlanzo.com`, and Brevo's
 API accepting a send is not delivery. One received email closes it.
+
+**Status 2026-11-18 (regressed, measured):** an authenticated `admin-data` → `send_welcome_email`
+to `client-1.test@growlancer-test.com` returned **HTTP 500** `Email delivery failed`, and the edge
+log carries Brevo's own words with a **new** egress IP:
+
+```
+[brevo] Brevo error 401 {"message":"We have detected you are using an unrecognised IP address
+2600:1f1c:e:230a:5cc:77e7:deaa:6650. … add the new IP address in this link:
+https://app.brevo.com/security/authorised_ips","code":"unauthorized"}
+```
+
+So the 2026-11-08 allowlist did **not** survive an egress change — exactly the failure mode above.
+**Owner action:** turn the Authorised-IPs restriction **off** (recommended for changing serverless
+egress), or allowlist the AWS range rather than one address; then re-run the probe. Every Brevo
+send is still a logged no-op until that is done.
 
 **Separate DNS gap found the same day (still open):** the only SPF record is
 `v=spf1 include:zoho.in ~all` — **Brevo is not in it**, so `spf.brevo.com` IPs (`185.41.28.0/22`,

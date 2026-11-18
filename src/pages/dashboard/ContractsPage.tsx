@@ -29,6 +29,7 @@ interface EscrowState {
     fundedMilestoneCount: number;
     isFullyFunded: boolean;
     isPartiallyFunded: boolean;
+    isReleased?: boolean;
   };
   error?: string;
 }
@@ -92,9 +93,30 @@ function FundingTooltip({ label, icon, classes, tooltip }: {
   );
 }
 
+/** Net amount the freelancer actually receives: the contract value minus the
+ * flat 5% platform commission. Older rows still store the full amount in
+ * `freelancer_amount`, so derive the net until that column reflects it. */
+function netEarnings(c: { amount: number; platform_fee: number; freelancer_amount: number }): number {
+  if (c.platform_fee > 0 && c.freelancer_amount >= c.amount) {
+    return Math.max(0, c.amount - c.platform_fee);
+  }
+  return c.freelancer_amount;
+}
+
 /** Displays escrow funding status badge with an explanatory hover tooltip. */
 function EscrowStatusBadge({ balance }: { balance: EscrowState['balance'] | undefined }) {
   if (!balance) return null;
+
+  if (balance.isReleased) {
+    return (
+      <FundingTooltip
+        label="Released"
+        icon={<Shield className="w-3.5 h-3.5" />}
+        classes="bg-emerald-100 text-emerald-700"
+        tooltip="The full escrow amount has been released to your wallet. This contract is complete — nothing further is held."
+      />
+    );
+  }
 
   if (balance.isFullyFunded) {
     return (
@@ -345,7 +367,7 @@ export function ContractsPage() {
   // earnings and contradict the "Escrow Held" stat right next to it.
   const totalEarnings = contracts
     .filter((c) => c.status === 'completed')
-    .reduce((sum, c) => sum + c.freelancer_amount, 0);
+    .reduce((sum, c) => sum + netEarnings(c), 0);
 
   const totalEscrowHeld = Object.values(escrowBalances).reduce(
     (sum, state) => sum + (state.balance?.heldAmount || 0),
@@ -644,11 +666,11 @@ export function ContractsPage() {
                         <p className="text-xl font-bold text-slate-900">{formatCurrency(contract.amount)}</p>
                       </div>
                       <div className="p-3 bg-emerald-50 rounded-xl">
-                        <p className="text-xs text-emerald-600 mb-1">Your Earnings</p>
-                        <p className="text-xl font-bold text-emerald-700">{formatCurrency(contract.freelancer_amount)}</p>
+                        <p className="text-xs text-emerald-600 mb-1">Your Earnings (after 5% fee)</p>
+                        <p className="text-xl font-bold text-emerald-700">{formatCurrency(netEarnings(contract))}</p>
                       </div>
                       <div className="p-3 bg-blue-50 rounded-xl">
-                        <p className="text-xs text-blue-600 mb-1">Platform Fee (paid by client)</p>
+                        <p className="text-xs text-blue-600 mb-1">Platform Fee (5%, deducted from payout)</p>
                         <p className="text-xl font-bold text-blue-700">{formatCurrency(contract.platform_fee)}</p>
                       </div>
                       <div className="p-3 bg-purple-50 rounded-xl">
@@ -657,7 +679,7 @@ export function ContractsPage() {
                       </div>
                       {/* Escrow Balance Indicator */}
                       <div className={`p-3 rounded-xl max-sm:col-span-2 ${
-                        balance?.isFullyFunded
+                        balance?.isReleased || balance?.isFullyFunded
                           ? 'bg-emerald-50'
                           : balance && balance.fundedAmount > 0
                           ? 'bg-amber-50'
@@ -665,7 +687,7 @@ export function ContractsPage() {
                       }`}>
                         <p className="text-xs text-slate-500 mb-1">Escrow</p>
                         <p className={`text-xl font-bold ${
-                          balance?.isFullyFunded
+                          balance?.isReleased || balance?.isFullyFunded
                             ? 'text-emerald-700'
                             : balance && balance.fundedAmount > 0
                             ? 'text-amber-700'
@@ -675,7 +697,9 @@ export function ContractsPage() {
                         </p>
                         {balance && (
                           <p className="text-xs mt-0.5 text-slate-400">
-                            {balance.isFullyFunded
+                            {balance.isReleased
+                              ? 'Released to wallet'
+                              : balance.isFullyFunded
                               ? 'Fully funded'
                               : balance.fundedAmount > 0
                               ? `${formatCurrency(balance.fundedAmount)} funded`
@@ -1032,11 +1056,11 @@ export function ContractsPage() {
                     <p className="text-xl font-bold text-slate-900">{formatCurrency(cc.amount)}</p>
                   </div>
                   <div className="p-4 bg-emerald-50 rounded-xl">
-                    <p className="text-xs text-emerald-600 mb-1">Your Earnings (100%)</p>
-                    <p className="text-xl font-bold text-emerald-700">{formatCurrency(cc.freelancer_amount)}</p>
+                    <p className="text-xs text-emerald-600 mb-1">Your Earnings (after 5% fee)</p>
+                    <p className="text-xl font-bold text-emerald-700">{formatCurrency(netEarnings(cc))}</p>
                   </div>
                   <div className="p-4 bg-blue-50 rounded-xl">
-                    <p className="text-xs text-blue-600 mb-1">Platform Fee (paid by client)</p>
+                    <p className="text-xs text-blue-600 mb-1">Platform Fee (5%, deducted from payout)</p>
                     <p className="text-xl font-bold text-blue-700">{formatCurrency(cc.platform_fee)}</p>
                   </div>
                 </div>
@@ -1214,11 +1238,11 @@ export function ContractsPage() {
                     <p className="text-xl font-bold text-slate-900">{formatCurrency(ec.amount)}</p>
                   </div>
                   <div className="p-4 bg-emerald-50 rounded-xl">
-                    <p className="text-xs text-emerald-600 mb-1">Your Earnings (100%)</p>
-                    <p className="text-xl font-bold text-emerald-700">{formatCurrency(ec.freelancer_amount)}</p>
+                    <p className="text-xs text-emerald-600 mb-1">Your Earnings (after 5% fee)</p>
+                    <p className="text-xl font-bold text-emerald-700">{formatCurrency(netEarnings(ec))}</p>
                   </div>
                   <div className="p-4 bg-blue-50 rounded-xl">
-                    <p className="text-xs text-blue-600 mb-1">Platform Fee (paid by client)</p>
+                    <p className="text-xs text-blue-600 mb-1">Platform Fee (5%, deducted from payout)</p>
                     <p className="text-xl font-bold text-blue-700">{formatCurrency(ec.platform_fee)}</p>
                   </div>
                 </div>

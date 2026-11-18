@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Clock, Loader2, ShieldCheck, Mail, Lock, LogIn, X } from 'lucide-react';
 import { supabase, clearSupabaseAuthStorage, hasPersistedAuthSession, isStaleSessionError } from '../lib/supabase';
@@ -14,7 +14,9 @@ import { OAuthButtons } from './OAuthButtons';
  * Removed because: production launch uses OAuth-only (GitHub + LinkedIn).
  * Kept temporarily so test accounts (created with email+password) can be tested.
  */
-const TESTING_EMAIL_PASSWORD = true; // Set to false to disable for production
+// Dev-only: Vite statically replaces import.meta.env.DEV with `false` in a
+// production build, so this temporary password form can never reach real users.
+const TESTING_EMAIL_PASSWORD = import.meta.env.DEV;
 
 interface LoginModalProps {
   isOpen: boolean;

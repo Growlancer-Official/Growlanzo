@@ -210,7 +210,13 @@ export function ClientPostProjectPage() {
   }
 
   return (
-    <div className="space-y-1.5">
+    <div
+      className="space-y-1.5"
+      // Keep the sticky cookie notice from covering the final "Post Project"
+      // action on first visit. Same measured-height pattern as WaitlistPage /
+      // UnsubscribePage: the banner publishes --consent-banner-h while visible.
+      style={{ paddingBottom: 'calc(var(--consent-banner-h, 0px) + 1rem)' }}
+    >
       <div className="mb-3 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
           <Briefcase className="w-5 h-5 text-white" />
