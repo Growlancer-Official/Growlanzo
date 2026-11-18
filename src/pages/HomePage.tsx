@@ -12,6 +12,7 @@ import { useCategories } from '../hooks/useCategories';
 import { useCountries } from '../hooks/useCountries';
 import { useAboutPageMetrics } from '../hooks/useAboutPageMetrics';
 import { CategoriesSection as CategoriesSectionComponent } from '../components/CategoriesSection';
+import { PlatformReviewsSection } from '../components/PlatformReviewsSection';
 import { supabase } from '../lib/supabase';
 import { serviceFromPrice } from '../lib/servicePricing';
 import { validateEmail } from '../utils/validation';
@@ -1005,6 +1006,7 @@ export function HomePage() {
       <LiveServicesSection />
       <HowItWorksSection />
       <BothSidesSection onOpenSignup={handleOpenSignup} />
+      <PlatformReviewsSection />
       <CategoriesSection onOpenSignup={handleOpenSignup} />
       <TeamProjectsSection onOpenSignup={handleOpenSignup} />
       <PricingSection />

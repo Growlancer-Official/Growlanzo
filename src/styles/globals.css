@@ -623,6 +623,9 @@
   .dark :where(.bg-slate-50\/60) {
     background-color: rgba(19, 31, 51, 0.7);
   }
+  .dark :where(.bg-slate-50\/70) {
+    background-color: rgba(19, 31, 51, 0.75);
+  }
   .dark :where(.bg-slate-50\/80) {
     background-color: rgba(19, 31, 51, 0.85);
   }
@@ -991,6 +994,9 @@
   }
   .dark :where(.ring-slate-200\/70) {
     --tw-ring-color: rgba(36, 51, 73, 0.7);
+  }
+  .dark :where(.ring-slate-200\/60) {
+    --tw-ring-color: rgba(36, 51, 73, 0.6);
   }
   /* Accent rings: 100–200 are near-white tiles' outlines (the category chips in
      lib/categories.ts use `ringColor`), and they read as a bright halo on dark.
