@@ -1,8 +1,15 @@
 import fs from 'node:fs';
 
-const env = fs.readFileSync('.env.local', 'utf8');
-const URL = /VITE_SUPABASE_URL=(.+)/.exec(env)[1].trim();
-const ANON = /VITE_SUPABASE_ANON_KEY=(.+)/.exec(env)[1].trim();
+// Env resolution: process.env first, then .env.local, then .env. A
+// platform-managed .env.local can contain ONLY the service-role key, so reading
+// that one file used to crash every run with "Cannot read properties of null".
+const env = ['.env.local', '.env']
+  .filter((f) => { try { return fs.existsSync(f); } catch { return false; } })
+  .map((f) => fs.readFileSync(f, 'utf8'))
+  .join('\n');
+const URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || /VITE_SUPABASE_URL=(.+)/.exec(env)?.[1]?.trim();
+const ANON = process.env.VITE_SUPABASE_ANON_KEY || /VITE_SUPABASE_ANON_KEY=(.+)/.exec(env)?.[1]?.trim();
+if (!URL || !ANON) { console.error('Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY'); process.exit(1); }
 const PW = 'Test@1234';
 const out = [];
 const fails = [];
@@ -185,10 +192,22 @@ ok('platform reviews publicly readable', prPublic.status === 200 && (prPublic.js
 const prAnon = await api('/rest/v1/platform_reviews', ANON, { method: 'POST', body: { user_id: c1.user.id, rating: 5, comment: 'anonymous write attempt' } });
 ok('anon platform review blocked', prAnon.status >= 400, { status: prAnon.status });
 
-const prIneligible = await api('/rest/v1/platform_reviews', c2.token, {
-  method: 'POST', body: { user_id: c2.user.id, rating: 5, comment: 'no completed contract yet' },
-});
-ok('no-contract platform review blocked', prIneligible.status >= 400, { status: prIneligible.status, body: prIneligible.json });
+// Pick a client with NO contract at all. A fixed account stops being "ineligible"
+// as soon as any earlier E2E run completes a contract for it, which turned this
+// guard check into a false failure (201 instead of 400) on a re-run.
+let ineligible = null;
+for (const u of users.filter((x) => x.role === 'client')) {
+  const s = sessions[u.email];
+  if (!s?.token) continue;
+  const ct = await api(`/rest/v1/contracts?select=id&client_id=eq.${s.user.id}`, s.token);
+  if (ct.status === 200 && (ct.json || []).length === 0) { ineligible = s; break; }
+}
+const prIneligible = ineligible
+  ? await api('/rest/v1/platform_reviews', ineligible.token, {
+      method: 'POST', body: { user_id: ineligible.user.id, rating: 5, comment: 'no completed contract yet' },
+    })
+  : { status: 0, json: null };
+ok('no-contract platform review blocked', prIneligible.status >= 400, { status: prIneligible.status, account: ineligible?.email, body: prIneligible.json });
 
 const prRoleSpoof = await api(`/rest/v1/platform_reviews?user_id=eq.${c1.user.id}`, c1.token, {
   method: 'PATCH', prefer: 'return=representation',

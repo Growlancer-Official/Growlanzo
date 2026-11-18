@@ -28,6 +28,18 @@ import { readFileSync } from 'fs';
 const TEST_EMAIL_DOMAIN = 'growlancer-test.com';
 const TEST_PASSWORD = 'Test@1234';
 
+// Same alphabet as src/lib/referralCode.ts. Seeding with `p_referral_code: null`
+// made the live RPC fall back to the OLD `<ROLE>-<hash>` shape
+// (`FREELANCER-E7EB50`), which no longer matches the app's GRW-XXXX-XXXX
+// contract — so every referral-format check failed against data that no real
+// signup would ever produce. The app always passes a generated code; so must we.
+const REFERRAL_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
+function createReferralCode() {
+  let s = '';
+  for (let i = 0; i < 8; i++) s += REFERRAL_ALPHABET[Math.floor(Math.random() * REFERRAL_ALPHABET.length)];
+  return `GRW-${s.slice(0, 4)}-${s.slice(4)}`;
+}
+
 const USER_COUNTS = {
   freelancer: 10,
   client: 10,
@@ -56,9 +68,17 @@ function loadEnvFile(file) {
 }
 
 const env = { ...loadEnvFile('.env.local'), ...loadEnvFile('.env') };
-const URL = env.VITE_SUPABASE_URL || env.SUPABASE_URL;
-const ANON = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY;
-const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY;
+// process.env WINS. A CI runner or a platform-injected project secret can supply
+// the privileged key without it ever being written to a file on disk — the same
+// precedence `create-test-accounts.mjs` already uses. Without this the script
+// only worked on a machine that had the key in .env.local, and a run with the
+// key exported in the environment failed with "SUPABASE_SERVICE_ROLE_KEY
+// missing" even though it was set.
+const URL =
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL || env.SUPABASE_URL;
+const ANON =
+  process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY;
+const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 
 const ARGS = new Set(process.argv.slice(2));
 
@@ -213,7 +233,7 @@ for (const user of toCreate) {
       p_email: user.email,
       p_name: user.name,
       p_role: user.role,
-      p_referral_code: null,
+      p_referral_code: createReferralCode(),
     }),
   });
 

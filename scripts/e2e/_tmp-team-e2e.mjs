@@ -1,8 +1,15 @@
 import fs from 'node:fs';
 
-const env = fs.readFileSync('.env.local', 'utf8');
-const URL = /VITE_SUPABASE_URL=(.+)/.exec(env)[1].trim();
-const ANON = /VITE_SUPABASE_ANON_KEY=(.+)/.exec(env)[1].trim();
+// Env resolution: process.env first, then .env.local, then .env. A
+// platform-managed .env.local can contain ONLY the service-role key, so reading
+// that one file used to crash every run with "Cannot read properties of null".
+const env = ['.env.local', '.env']
+  .filter((f) => { try { return fs.existsSync(f); } catch { return false; } })
+  .map((f) => fs.readFileSync(f, 'utf8'))
+  .join('\n');
+const URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || /VITE_SUPABASE_URL=(.+)/.exec(env)?.[1]?.trim();
+const ANON = process.env.VITE_SUPABASE_ANON_KEY || /VITE_SUPABASE_ANON_KEY=(.+)/.exec(env)?.[1]?.trim();
+if (!URL || !ANON) { console.error('Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY'); process.exit(1); }
 const PW = 'Test@1234';
 const out = [];
 const fails = [];
