@@ -1,0 +1,254 @@
+---
+name: build-with-exa
+description: "Build applications and agents with Exa's API: search, contents extraction, answer, Agent API, monitors, websets, OpenAI-compatible endpoints, and exa-py/exa-js SDKs. Use when choosing Exa endpoints, writing Exa API calls, integrating semantic web search or research into products, or debugging Exa request shapes."
+metadata:
+  author: Exa
+  version: "0.3.0"
+  docs: "https://exa.ai/docs"
+---
+
+# Build with Exa
+
+## Scope
+
+Included by default:
+
+- Core retrieval APIs: search endpoint, contents endpoint, answer endpoint
+- Long-running research workflows: Agent API (`/agent`)
+- Async and recurring workflows: Monitors API
+- Legacy surface: Websets API (existing integrations only; new collection-building work uses the Agent API)
+- Historical content: Exa Snapshot (`snapshotAsOf` on search and contents)
+- SDK guidance: Python `exa-py`, TypeScript `exa-js`
+
+> Note on data retention: `/search`, `/contents`, `/answer`, and `/agent` offer Zero Data Retention (ZDR). Websets and the Monitors API (`/monitors`) are not ZDR. If a use case requires ZDR, stay on the ZDR surfaces or contact Exa.
+
+## Installation
+
+```bash
+# Python
+pip install exa-py
+
+# TypeScript / JavaScript
+npm install exa-js
+```
+
+Install the latest SDK release into the project's own environment, with the package manager the project already uses, so it resolves the latest release and all SDK surfaces will be available. Test the integration by running the project's own code.
+
+## Authentication
+
+```bash
+export EXA_API_KEY="your_api_key_here"
+```
+
+Exa accepts either the `x-api-key` header or `Authorization: Bearer <key>`.
+
+The recommended Exa search request is the query plus token-efficient content extraction, and nothing else. Content extraction is a recommendation, not a server default: omit `contents` and results carry only metadata (title, URL, dates), no page content.
+
+```json
+{
+  "query": "latest developments in LLMs",
+  "type": "auto",
+  "contents": { "highlights": true }
+}
+```
+
+**Every other request field except `objective` is gated: add it only when the user's task explicitly requires it.** Do not restate server defaults, and do not add controls because they seem plausibly useful. In particular:
+
+- `type` defaults to `auto`; stating `type: "auto"` explicitly is fine, but do not send another mode unless the task requires it (for example a latency-critical UX or deep synthesis).
+- `numResults` defaults to 10; omit `numResults` unless the task requires a different number of results. Set it only as an intentional product decision, not as boilerplate.
+- Omit `category`. Use it only when the user explicitly asks for category-constrained retrieval.
+- `includeDomains` and `excludeDomains` should be set only when the user explicitly requests a hard allowlist or blocklist and supplies or approves its contents. Express source preferences through query phrasing or `systemPrompt` instead.
+- `maxAgeHours` should be set only when extracted page content must be current. It caps cache age before a live crawl; it is not a publication-recency filter.
+- For "recent stories" tasks, put the recency in the query ("latest", "recent"). `startPublishedDate` / `endPublishedDate` are hard filters that drop undated and misdated pages; add them only when the task states a bounded window that must be enforced ("from the last seven days", "published in 2026"). Do not reach for `maxAgeHours`.
+- `highlights` should be set to `true` by default for all tasks unless otherwise specified. Do not add `maxCharacters` or other highlight options without an explicit budget requirement in the task.
+- `objective` belongs on every search that is one step of a larger task, such as a search an LLM agent calls as a tool, a query a model writes, or one step of a multi-step pipeline. Set it to the goal that search serves. Say which documents should rank first, which to exclude, and which facts or figures to pull. When an LLM calls search as a tool, the model writes `objective` alongside `query`. See Search as an LLM Tool.
+
+### Primary and official sources
+
+For a research question that a primary or official source should settle, such as a regulator's rule, a company's filing, a clinical guideline or an agency's statistics, start the query with this sentence on `auto` and `lite`:
+
+```text
+Prefer a specific primary or official answer page.
+```
+
+For example, `"Prefer a specific primary or official answer page. Reporting requirements for crypto-asset service providers under MiCA"`.
+
+Add it only to those questions. On lookups of a specific page, local, product or how-to questions and quick facts, it replaces the page that answers with a generic official one, so send those queries unchanged. When one search function serves both kinds of question, decide per query. Phrase the preference positively. Wording such as "avoid content farms" retrieves the pages it names.
+
+## API Decision Workflow
+
+Before picking an endpoint, decide which workflow shape fits:
+
+- Raw web content for your own LLM or agent: use `/search` with the recommended request above
+- Web search as a tool your LLM or agent calls: use the SDK tool helpers, which ask the model for `query` and `objective` on every call. See Search as an LLM Tool.
+- A specific output shape, or fields that have to be extracted or synthesized from the pages: use `/search` and add `outputSchema` (and `systemPrompt` if behavior guidance is needed). The user does not have to say "JSON" or "schema": "the funding amount each article reports", "name, title, and company for each person", or a field the result must carry that result metadata only sometimes has (a required author) are all structured-output requests. Fields every result already carries (title, URL, published date) are not: "10 articles with title and URL" is the recommended request with `numResults`. A compact schema (author and URL per article) stays on `auto`; `type: "deep"` when the schema is wide or its fields take more than one search to fill, since it runs several. See Structured Output in `references/search.md`.
+- Long-running multi-step research, list-building, or enrichment with structured output: use the Agent API (`/agent`), with the same `outputSchema` rule for its fields
+
+**Default to the search endpoint.** Use the search endpoint (`/search`) for most new integrations, then move to a more specialized Exa surface only when the task shape clearly calls for it.
+
+1. Need general semantic web retrieval, synthesized output, or content extraction from search results: use the search endpoint (`/search`)
+2. Already know the URLs and need clean page extraction or freshness controls: use the contents endpoint (`/contents`)
+3. Need pages related to a known seed URL: use the search endpoint (`/search`) with a query derived from the page (for example title, topic, or text from `/contents`)
+4. Need a grounded answer with citations and no LLM of your own doing generation: use the answer endpoint (`/answer`). If the product already has a chat LLM, give it `/search` as a tool instead.
+5. Need code-focused retrieval from repos, docs, and Stack Overflow: use the search endpoint (`/search`)
+6. Need OpenAI SDK drop-in compatibility for chat or responses clients: use the OpenAI-compatible endpoints (`/chat/completions`, `/responses`)
+7. Need asynchronous multi-step research, list-building, enrichment, or follow-up questions over prior research: use the Agent API (`/agent`)
+8. Need scheduled recurring search with webhook delivery: use the Monitors API (`/monitors`)
+9. Maintaining an existing Websets integration: see the migration guide (`references/migrate-websets-to-agent.md`) and transition to the Agent API (`references/agent.md`). Do not use Websets for new work; use the Agent API instead.
+10. Need page content as it was at a past datetime (backtesting agents, reproducible evals, comparing earlier versions of docs, pricing pages, policies, or filings): use Exa Snapshot, the `snapshotAsOf` field on `/contents` (top level) or `/search` (inside `contents`). See `references/snapshot.md`.
+
+## Quick Start
+
+For more complete examples, see the relevant reference file in the table below.
+
+**Python** (`/search`):
+
+```python
+from exa_py import Exa
+
+exa = Exa(api_key="YOUR_EXA_API_KEY")
+result = exa.search(
+    "latest developments in LLMs",
+    type="auto",
+    contents={"highlights": True}
+)
+
+for item in result.results:
+    print(item.title, item.url)
+```
+
+**TypeScript** (`/search`):
+
+```typescript
+import Exa from "exa-js";
+
+const exa = new Exa();
+const result = await exa.search("latest developments in LLMs", {
+  type: "auto",
+  contents: { highlights: true }
+});
+
+for (const item of result.results) {
+  console.log(item.title, item.url);
+}
+```
+
+**Raw HTTP** (`/search`):
+
+```bash
+curl -X POST "https://api.exa.ai/search" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $EXA_API_KEY" \
+  -d '{
+    "query": "latest developments in LLMs",
+    "type": "auto",
+    "contents": {
+      "highlights": true
+    }
+  }'
+```
+
+## Search as an LLM Tool
+
+When an LLM decides when to search, give it Exa search as a tool. The SDK helpers build the tool definition, run the model's calls and format the results. The search tool asks the model for `query` and `objective` on every call and runs the recommended request.
+
+**Python** (OpenAI Chat Completions):
+
+```python
+from exa_py import Exa
+from openai import OpenAI
+
+exa = Exa()  # reads EXA_API_KEY from the environment
+openai_client = OpenAI()
+messages = [
+    {
+        "role": "system",
+        "content": "Call web_search before answering unless you're certain the answer can't have changed since your training cutoff.",
+    },
+    {"role": "user", "content": "What's the latest on AI chips?"},
+]
+
+completion = openai_client.chat.completions.create(
+    model="gpt-5.6",
+    messages=messages,
+    tools=[exa.openai.web_search(), exa.openai.get_contents()],
+)
+message = completion.choices[0].message
+messages.append(message)
+messages += exa.openai.handle_tool_calls(message)
+```
+
+Repeat the request and handler step until the model replies without tool calls.
+
+| Provider | Python | TypeScript |
+| --- | --- | --- |
+| OpenAI Chat Completions | `exa.openai.web_search()`, `exa.openai.handle_tool_calls(message)` | `exa.openai.webSearch()`, `exa.openai.handleToolCalls(message)` |
+| OpenAI Responses | `exa.openai.responses.web_search()`, `exa.openai.responses.handle_tool_calls(response)` | `exa.openai.responses.webSearch()`, `exa.openai.responses.handleToolCalls(response)` |
+| Anthropic Messages | `exa.anthropic.web_search()`, `exa.anthropic.handle_tool_use(response)` | `exa.anthropic.webSearch()`, `exa.anthropic.handleToolUse(response)` |
+| Any other framework | `exa.tools.web_search()`, a provider-neutral spec with a `run` method | `exa.tools.webSearch()`, a provider-neutral spec with a `run` method |
+
+If you define the tool yourself, make `objective` a required string parameter next to `query`, give it this description verbatim, and pass the model's value to `search` unchanged:
+
+```text
+Goal for this search turn; say which documents should rank first, which should be excluded, and what specific facts or figures to pull from them.
+```
+
+Full hand-written tool definitions for OpenAI and Anthropic are in [references/prompting-and-patterns.md](references/prompting-and-patterns.md).
+
+### Tell the model when to search
+
+Agents that use Exa as a tool perform best when their system prompt says when to search. Without that line, models often answer from training data that is out of date. Add this sentence to the agent's existing system prompt, with your tool's name in place of `web_search`:
+
+```text
+Call web_search before answering unless you're certain the answer can't have changed since your training cutoff.
+```
+
+Keep the rest of the system prompt as it is. If the agent has no system prompt, this sentence can be the whole system prompt.
+
+## Critical Pitfalls
+
+- Do not give an LLM a search tool that takes only `query`. Use the SDK tool helpers, or add `objective` as a required parameter with the recommended description and pass it to `search` unchanged.
+- Do not give an LLM a search tool without system prompt guidance like the example from Tell the model when to search. Without it, models often skip search and answer from out-of-date training data.
+- Do not decorate the recommended request without reason. Adding `category`, domain filters, boilerplate `numResults`, or freshness controls without an explicit task requirement is the most common integration mistake.
+- Do not answer an extraction request with a bare search. A field that has to come out of the page, or a metadata field the user requires on every result, goes in `outputSchema`; keep/drop rules go in `systemPrompt`; `query` is retrieval intent only. If a clause of the query says `only`, `include`, `exclude`, `drop`, or `return`, it is in the wrong field. Do not add `outputSchema` for fields every result already carries (title, URL, published date).
+- Do not add `Prefer a specific primary or official answer page.` to every query. It helps research questions that a primary or official source should settle and hurts page lookups, local, product and how-to questions, and quick facts.
+- On the search endpoint, `text`, `highlights`, and `summary` belong inside `contents`, not at the top level.
+- On the contents endpoint, `text`, `highlights`, and `summary` are top-level fields, not nested inside `contents`.
+- Pick one of `highlights`, `text`, or `summary`. Do not stack them. `summary` requires an explicit user request for Exa-side per-result synthesis.
+- Almost all tasks should use bare `highlights: true`. `numSentences` and `highlightsPerUrl` are deprecated, and `maxCharacters` needs an explicit budget requirement.
+- List-building and enrichment workflows belong on the Agent API (`/agent`), not on `/search` with `category: "people"` or `category: "company"`. Those categories are only for retrieving raw people or company documents.
+- `maxAgeHours` controls crawl/cache freshness (how old extracted page content may be before a live crawl), not publication recency. Do not use it as a "recent results" control; recency belongs in query phrasing. `startPublishedDate` / `endPublishedDate` are for task-stated bounded windows ("the last seven days", "in 2026") that must be enforced, not for "recent" or "latest" alone.
+- Never invent category values like `github`, `documentation`, `qa`, or `pdf`. When a user does request category-constrained retrieval, check the search reference first: specialized categories such as `people` and `company` restrict which filters are valid.
+- OpenAI-compatible endpoints are for compatibility-first use cases. Prefer native Exa endpoints for new integrations when you want clearer request semantics.
+- Do not treat `/agent` as a drop-in replacement for `/search`. It is higher-latency and async, so use the dedicated Agent reference when that workflow shape is the real fit. Prefer it over Websets for new collection-building work.
+- Agent requests should always set `effort` explicitly, wait for a terminal status via polling or SSE and check how the run ended before reading `output`, and expose `output.grounding` when relevant in a product.
+- Treat `/findSimilar` as deprecated. Prefer `/search` (optionally after `/contents` on the seed URL) for related-page discovery.
+
+## Reference Files
+
+| File | Topics |
+|------|--------|
+| [references/search.md](references/search.md) | Search endpoint request/response shape, search types, filters, nested contents, structured output |
+| [references/contents.md](references/contents.md) | Contents endpoint extraction, freshness, statuses, top-level content fields |
+| [references/snapshot.md](references/snapshot.md) | Exa Snapshot: `snapshotAsOf` historical page versions on `/contents` and `/search`, limits, snapshot vs freshness |
+| [references/answer.md](references/answer.md) | Grounded answer generation with citations and structured output |
+| [references/agent.md](references/agent.md) | Agent API for async multi-step research, enrichment, structured output, polling, and events |
+| [references/openai-compat.md](references/openai-compat.md) | OpenAI-compatible endpoints, model routing, `extra_body` usage |
+| [references/monitors.md](references/monitors.md) | Standalone Monitors API for scheduled recurring search |
+| [references/migrate-websets-to-agent.md](references/migrate-websets-to-agent.md) | Migrate Websets to the Agent API: call-site classification, request mapping, delivery rewrite, verification |
+| [references/sdks.md](references/sdks.md) | Python and TypeScript SDK naming, methods, and shape differences |
+| [references/http-requests.md](references/http-requests.md) | Minimal raw HTTP examples across major Exa surfaces |
+| [references/models-and-modes.md](references/models-and-modes.md) | Search type selection, answer/research model routing, latency tradeoffs |
+| [references/prompting-and-patterns.md](references/prompting-and-patterns.md) | Durable query, prompting, freshness, and output-schema patterns |
+| [references/common-mistakes.md](references/common-mistakes.md) | Over-specification and parameter-shape corrections |
+
+## Canonical Docs
+
+- Docs home: `https://exa.ai/docs`
+- Documentation index: `https://exa.ai/docs/llms.txt`
+- Search reference: `https://exa.ai/docs/reference/search`
+- Agent API guide: `https://exa.ai/docs/agent/quickstart`
+- Exa Snapshot: `https://exa.ai/docs/search/snapshot`
+- Exa Connect overview: `https://exa.ai/docs/agent/connect/overview`
+- Python SDK spec: `https://exa.ai/docs/sdks/quickstart`
+- TypeScript SDK spec: `https://exa.ai/docs/sdks/quickstart`

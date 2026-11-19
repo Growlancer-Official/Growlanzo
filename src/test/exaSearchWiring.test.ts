@@ -76,4 +76,42 @@ describe('Exa web search wiring', () => {
     });
     expect(offenders).toEqual([]);
   });
+
+  it('only ever sends the two documented category values', () => {
+    expect(shared).toContain("export const EXA_CATEGORIES = ['people', 'company'] as const;");
+    expect(shared).toContain('isExaCategory');
+    // `people` rejects `excludeDomains` at Exa (400), so it is dropped there.
+    expect(shared).toContain("category !== 'people'");
+    // The endpoint rejects anything outside the allowlist instead of passing it on.
+    expect(fn).toContain('isExaCategory(body.category)');
+    expect(fn).toContain('category must be' );
+  });
+
+  it('forwards an objective for searches that are one step of a larger task', () => {
+    expect(shared).toContain('MAX_OBJECTIVE_LEN');
+    expect(shared).toMatch(/objective: objective\.slice\(0, MAX_OBJECTIVE_LEN\)/);
+    expect(fn).toContain('objective');
+  });
+
+  it('pins the people/company category in dedicated helpers', () => {
+    expect(shared).toContain('export function searchPeople(');
+    expect(shared).toContain('export function searchCompanies(');
+    expect(shared).toMatch(/webSearch\(query, \{ \.\.\.options, category: 'people' \}\)/);
+    expect(shared).toMatch(/webSearch\(query, \{ \.\.\.options, category: 'company' \}\)/);
+    // The endpoint routes the validated category through those helpers.
+    expect(fn).toContain('searchPeople(query, options)');
+    expect(fn).toContain('searchCompanies(query, options)');
+    const client = read('src/lib/webSearch.ts');
+    expect(client).toContain('export function searchPeople(');
+    expect(client).toContain('export function searchCompanies(');
+  });
+
+  it('has a client helper that calls the endpoint, never Exa directly', () => {
+    const client = read('src/lib/webSearch.ts');
+    expect(client).toContain('exa-search');
+    expect(client).toContain('searchWeb');
+    expect(client).not.toContain('api.exa.ai');
+    expect(client).not.toContain("from 'exa-js'");
+    expect(client).not.toContain('EXA_API_KEY');
+  });
 });

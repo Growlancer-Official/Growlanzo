@@ -27,6 +27,21 @@ export const MAX_RESULT_COUNT = 10;
 /** Hard budget: a stalled upstream must not hold the request open. */
 const SEARCH_TIMEOUT_MS = 8000;
 
+/**
+ * Categories Exa documents for `/search`. Restricted to the two this app uses
+ * (raw people/company document retrieval). Anything else must be rejected by
+ * the caller — never invent a category value.
+ */
+export const EXA_CATEGORIES = ['people', 'company'] as const;
+export type ExaCategory = (typeof EXA_CATEGORIES)[number];
+
+/** Exa caps `objective` at 4096 characters. */
+export const MAX_OBJECTIVE_LEN = 4096;
+
+export function isExaCategory(value: unknown): value is ExaCategory {
+  return typeof value === 'string' && (EXA_CATEGORIES as readonly string[]).includes(value);
+}
+
 export interface WebSearchResult {
   title: string;
   url: string;
@@ -40,6 +55,10 @@ export interface WebSearchOptions {
   /** Domain filters (`example.com`), validated by the caller. */
   includeDomains?: string[];
   excludeDomains?: string[];
+  /** Category-constrained retrieval (explicit user request only). */
+  category?: ExaCategory;
+  /** The goal this search serves, when it is one step of a larger task. */
+  objective?: string;
 }
 
 let client: Exa | null = null;
@@ -76,6 +95,9 @@ export async function webSearch(
     throw new Error('Search query is empty');
   }
 
+  const objective = typeof options.objective === 'string' ? options.objective.trim() : '';
+  const category = isExaCategory(options.category) ? options.category : undefined;
+
   const response = await getClient().search(
     trimmed,
     {
@@ -84,9 +106,13 @@ export async function webSearch(
       ...(options.includeDomains && options.includeDomains.length > 0
         ? { includeDomains: options.includeDomains }
         : {}),
-      ...(options.excludeDomains && options.excludeDomains.length > 0
+      // `people` rejects `excludeDomains` (400), so it is dropped there — the
+      // filtering belongs in the query text for that category.
+      ...(category !== 'people' && options.excludeDomains && options.excludeDomains.length > 0
         ? { excludeDomains: options.excludeDomains }
         : {}),
+      ...(category ? { category } : {}),
+      ...(objective ? { objective: objective.slice(0, MAX_OBJECTIVE_LEN) } : {}),
       contents: { highlights: true },
     },
     { timeout: SEARCH_TIMEOUT_MS }
@@ -99,4 +125,25 @@ export async function webSearch(
     author: result.author ?? null,
     highlights: Array.isArray(result.highlights) ? result.highlights : [],
   }));
+}
+
+// ─── People + company retrieval ─────────────────────────────────────────────
+// `category` is for raw category-constrained retrieval only. These two helpers
+// are the same `/search` with the category pinned, so the people/company use
+// case never hand-writes the option (or misspells it).
+
+/** Raw people documents (LinkedIn-style profiles) for a query. */
+export function searchPeople(
+  query: string,
+  options: Omit<WebSearchOptions, 'category'> = {}
+): Promise<WebSearchResult[]> {
+  return webSearch(query, { ...options, category: 'people' });
+}
+
+/** Raw company documents (official sites, profiles) for a query. */
+export function searchCompanies(
+  query: string,
+  options: Omit<WebSearchOptions, 'category'> = {}
+): Promise<WebSearchResult[]> {
+  return webSearch(query, { ...options, category: 'company' });
 }

@@ -2,8 +2,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   EXA_CONFIGURED,
+  MAX_OBJECTIVE_LEN,
   clampResultCount,
+  isExaCategory,
+  searchCompanies,
+  searchPeople,
   webSearch,
+  type ExaCategory,
   type WebSearchResult,
 } from '../_shared/exa.ts';
 
@@ -67,7 +72,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // ─── BODY ───
-    let body: { query?: unknown; numResults?: unknown; includeDomains?: unknown };
+    let body: {
+      query?: unknown;
+      numResults?: unknown;
+      includeDomains?: unknown;
+      category?: unknown;
+      objective?: unknown;
+    };
     try {
       body = await req.json();
     } catch {
@@ -85,10 +96,35 @@ Deno.serve(async (req: Request) => {
     const numResults = clampResultCount(body?.numResults);
     const includeDomains = normaliseDomains(body?.includeDomains);
 
+    // ─── OPTIONAL CATEGORY (explicit request only; allowlist, never invented) ───
+    let category: ExaCategory | undefined;
+    if (body?.category !== undefined && body?.category !== null) {
+      if (!isExaCategory(body.category)) {
+        return json(400, { error: "category must be 'people' or 'company'." });
+      }
+      category = body.category;
+    }
+
+    // ─── OPTIONAL OBJECTIVE (the goal this search serves) ───
+    const objective = typeof body?.objective === 'string' ? body.objective.trim() : '';
+    if (objective.length > MAX_OBJECTIVE_LEN) {
+      return json(400, { error: `objective too long (max ${MAX_OBJECTIVE_LEN} characters).` });
+    }
+
     // ─── SEARCH ───
     let results: WebSearchResult[];
     try {
-      results = await webSearch(query, { numResults, includeDomains });
+      const options = {
+        numResults,
+        includeDomains,
+        ...(objective ? { objective } : {}),
+      };
+      results =
+        category === 'people'
+          ? await searchPeople(query, options)
+          : category === 'company'
+            ? await searchCompanies(query, options)
+            : await webSearch(query, options);
     } catch (err) {
       const name = (err as { name?: string })?.name;
       if (name === 'ExaTimeoutError') {
@@ -100,7 +136,7 @@ Deno.serve(async (req: Request) => {
       return json(502, { error: 'Web search is temporarily unavailable. Please try again.' });
     }
 
-    return json(200, { success: true, query, results });
+    return json(200, { success: true, query, category: category ?? null, results });
   } catch (err) {
     console.error('[exa-search] unexpected error:', (err as Error)?.message || err);
     return json(500, { error: 'Something went wrong. Please try again.' });
