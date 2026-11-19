@@ -149,7 +149,7 @@ export function brandedEmailHtml(params: {
   <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td align="center"><![endif]-->
   <div style="max-width:600px;width:100%;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06);">
     <div style="background:#ffffff;padding:20px 24px 0;text-align:center;">
-      <img src="${SITE_URL}/growlanzo-full.png" alt="Growlanzo" width="150" style="height:auto;max-width:150px;border:0;" />
+      <img src="${SITE_URL}/growlanzo-email-logo.png" alt="Growlanzo" width="160" style="display:block;margin:0 auto;height:auto;max-width:160px;border:0;background:#ffffff;" />
     </div>
     <div style="background:linear-gradient(135deg,#14861f 0%,#0f6f1a 100%);margin:12px 12px 0;border-radius:12px;padding:28px 24px;text-align:center;">
       <h1 style="color:#ffffff;font-size:20px;font-weight:800;margin:0;letter-spacing:-0.3px;">${title}</h1>
