@@ -523,9 +523,10 @@ Growlanzo uses platform security controls including authentication mechanisms, d
 
 **Do not report security vulnerabilities through public GitHub Issues or Pull Requests.**
 
-Please follow the responsible disclosure process defined in:
-
-**[SECURITY.md](./SECURITY.md)**
+Please report vulnerabilities privately to the Growlanzo maintainers rather than
+through public GitHub Issues or Pull Requests. The security invariants the
+platform is built on, and the current security posture, are documented in
+**[GROWLANZO.md](./GROWLANZO.md)**.
 
 ---
 
@@ -535,9 +536,9 @@ Growlanzo is currently under active development and follows a controlled contrib
 
 The repository contains proprietary application logic, marketplace workflows, security controls, financial infrastructure, and evolving platform architecture.
 
-Before contributing, please review:
-
-**[CONTRIBUTING.md](./CONTRIBUTING.md)**
+Before contributing, please review the engineering rules in
+**[AGENTS.md](./AGENTS.md)** and the architecture, environment and verification
+requirements in **[GROWLANZO.md](./GROWLANZO.md)**.
 
 Contributions should preserve existing:
 
@@ -626,11 +627,11 @@ Growlanzo is being continuously developed toward a production-grade professional
 
 # 📚 Documentation
 
-| Document                                | Purpose                                                |
-| --------------------------------------- | ------------------------------------------------------ |
-| 📖 [README.md](./README.md)             | Product, architecture, setup, and engineering overview |
-| 🤝 [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution process and engineering standards         |
-| 🔐 [SECURITY.md](./SECURITY.md)         | Security policy and vulnerability disclosure           |
+| Document                          | Purpose                                                                    |
+| --------------------------------- | -------------------------------------------------------------------------- |
+| 📖 [README.md](./README.md)       | Product, architecture, setup, and engineering overview                     |
+| 🧭 [GROWLANZO.md](./GROWLANZO.md) | Master technical document: stack, env/keys, deploy, rules, launch blockers |
+| 🤖 [AGENTS.md](./AGENTS.md)       | Engineering contract: change protocol, security invariants, verification   |
 
 ---
 

@@ -2,7 +2,7 @@ name: Supabase Deploy
 
 # Deploys edge functions and (optionally) pushes migrations after CI passes on main.
 # Migrations are gated by the SUPABASE_DB_AUTO_PUSH GitHub variable — keep it
-# false until migration-drift reconciliation is complete (see DEPLOYMENT.md §4).
+# false until migration-drift reconciliation is complete (see GROWLANZO.md §6).
 
 on:
   workflow_run:

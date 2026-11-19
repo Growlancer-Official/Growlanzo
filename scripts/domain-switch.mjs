@@ -4,7 +4,7 @@
  *
  * WHY THIS EXISTS
  * ---------------
- * docs/FOUNDER-RUNBOOK.md §5 step 3 rewrites `.env`'s APP_URL and then pushes it
+ * GROWLANZO.md §6 rewrites `.env`'s APP_URL and then pushes it
  * straight into the LIVE Supabase Auth `site_url`. If that happens before the new
  * domain actually serves the app, every verification / password-reset / OAuth
  * email link starts pointing at a domain that does not work — for every user, at
@@ -18,7 +18,7 @@
  *   node scripts/domain-switch.mjs <domain> --check    # same, explicit
  *   node scripts/domain-switch.mjs <domain> --apply    # switch (only if checks pass)
  *
- * Order of operations (mirrors FOUNDER-RUNBOOK.md §5.1):
+ * Order of operations (mirrors GROWLANZO.md §6):
  *   1. verify DNS + HTTPS + it is really our app          ← fail closed here
  *   2. rewrite APP_URL in .env                            (local only)
  *   3. push_redirect_urls.mjs  → site_url + redirect list (live auth config)
@@ -208,7 +208,7 @@ async function main() {
 
   run('founder preflight', ['node', 'scripts/founder-preflight.mjs']);
 
-  console.log('\nManual steps this script does NOT do (see FOUNDER-RUNBOOK §5.1):');
+  console.log('\nManual steps this script does NOT do (see GROWLANZO.md §6):');
   console.log('  5. Sentry  → allow the new origin');
   console.log('  6. Brevo   → verify sender domain (SPF/DKIM) + EMAIL_FROM');
   console.log('  7. Search Console → add the domain property, submit sitemap.xml');

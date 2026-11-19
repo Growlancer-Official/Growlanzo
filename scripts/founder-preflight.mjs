@@ -325,7 +325,7 @@ async function liveState() {
 
   info(
     'Contract / escrow / order / invoice counts need the service role — ' +
-      'see docs/LAUNCH-READINESS.md (they are all 0 until the first real payment, A2).',
+      'see GROWLANZO.md §12 (they are all 0 until the first real payment, A2).',
   );
 }
 
@@ -413,7 +413,7 @@ async function main() {
   console.log(`  blockers: ${blockers.length}   warnings: ${warnings.length}`);
   if (blockers.length) blockers.forEach((b) => console.log(`    ❌ ${b}`));
 
-  section('NEXT ACTIONS (full detail: docs/FOUNDER-RUNBOOK.md)');
+  section('NEXT ACTIONS (full detail: GROWLANZO.md)');
   console.log('  A1  Enable RazorpayX Payouts, then set RAZORPAY_ACCOUNT_NUMBER (money cannot leave)');
   console.log('  A2  Make ONE real test-mode payment end-to-end (webhook → escrow → 5% → invoice)');
   console.log('  A4  Move KYC off development mode + set the provider token');

@@ -66,18 +66,13 @@ of real production bugs). The rules you will violate most easily:
 ## 4. Read order for any task
 
 1. `AGENTS.md` (this file).
-2. `docs/PROJECT-BLUEPRINT.md` — system topology, request lifecycle, money
-   invariants, how to add a feature end to end.
-3. The module map for the area you will touch:
-   - `docs/blueprint/FRONTEND.md`
-   - `docs/blueprint/BACKEND.md`
-   - `docs/blueprint/DATABASE.md`
-   - `docs/blueprint/DOMAIN-FLOWS.md`
-   - `docs/blueprint/QUALITY-AND-OPS.md`
-   - `docs/blueprint/INVENTORY.md` (generated file list)
-4. `CLAUDE.md` — business model, security principles, and the **tail** of the
-   status log (the newest entries are at the bottom).
-5. `docs/LAUNCH-READINESS.md` — what is actually blocked before real money.
+2. `GROWLANZO.md` — the single master document: topology, stack, repo map, env
+   and secret inventory, deploy pipeline, business rules, security invariants,
+   verification matrix, launch blockers.
+3. `docs/blueprint/INVENTORY.md` (generated file list) and
+   `docs/blueprint/BACKEND.md` (backend/AI-gateway notes).
+4. `CLAUDE.md` — the **tail** of the dated engineering log (newest entries at the
+   bottom).
 
 Do not skip step 3 and re-derive architecture from scratch. Do not trust these
 docs blindly either: if code and doc disagree, the code is current, the doc is a
@@ -197,7 +192,7 @@ build with **33 genuinely prerendered pages** — 66 HTML files, each with its o
 <title>/canonical/robots — docs map, 25 public pages rendered at 375px + 1280px
 with 0 overflow),
 but public paid launch is still **NO** for the same owner-only reasons tracked
-in `docs/LAUNCH-READINESS.md`: payouts disabled (A1), no real payment ever run
+in `GROWLANZO.md` §12: payouts disabled (A1), no real payment ever run
 (A2), Brevo IP restriction (A9), KYC in development mode (A4), legal identity /
 grievance contact (A10), empty marketplace (A8), Grow Coin deploy (A11).
 Public posture until A1+A2: **invite-only beta, money handled manually**.
@@ -216,7 +211,7 @@ or discard another session's work.
 ## 12. Maintaining this file
 
 - Keep it under ~250 lines. It is loaded every session; length is a cost.
-- Put durable rules here, current facts in `docs/PROJECT-BLUEPRINT.md`, and
-  history in `CLAUDE.md`.
+- Put durable rules here, current facts in `GROWLANZO.md`, and history in
+  `CLAUDE.md`.
 - If a rule stops being true, change or delete it in the same commit that
   invalidates it. A stale rule is worse than no rule.

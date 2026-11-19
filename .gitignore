@@ -32,6 +32,10 @@ supabase/.temp/
 # Freebuff internal worktrees (never commit).
 .freebuff/
 
+# Local scratch output, screenshots and session logs (never commit).
+tmp/
+.devlog/
+
 # Security reports / PDFs (never commit).
 *.pdf
 .tmp_payload.json

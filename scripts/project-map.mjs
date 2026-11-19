@@ -2,7 +2,7 @@
 /**
  * Project map — generated inventory of the repo's structural surface.
  *
- * Why this exists: the end-to-end map in `docs/PROJECT-BLUEPRINT.md` is only
+ * Why this exists: the end-to-end map in `GROWLANZO.md` is only
  * useful if it cannot silently drift from the tree. Every page, component,
  * service, edge function, migration and test is listed here mechanically, and
  * `src/test/projectMap.test.ts` fails when this file is stale. So adding a

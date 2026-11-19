@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-// A real webhook signing secret was committed to RAZORPAY_TESTING_GUIDE.md and
+// A real webhook signing secret was committed to a tracked Razorpay guide and
 // verified live against the deployed function (a test event signed with it was
 // accepted), i.e. anyone who could read the repository could forge a
 // `payment.captured` event and fund an escrow that was never paid. The literal
@@ -28,7 +28,8 @@ const HEX64_RE = /\b[0-9a-f]{64}\b/;
 // line does not look like it is naming a credential. Adding a new file here is a
 // deliberate act, which is the point.
 const HEX64_ALLOWLIST: Record<string, string> = {
-  'docs/LAUNCH-READINESS.md': 'sha256 digest of the public APP_URL — printed on purpose for comparison',
+  'skills-lock.json':
+    'sha256 content hash of an installed agent skill (public upstream file, not a credential)',
 };
 const CREDENTIAL_WORD_RE = /(secret|password|token|api[_-]?key|service[_-]?role)/i;
 
@@ -106,7 +107,7 @@ describe('no committed secrets', () => {
     // Tracked files only: an untracked scratch file cannot be committed by
     // accident, and CI only ever sees committed content anyway.
     expect(FILES.length).toBeGreaterThan(200);
-    expect(FILES).toContain('RAZORPAY_TESTING_GUIDE.md');
+    expect(FILES).toContain('GROWLANZO.md');
     expect(FILES).toContain('src/test/cors.test.ts');
     expect(FILES.some((f) => f.startsWith('supabase/functions/'))).toBe(true);
   });
@@ -130,11 +131,11 @@ describe('no committed secrets', () => {
     expect(offenders.map(([f]) => f)).toEqual([]);
   });
 
-  it('the published digest in the runbook is not treated as a secret', () => {
-    // Positive control for the allowlist: a doc line with a digest and no
-    // credential word next to it must pass.
+  it('the published digest in an allowlisted file is not treated as a secret', () => {
+    // Positive control for the allowlist: a digest line with no credential word
+    // next to it must pass.
     const fixture = {
-      'docs/LAUNCH-READINESS.md': `the APP_URL digest matches sha256("https://x") — ${'a'.repeat(64)}`,
+      'skills-lock.json': `"computedHash": "${'a'.repeat(64)}",`,
     };
     expect(findCommittedSecrets(fixture).hexHits).toEqual([]);
   });
@@ -145,7 +146,7 @@ describe('no committed secrets', () => {
   });
 
   it('flags a hex literal that sits next to a credential word even in an allowlisted file (negative control)', () => {
-    const fixture = { 'docs/LAUNCH-READINESS.md': `webhook_secret = ${'c'.repeat(64)}` };
+    const fixture = { 'skills-lock.json': `webhook_secret = ${'c'.repeat(64)}` };
     expect(findCommittedSecrets(fixture).hexHits).toHaveLength(1);
   });
 
