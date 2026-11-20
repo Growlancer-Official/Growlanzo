@@ -63,6 +63,14 @@ BEGIN
   END IF;
   NEW.updated_at := now();
 
+  -- Rating is user-authored feedback (1-5), validated by the column CHECK.
+  -- On UPDATE the server locks it so a published review's score can never be
+  -- rewritten after the fact (the value the homepage trusts must be immutable
+  -- once published).
+  IF TG_OP = 'UPDATE' THEN
+    NEW.rating := OLD.rating;
+  END IF;
+
   NEW.comment := btrim(NEW.comment);
   RETURN NEW;
 END;
@@ -103,6 +111,13 @@ CREATE POLICY "Users delete own platform review"
 
 GRANT SELECT ON public.platform_reviews TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.platform_reviews TO authenticated;
+
+-- The BEFORE INSERT/UPDATE trigger runs as SECURITY DEFINER, so the function
+-- itself must NOT be executable by anon (a NULL-unsafe guard inside it would
+-- fail open). Revoke the PUBLIC default and re-grant only to authenticated +
+-- service_role (the latter is needed for the trigger to fire).
+REVOKE EXECUTE ON FUNCTION public.set_platform_review_fields() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_platform_review_fields() TO authenticated, service_role;
 
 CREATE INDEX IF NOT EXISTS idx_platform_reviews_role_recent
   ON public.platform_reviews (role, created_at DESC)

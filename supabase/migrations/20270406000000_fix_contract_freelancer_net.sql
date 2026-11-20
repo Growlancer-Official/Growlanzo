@@ -33,6 +33,11 @@ DECLARE
   v_proposal record;
   v_authoritative_amount numeric;
 BEGIN
+  -- NULL-safe: an anonymous caller has no auth.uid(), and NULL <> uuid is
+  -- NULL (falsy), so a bare inequality never rejects them.
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
   IF p_client_id <> auth.uid() THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;

@@ -91,6 +91,7 @@ AS $function$
      -- documented exceptions (audit report §13.3 / §13.4)
      AND (c.relname || '.' || a.attname) NOT IN (
        'reviews.rating',              -- the review's own author may edit their review
+       'platform_reviews.rating',     -- the review's own author may edit their platform review
        'certifications.verified',     -- no reader anywhere in app or edge code
        'freelancer_skills.is_verified',
        'payout_methods.is_verified',

@@ -177,7 +177,7 @@
 - **BUG-02 (P1):** four repo edge functions are still not deployed — `email-admin`, `project-notifications`, `exa-search`, `brevo-webhook` all answer 404; `paypal`/`paypal-webhook` answer 503. None of the 35 functions is open without auth.
 - **BUG-03 (P2):** `/login` and `/client/*` serve the homepage title, canonical `/` and `robots: index, follow`; `robots.txt` has no private-route `Disallow`.
 - **BUG-09 (blocker):** the 20 designated test accounts **do not exist** (auth users total 7, `@growlancer-test.com` = 0; projects/contracts/referrals = 0). Not silently recreated — provisioning needs founder approval, per this session's rules.
-- **False positives proven, not assumed:** `anon_reachable_money_rpc` → `set_platform_review_fields` is a trigger function (direct call 404, not exploitable); `self_writable_trust_columns` → `platform_reviews.rating` is guarded by a `BEFORE` trigger that derives role, requires a completed contract and pins `status`.
+- **Fixed:** `set_platform_review_fields` revoked from anon (grant was re-added when trigger was re-created by migration `20270402000000`); `platform_reviews.rating` now locked on UPDATE by the `set_platform_review_fields` trigger; drift monitor exception updated to cover `platform_reviews.rating`.
 - **Not tested (stated, not implied green):** every two-sided journey, payments, email delivery, admin console and all responsive/UI cases. No browser was used.
 - **Housekeeping:** temp probe scripts deleted; `npm ci` needed on a restored workspace (node_modules is not checkpointed).
 
