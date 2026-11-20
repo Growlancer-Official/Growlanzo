@@ -335,7 +335,16 @@ jobs:
             echo "::error::Pentest secrets vanished after the pre-flight guard — refusing to report a green deploy with an unrun security check."
             exit 1
           fi
-          node scripts/e2e/pentest-privileges.mjs
+          set +e
+          node scripts/e2e/pentest-privileges.mjs 2>/tmp/pentest_err.txt
+          pec=$?
+          if [ $pec -ne 0 ]; then
+            echo "::error::pentest failed (exit code $pec). Last 30 redacted lines of stderr:"
+            tail -30 /tmp/pentest_err.txt | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit $pec
 
       # Whole-surface audit, run after the curated pentest above.
       #
