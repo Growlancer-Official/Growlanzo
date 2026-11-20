@@ -1,0 +1,14 @@
+-- ═══════════════════════════════════════════════════════════════════════
+-- HISTORY RECONCILIATION STUB — version 20261118073419
+--
+-- This version exists on the remote (production) database in
+-- supabase_migrations.schema_migrations but was never present as a local
+-- file in this repository, which made `supabase db push` fail with
+-- "Remote migration versions not found in local migrations directory".
+--
+-- This local stub exists ONLY so that the drift check sees a history that
+-- is in sync with the remote. Because the version is already recorded as
+-- applied, this file is never executed by `db push`.
+--
+-- It intentionally contains no DDL.
+SELECT 1;
