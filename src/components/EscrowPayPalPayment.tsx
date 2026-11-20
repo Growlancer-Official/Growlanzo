@@ -666,7 +666,7 @@ export function EscrowPayPalPayment({
             </div>
           </div>
           <p className="text-xs text-emerald-700 mt-2 leading-relaxed bg-emerald-50 border border-emerald-100 rounded-lg p-2.5">
-            The platform fee is added to your payment — <strong>{freelancerName} receives 100% of the project amount</strong>.
+            Growlanzo's 5% commission is deducted from the freelancer's payout — you pay only the project amount.
           </p>
         </div>
 
@@ -740,7 +740,7 @@ export function EscrowPayPalPayment({
             <span>{formatCurrency(totalAmount)}</span>
           </div>
           <p className="text-xs text-emerald-700 leading-relaxed bg-emerald-50 border border-emerald-100 rounded-lg p-2.5 mt-3">
-            The platform fee is added to your payment — <strong>{freelancerName} receives 100% of the project amount</strong>.
+            Growlanzo's 5% commission is deducted from the freelancer's payout — you pay only the project amount.
           </p>
         </div>
       </div>

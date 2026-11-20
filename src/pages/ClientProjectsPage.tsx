@@ -168,7 +168,12 @@ export function ClientProjectsPage() {
     if (error) {
       console.error('Error fetching projects:', error);
     } else {
-      const newProjects = (data as unknown as Project[]) || [];
+      // Supabase returns the aggregate as `proposals: [{ count: n }]`; the UI
+      // reads `proposals_count`. Map it explicitly or every project shows 0.
+      const newProjects = ((data as any[]) || []).map((p) => ({
+        ...p,
+        proposals_count: Number(Array.isArray(p.proposals) ? p.proposals[0]?.count ?? 0 : 0),
+      })) as Project[];
       if (loadMore) {
         setProjects(prev => [...prev, ...newProjects]);
         pageRef.current = currentPage + 1;
@@ -406,7 +411,7 @@ export function ClientProjectsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Briefcase className="w-4 h-4" />
-                  <span>{project.proposals_count || 0} proposals</span>
+                  <span>{project.proposals_count || 0} {project.proposals_count === 1 ? 'proposal' : 'proposals'}</span>
                 </div>
               </div>
 

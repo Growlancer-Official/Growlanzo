@@ -53,6 +53,7 @@ import { VerifiedBadge } from '../components/VerifiedBadge'
 import { ProBadge } from '../components/ProBadge'
 import { InfoTip } from '../components/InfoTip'
 import { ReviewModal } from '../components/ReviewModal'
+import { ConfirmModal } from '../components/ConfirmModal'
 
 interface Contract {
   id: string
@@ -174,6 +175,7 @@ export function ClientWorkspacePage() {
     setShowFundEscrow(true);
   }, [user, toast])
   const [releasingEscrow, setReleasingEscrow] = useState(false)
+  const [showReleaseConfirm, setShowReleaseConfirm] = useState(false)
   const [activeTab, setActiveTab] = useState<ActiveTab>('chat')
   const [taskInput, setTaskInput] = useState('')
   const [notesText, setNotesText] = useState('')
@@ -389,12 +391,18 @@ export function ClientWorkspacePage() {
     setSubmittingDispute(false)
   }
 
-  const handleReleaseEscrow = async () => {
-    if (!selectedContract || !user) return
+  const handleReleaseEscrow = async (): Promise<boolean> => {
+    if (!selectedContract || !user) return false
     setReleasingEscrow(true)
-    const result = await dbFunctions.releaseEscrow(selectedContract.id, user.id)
-    if (result) void refreshContract(selectedContract.id)
+    const { error } = await dbFunctions.releaseEscrow(selectedContract.id, user.id)
+    if (error) {
+      toast.error('Could not release escrow', error.message || 'Please try again.')
+      setReleasingEscrow(false)
+      return false
+    }
+    await refreshContract(selectedContract.id)
     setReleasingEscrow(false)
+    return true
   }
 
   // ─── Refund / Cancellation ───────────────────────────────────
@@ -1517,7 +1525,7 @@ export function ClientWorkspacePage() {
                       )}
                       {selectedContract.escrow_funded && selectedContract.status !== 'completed' && selectedContract.status !== 'disputed' && (
                         <button
-                          onClick={() => void handleReleaseEscrow()}
+                          onClick={() => setShowReleaseConfirm(true)}
                           disabled={releasingEscrow}
                           className="inline-flex items-center justify-center gap-3 px-3 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 transition-colors font-semibold"
                         >
@@ -2077,6 +2085,23 @@ export function ClientWorkspacePage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Release Escrow confirmation — money leaves escrow permanently */}
+      {showReleaseConfirm && selectedContract && (
+        <ConfirmModal
+          isOpen={showReleaseConfirm}
+          onClose={() => { if (!releasingEscrow) setShowReleaseConfirm(false) }}
+          onConfirm={async () => {
+            const ok = await handleReleaseEscrow()
+            if (ok) setShowReleaseConfirm(false)
+          }}
+          title="Release escrow?"
+          message={`Release ${libFormatCurrency(selectedContract.amount)} to ${selectedContract.freelancer?.name || 'the freelancer'}? They receive ${libFormatCurrency(Math.round(selectedContract.amount * 0.95 * 100) / 100)} after the 5% platform fee. This cannot be undone.`}
+          confirmLabel="Release payment"
+          variant="warning"
+          loading={releasingEscrow}
+        />
       )}
 
       {/* Leave Review Modal — after contract completion */}
