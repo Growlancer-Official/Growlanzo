@@ -85,3 +85,8 @@ BEGIN
   END IF;
 END
 $assert$;
+
+-- Keep PostgREST's schema cache in sync with the redefinition above so RPC
+-- routing sees the current function signature (the body is always read live,
+-- but the cache must know the function exists under its current oid).
+NOTIFY pgrst, 'reload schema';
