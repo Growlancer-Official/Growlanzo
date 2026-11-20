@@ -41,36 +41,52 @@ jobs:
       #    (run 44299835218, 2026-11-18). Nothing downstream ran.
       # 2. Supabase CLI v3 REMOVED `--db-url` from `migration list` and
       #    `db push` (it was replaced by `--remote[=<ref|branch|url>]`). The
-      #    drift-check helper and the push below are written against `--db-url`,
-      #    and v3 also started requiring `--yes` for hosted changes. Resolving
-      #    "latest" would therefore have broken the deploy even without the rate
-      #    limit.
+      # Pinned to the maintained Supabase CLI v2 line, not `latest` and not
+      # an exact old v2 tag.
       #
-      # v2.63.0 is the newest v2 release that still accepts `--db-url` on both
-      # commands (verified against the published linux_amd64 binary), so the
-      # reviewed migration logic below stays exactly as it was. Moving to v3 is
-      # a deliberate migration: change the helper to `--remote=<url>`, add
-      # `--yes`, and prove it against a dry run before pinning forward.
-      - uses: supabase/setup-cli@v1
+      # Reason 1 — config parsing: `v2.63.0` could not parse this repo's
+      # `supabase/config.toml` (the run died with "db has invalid keys:
+      # health_timeout … storage has invalid keys: analytics, s3_protocol, vector
+      # … experimental has invalid keys: pgdelta"). Backend Deploy #82 never got
+      # past config load, so the drift check, db push and functions deploy never
+      # ran. `v2.stable` (the latest maintained v2) parses the current config,
+      # which is why this sits on `v2.stable` rather than staying on the old
+      # 2.63.0 pin.
+      #
+      # Reason 2 — flag compatibility: the drift-check helper and the
+      # `scripts/push_migrations.mjs` path both run `supabase migration list` /
+      # `supabase db push` with `--db-url`. Supabase CLI v3 is a separate major
+      # that dropped `--db-url` in favour of `--remote=<ref|branch|url>` (hosted
+      # changes also need `--yes`), so resolving `latest` (now v3) would break the
+      # reviewed CI logic the moment the rate limit cleared. `v2.stable` keeps v2
+      # semantics on purpose. Moving to v3 is a deliberate migration: switch the
+      # helper to `--remote=<url>`, add `--yes`, and prove it against a dry run
+      # before pinning forward.
+      - uses: supabase/setup-cli@v3
         with:
-          version: 2.63.0
+          version: v2.stable
 
-      # Measured 2026-11-18 (run 77 + the diagnostic run 78): every step called
-      # `npx supabase`, which bypasses the binary setup-cli just pinned. supabase
-      # is not a dependency of this repo, so npx downloaded **supabase@3.2.0**
-      # from npm on every run — and v3 rejects this repo's own config
-      # (`inbucket in supabase/config.toml is no longer supported`) before it can
-      # even connect. The drift gate therefore died in ~4s on every push (runs
-      # 73-78), so no migration and no edge function has been deployed for days.
+      # Measured 2026-11-19 (Backend Deploy #82): every in-job step called
+      # `npx supabase`, which bypasses the binary the setup-cli action just
+      # installed. supabase is not a dependency of this repo, so npx fetched the
+      # npm `latest` tag on every run — and by 2026-11-19 that is v3, which
+      # rejects this repo's config.toml (unsupported keys) before it can connect.
+      # The drift gate therefore died in a few seconds on every push, so no
+      # migration and no edge function landed for days.
+      #
       # Use the pinned v2 binary from PATH and fail loudly if that ever changes.
+      # The assertion checks for the v2 train, not one exact patch, so a
+      # `v2.stable` bump (e.g. a security fix) still passes.
       - name: Guard — the pinned v2 CLI is the one that runs
         run: |
           v=$(supabase --version 2>&1 | head -1)
           echo "supabase CLI: $v"
           case "$v" in
-            *2.63*) ;;
+            *2.*)
+              # any v2 release is fine; `v2.stable` may move forward within v2
+              ;;
             *)
-              echo "::error::expected the pinned CLI from supabase/setup-cli (version 2.63.0) on PATH, got '$v'. v3 dropped --db-url and rejects this repo's config.toml (inbucket), so the drift check and db push would fail."
+              echo "::error::expected a Supabase CLI v2 binary from supabase/setup-cli (version: v2.stable) on PATH, got '$v'. v3 dropped --db-url and rejects this repo's config.toml (health_timeout, storage.analytics, storage.s3_protocol, storage.vector, experimental.pgdelta), so the drift check and db push would fail."
               exit 1
               ;;
           esac
