@@ -367,4 +367,13 @@ jobs:
             echo "::error::Audit secrets vanished after the pre-flight guard — refusing to report a green deploy with an unrun security check."
             exit 1
           fi
-          node scripts/e2e/surface-audit.mjs
+          set +e
+          node scripts/e2e/surface-audit.mjs 2>/tmp/audit_err.txt
+          aec=$?
+          if [ $aec -ne 0 ]; then
+            echo "::error::surface audit failed (exit code $aec). Last 40 redacted lines of stderr:"
+            tail -40 /tmp/audit_err.txt | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit $aec
