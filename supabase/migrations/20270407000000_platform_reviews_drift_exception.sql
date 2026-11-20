@@ -15,6 +15,12 @@
 -- The service_role-only helper that the hourly check_security_drift() sweep
 -- calls. Re-registered here for repo/DB parity; the authoritative definition
 -- lives in 20270402000000_platform_reviews.sql.
+
+-- Belt-and-suspenders: ensure set_platform_review_fields is not executable by
+-- anon (the 20270402000000 migration revokes it, but re assert it here so the
+-- anon_reachable_money_rpc detector stays clean after redefinition).
+REVOKE EXECUTE ON FUNCTION public.set_platform_review_fields() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_platform_review_fields() TO authenticated, service_role;
 CREATE OR REPLACE FUNCTION public.self_writable_trust_columns()
 RETURNS TABLE(table_name text, column_name text)
 LANGUAGE sql
