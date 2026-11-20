@@ -230,6 +230,23 @@ jobs:
           }
           EOF
 
+      # Diagnostic: prove `supabase migration list --db-url` can actually
+      # connect + query the remote, separately from the drift logic below.
+      # The drift check step re-runs the same command, so if this fails the
+      # drift check cannot work either (auth / connection / config). Exits
+      # non-zero on failure so the job fails here with a clear step name.
+      - name: Diagnostic — migration list reaches the remote DB
+        env:
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL_RESOLVED }}
+        run: |
+          set +e
+          supabase migration list --db-url "$SUPABASE_DB_URL" > /tmp/migration_list_diag.txt 2>&1
+          ec=$?
+          echo "migration_list_exit_code=$ec"
+          echo "--- redacted output (first 25 lines) ---"
+          sed 's/postgres[ql]*:\/\/[^ @]*/[db-url]/g; s/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}/REDACTED-DATE/g' /tmp/migration_list_diag.txt | head -25
+          exit $ec
+
       - name: Migration drift check (repo vs live DB — fail-closed)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
