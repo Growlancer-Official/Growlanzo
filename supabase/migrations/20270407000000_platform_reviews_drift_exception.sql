@@ -17,10 +17,13 @@
 -- lives in 20270402000000_platform_reviews.sql.
 
 -- Belt-and-suspenders: ensure set_platform_review_fields is not executable by
--- anon (the 20270402000000 migration revokes it, but re assert it here so the
--- anon_reachable_money_rpc detector stays clean after redefinition).
-REVOKE EXECUTE ON FUNCTION public.set_platform_review_fields() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.set_platform_review_fields() TO authenticated, service_role;
+-- any client role (the 20270402000000 migration revokes anon, but re assert it
+-- here so the anon_reachable_money_rpc detector stays clean after redefinition).
+-- It is a TRIGGER function: Postgres does not check EXECUTE when a trigger
+-- fires, so no client needs the grant. `authenticated` was the remaining hole
+-- the detector reported.
+REVOKE ALL ON FUNCTION public.set_platform_review_fields() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.set_platform_review_fields() TO service_role;
 CREATE OR REPLACE FUNCTION public.self_writable_trust_columns()
 RETURNS TABLE(table_name text, column_name text)
 LANGUAGE sql

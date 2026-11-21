@@ -268,6 +268,9 @@ describe('security drift monitor (migration 20270119000014)', () => {
     expect([...DRIFT_EXCEPTIONS].sort()).toEqual(
       [
         'reviews.rating',
+        // Documented in 20270402000000_platform_reviews.sql: the review's own
+        // author may edit their platform review; the trigger locks it on UPDATE.
+        'platform_reviews.rating',
         'certifications.verified',
         'freelancer_skills.is_verified',
         'payout_methods.is_verified',

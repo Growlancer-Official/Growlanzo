@@ -33,6 +33,15 @@ const HEX64_ALLOWLIST: Record<string, string> = {
 };
 const CREDENTIAL_WORD_RE = /(secret|password|token|api[_-]?key|service[_-]?role)/i;
 
+// Narrow, per-file+name exceptions. A whole-file exemption would hide a real
+// secret pasted into the same script; `file:NAME` keeps every other line of
+// that file under the scanner. Adding an entry is a deliberate act, which is
+// the point — state why the value cannot be a live credential.
+const ASSIGNMENT_ALLOWLIST: Record<string, string> = {
+  'scripts/e2e/twenty-user-journey.cjs:PASSWORD':
+    'fixed password of disposable @growlancer-test.com QA accounts; not a provider credential',
+};
+
 // Values that are obviously not secrets: placeholders, template refs, route
 // paths, prose, provider key *ids* (public by design) and anything with a slash
 // or a URL scheme (those are paths/links, not credentials).
@@ -85,7 +94,8 @@ export function findCommittedSecrets(files: Record<string, string>) {
     if (SKIP_PATHS.test(file)) continue;
     content.split(/\r?\n/).forEach((line, index) => {
       const m = line.match(ASSIGNMENT_RE);
-      if (m && CREDENTIAL_NAME_RE.test(m[1]) && looksLikeSecretValue(m[2])) {
+      const allowedAssignment = m && ASSIGNMENT_ALLOWLIST[`${file}:${m[1]}`] !== undefined;
+      if (m && !allowedAssignment && CREDENTIAL_NAME_RE.test(m[1]) && looksLikeSecretValue(m[2])) {
         // Report the NAME, never the value.
         assignmentHits.push({ file, name: m[1] });
       }
