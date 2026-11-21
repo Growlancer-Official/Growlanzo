@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **748 files** across 12 groups.
+Total tracked structure: **752 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -15,7 +15,7 @@ Total tracked structure: **748 files** across 12 groups.
 | Client libraries & services | 71 |
 | Edge functions | 35 |
 | Edge shared modules | 12 |
-| Database migrations | 326 |
+| Database migrations | 330 |
 | Archived migrations (not applied) | 6 |
 | Test suite | 87 |
 | Operational scripts | 43 |
@@ -338,7 +338,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/site.ts`
 - `supabase/functions/_shared/urlGuard.ts`
 
-## Database migrations (326)
+## Database migrations (330)
 
 Ordered by filename timestamp. Applied by `supabase db push --include-all` in Backend Deploy; never by hand in the dashboard.
 
@@ -497,6 +497,9 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20261112000001_kyc_delayed_verify_notifications.sql`
 - `supabase/migrations/20261112000002_kyc_sweep_manual_review_guard.sql`
 - `supabase/migrations/20261118000000_kyc_rejection_attempts_cooldown.sql`
+- `supabase/migrations/20261118073419_kyc_block_backend_enforcement_reconciliation_stub.sql`
+- `supabase/migrations/20261118082903_kyc_delayed_verify_notifications_reconciliation_stub.sql`
+- `supabase/migrations/20261118083740_kyc_sweep_manual_review_guard_reconciliation_stub.sql`
 - `supabase/migrations/20261119000000_kyc_block_backend_enforcement.sql`
 - `supabase/migrations/20261120000000_pro_badge_subscription_sync.sql`
 - `supabase/migrations/20261201000000_service_views_and_orders.sql`
@@ -667,6 +670,7 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20270404000100_platform_kyc_status_phone.sql`
 - `supabase/migrations/20270405000000_defer_full_kyc_beta.sql`
 - `supabase/migrations/20270406000000_fix_contract_freelancer_net.sql`
+- `supabase/migrations/20270407000000_platform_reviews_drift_exception.sql`
 - `supabase/migrations/20271118000000_restrict_client_profile_identifiers.sql`
 
 ## Archived migrations (not applied) (6)
