@@ -1,101 +1,20 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- Reconciliation stub for 20270407000000.
+-- Reconciliation stub for 20270407000000 — intentionally contains NO SQL.
 --
--- The drift-exception work that this migration originally carried
--- (self_writable_trust_columns() definition + platform_reviews.rating
--- exception + zero-finding assert) has been folded into
--- 20270402000000_platform_reviews.sql, which creates the table and trigger.
+-- History: this migration originally carried the drift-exception work
+-- (self_writable_trust_columns() redefinition + the platform_reviews.rating
+-- exception + the zero-finding assert). That work, and the platform-review
+-- grants, now have exactly ONE authoritative definition:
 --
--- This file stays as a no-op so the migration drift check
--- (backend-deploy.yml) does not flag 20270407000000 as remote-only.
--- Re-applying it is idempotent: CREATE OR REPLACE of the same function body
--- and the same zero-finding assert are no-ops on a DB that already has them.
+--     supabase/migrations/20270402000000_platform_reviews.sql
+--     (table + trigger + RLS + grants + self_writable_trust_columns()
+--      + zero-finding assert + NOTIFY pgrst)
+--
+-- The version is recorded on the remote, so the file must keep existing: the
+-- drift check in .github/workflows/backend-deploy.yml fails a repo that is
+-- missing a remote-recorded version. It is a no-op by design — a second
+-- CREATE OR REPLACE of the same function here is a duplicate definition, and a
+-- stale copy can win depending on what actually ran (that is how the live DB
+-- drifted during Backend Deploy runs #87–#96). Repair or change the definition
+-- with a NEW migration version, never by copying it back into this file.
 -- ═══════════════════════════════════════════════════════════════════════════
-
--- The service_role-only helper that the hourly check_security_drift() sweep
--- calls. Re-registered here for repo/DB parity; the authoritative definition
--- lives in 20270402000000_platform_reviews.sql.
-
--- Belt-and-suspenders: ensure set_platform_review_fields is not executable by
--- any client role (the 20270402000000 migration revokes anon, but re assert it
--- here so the anon_reachable_money_rpc detector stays clean after redefinition).
--- It is a TRIGGER function: Postgres does not check EXECUTE when a trigger
--- fires, so no client needs the grant. `authenticated` was the remaining hole
--- the detector reported.
-REVOKE ALL ON FUNCTION public.set_platform_review_fields() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.set_platform_review_fields() TO service_role;
-CREATE OR REPLACE FUNCTION public.self_writable_trust_columns()
-RETURNS TABLE(table_name text, column_name text)
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path TO 'public', 'pg_catalog'
-AS $function$
-  SELECT c.relname::text, a.attname::text
-    FROM pg_class c
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
-   WHERE n.nspname = 'public'
-     AND c.relkind = 'r'
-     AND (
-       a.attname IN (
-         'is_admin', 'is_super_admin', 'is_staff', 'is_pro', 'verification_status',
-         'kyc_verified_at', 'identity_verified', 'suspended_at', 'suspend_reason',
-         'suspended_by', 'banned_at', 'is_verified', 'verified', 'seller_level',
-         'reputation_score', 'weighted_rating', 'rating', 'total_reviews',
-         'commission_rate'
-       )
-       OR (a.attname = 'role' AND c.relname IN ('profiles', 'profiles_private'))
-     )
-     AND has_column_privilege('authenticated', c.oid, a.attname, 'UPDATE')
-     AND EXISTS (
-       SELECT 1 FROM pg_policies p
-        WHERE p.schemaname = 'public'
-          AND p.tablename = c.relname
-          AND p.cmd IN ('UPDATE', 'ALL')
-          AND (
-            coalesce(p.qual, '') LIKE '%uid()%'
-            OR coalesce(p.with_check, '') LIKE '%uid()%'
-            OR coalesce(p.qual, '') LIKE '%auth.uid()%'
-            OR coalesce(p.with_check, '') LIKE '%auth.uid()%'
-          )
-     )
-     AND NOT EXISTS (
-       SELECT 1 FROM pg_trigger t
-       JOIN pg_proc tp ON tp.oid = t.tgfoid
-        WHERE t.tgrelid = c.oid
-          AND NOT t.tgisinternal
-          AND tp.proname LIKE 'protect%'
-     )
-     AND (c.relname || '.' || a.attname) NOT IN (
-       'reviews.rating',
-       'platform_reviews.rating',
-       'certifications.verified',
-       'freelancer_skills.is_verified',
-       'payout_methods.is_verified',
-       'services.rating'
-     )
-   ORDER BY c.relname, a.attname;
-$function$;
-
-REVOKE ALL ON FUNCTION public.self_writable_trust_columns() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.self_writable_trust_columns() TO service_role;
-
--- Assert: live schema yields zero self-writable trust-column findings.
-DO $assert$
-DECLARE
-  v_bad text;
-BEGIN
-  SELECT string_agg(table_name || '.' || column_name, ', ' ORDER BY table_name, column_name)
-    INTO v_bad
-    FROM public.self_writable_trust_columns();
-  IF v_bad IS NOT NULL THEN
-    RAISE EXCEPTION 'Unguarded trust column(s) still present after exception update: %', v_bad;
-  END IF;
-END
-$assert$;
-
--- Keep PostgREST's schema cache in sync with the redefinition above so RPC
--- routing sees the current function signature (the body is always read live,
--- but the cache must know the function exists under its current oid).
-NOTIFY pgrst, 'reload schema';

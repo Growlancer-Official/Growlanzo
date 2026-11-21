@@ -231,7 +231,7 @@ const DRIFT = fs.readFileSync(
 
 /** Comments carry prose (and apostrophes) that would be parsed as values. */
 function stripSqlComments(sql: string): string {
-  return sql.replace(/--[^\n]*/g, '');
+  return sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, '');
 }
 
 const DRIFT_SQL = stripSqlComments(DRIFT);
@@ -290,5 +290,85 @@ describe('security drift monitor (migration 20270119000014)', () => {
     expect(DRIFT).toMatch(/Unguarded trust column\(s\) present/);
     // …and must prove the detector works rather than merely being quiet
     expect(DRIFT).toMatch(/_drift_probe_trust/);
+  });
+});
+
+/**
+ * One authoritative definition, enforced.
+ *
+ * Measured 2026-11-21: the platform-review grants and
+ * `self_writable_trust_columns()` were declared in THREE migrations
+ * (20270402000000, 20270407000000, 20271121000000). The versions were all
+ * recorded as applied while production kept an older function body, so the
+ * fix appeared deployed and was not — ten red Backend Deploy runs later the
+ * drift surfaced as a live audit finding. Copies of security SQL are the bug;
+ * this pins the single source of truth and keeps the two reconciliation stubs
+ * free of statements.
+ */
+const PLATFORM_REVIEW_MIGRATIONS = [
+  '20270402000000_platform_reviews.sql',
+  '20270407000000_platform_reviews_drift_exception.sql',
+  '20271121000000_force_platform_review_guard_parity.sql',
+];
+const PLATFORM_REVIEW_AUTHORITATIVE = PLATFORM_REVIEW_MIGRATIONS[0];
+
+describe('platform-review guards have one authoritative definition', () => {
+  const sql = new Map(
+    PLATFORM_REVIEW_MIGRATIONS.map((file) => [
+      file,
+      stripSqlComments(fs.readFileSync(path.join(ROOT, 'supabase/migrations', file), 'utf8')),
+    ]),
+  );
+
+  it('defines self_writable_trust_columns() in exactly one of the three migrations', () => {
+    const definers = PLATFORM_REVIEW_MIGRATIONS.filter((file) =>
+      /CREATE OR REPLACE FUNCTION public\.self_writable_trust_columns\(\)/.test(sql.get(file) as string),
+    );
+    expect(definers).toEqual([PLATFORM_REVIEW_AUTHORITATIVE]);
+  });
+
+  it('touches the platform-review grants in exactly one of the three migrations', () => {
+    const granters = PLATFORM_REVIEW_MIGRATIONS.filter((file) =>
+      /(REVOKE|GRANT)[^;]*FUNCTION public\.set_platform_review_fields\(\)/.test(
+        sql.get(file) as string,
+      ),
+    );
+    expect(granters).toEqual([PLATFORM_REVIEW_AUTHORITATIVE]);
+  });
+
+  it('keeps the authoritative grants service_role-only, with the documented exception', () => {
+    const body = sql.get(PLATFORM_REVIEW_AUTHORITATIVE) as string;
+    expect(body).toMatch(
+      /REVOKE ALL ON FUNCTION public\.set_platform_review_fields\(\) FROM PUBLIC, anon, authenticated/,
+    );
+    expect(body).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.set_platform_review_fields\(\) TO service_role/,
+    );
+    expect(body).toContain("'platform_reviews.rating'");
+  });
+
+  it('never grants the trigger function to a client role, in any migration', () => {
+    const dir = path.join(ROOT, 'supabase/migrations');
+    const offenders = fs
+      .readdirSync(dir)
+      .filter((file) => file.endsWith('.sql'))
+      .filter((file) => {
+        const body = stripSqlComments(fs.readFileSync(path.join(dir, file), 'utf8'));
+        return /GRANT\s+[^;]*\sON\s+FUNCTION\s+public\.set_platform_review_fields\(\)\s+TO\s+[^;]*\b(anon|authenticated|PUBLIC)\b/i.test(
+          body,
+        );
+      });
+    expect(offenders, 'only service_role may execute the platform-review trigger function').toEqual([]);
+  });
+
+  it('does not let the comment stripper hide real SQL (guard the guard)', () => {
+    // A stub's prose names the function; the stripper must remove both comment
+    // forms or a comment-only stub would be counted as a second definition.
+    expect(
+      stripSqlComments(
+        '-- CREATE OR REPLACE FUNCTION public.self_writable_trust_columns()\n/* GRANT … */',
+      ),
+    ).not.toMatch(/FUNCTION/);
+    expect(stripSqlComments('SELECT 1; -- note')).toContain('SELECT 1;');
   });
 });

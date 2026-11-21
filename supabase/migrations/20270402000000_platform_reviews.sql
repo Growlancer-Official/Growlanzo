@@ -7,6 +7,17 @@
 --
 -- Reads are public (published rows only). Writes are own-row only; the client
 -- cannot choose its role or flip `status`.
+--
+-- ─── SINGLE SOURCE OF TRUTH for the platform-review guards ────────────────
+-- This file is the ONE place that
+--   • grants privileges on public.set_platform_review_fields(), and
+--   • defines public.self_writable_trust_columns() (with the documented
+--     platform_reviews.rating exception) and asserts it yields zero findings.
+-- 20270407000000 and 20271121000000 are comment-only stubs: their versions are
+-- recorded on the remote (so the files must exist for the drift check), but
+-- re-stating the definitions there is what let an older body reach production
+-- during Backend Deploy runs #87–#96. Keep it that way — a repair or change is a
+-- new migration, never a second copy.
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
 
@@ -115,12 +126,15 @@ CREATE POLICY "Users delete own platform review"
 GRANT SELECT ON public.platform_reviews TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.platform_reviews TO authenticated;
 
--- The BEFORE INSERT/UPDATE trigger runs as SECURITY DEFINER, so the function
--- itself must NOT be executable by anon (a NULL-unsafe guard inside it would
--- fail open). Revoke the PUBLIC default and re-grant only to authenticated +
--- service_role (the latter is needed for the trigger to fire).
-REVOKE EXECUTE ON FUNCTION public.set_platform_review_fields() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.set_platform_review_fields() TO authenticated, service_role;
+-- The BEFORE INSERT/UPDATE trigger runs as SECURITY DEFINER. Postgres does NOT
+-- check EXECUTE privilege when a trigger fires, so no client role needs a grant
+-- here — `authenticated` was the remaining hole the anon_reachable_money_rpc
+-- detector reported. Only service_role keeps it (manual/administrative calls).
+--
+-- AUTHORITATIVE: the only grant statement for this function in the repo. Do not
+-- re-declare it in a later migration; add a new version instead.
+REVOKE ALL ON FUNCTION public.set_platform_review_fields() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.set_platform_review_fields() TO service_role;
 
 CREATE INDEX IF NOT EXISTS idx_platform_reviews_role_recent
   ON public.platform_reviews (role, created_at DESC)

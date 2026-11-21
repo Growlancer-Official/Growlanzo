@@ -377,3 +377,90 @@ jobs:
             done
           fi
           exit $aec
+
+  # ── Failure alert ─────────────────────────────────────────────────────────
+  # Measured 2026-11-20/21: Backend Deploy went red on ten consecutive runs
+  # (#87–#96) without anyone acting. GitHub only emails the pusher, work kept
+  # landing, and production silently kept the older function bodies while the
+  # repo claimed the fix was deployed. A red deploy has to announce itself where
+  # the work happens, not only in an inbox.
+  #
+  # No new secret is needed: the workflow token opens/comments a GitHub issue
+  # labelled `deploy-alert` with the run link, commit and failing step(s), and the
+  # next green run closes it. A repeated failure adds a comment to the SAME open
+  # issue, so the run history stays in one thread instead of a flood of issues.
+  #
+  # If this job itself fails, the cause is the token, not the deploy: Settings →
+  # Actions → General → Workflow permissions must allow read/write for the
+  # workflow token (the job-level `permissions:` below cannot exceed that
+  # ceiling). It is left failing on purpose — an alert that cannot fire must not
+  # be reported as success.
+  alert:
+    name: Alert (deploy failure → GitHub issue)
+    needs: deploy
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - name: Deploy failed — open or update the deploy-alert issue
+        if: needs.deploy.result != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+        run: |
+          set -euo pipefail
+          gh label create deploy-alert --color B60205 \
+            --description "Backend Deploy is failing on main" --force >/dev/null
+
+          # Name the failing step(s): the annotation alone does not say which
+          # guard stopped the deploy, and that is the first question asked.
+          failed_steps=$(gh run view "$GITHUB_RUN_ID" --json jobs \
+            --jq '.jobs[] | .name as $job | [.steps[] | select(.conclusion == "failure") | .name] | select(length > 0) | "\($job): \(join(", "))"' \
+            | paste -sd ';' - || true)
+
+          body=$(printf '%s\n' \
+            '**Backend Deploy is red on `main`.**' \
+            '' \
+            "- Run: $RUN_URL" \
+            "- Commit: \`$COMMIT_SHA\`" \
+            "- Result: \`$DEPLOY_RESULT\`" \
+            "- Failed step(s): ${failed_steps:-unknown}" \
+            '' \
+            'A red Backend Deploy means the migrations and edge functions in this commit did **not** reach production. Do not assume the live DB matches the repo until a run is green. Read the run annotations, fix the cause and push — a green run closes this issue automatically.')
+
+          issue=$(gh issue list --label deploy-alert --state open --limit 1 \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body "$body"
+            echo "::error::Backend Deploy failed ($DEPLOY_RESULT) — appended to open issue #$issue"
+          else
+            gh issue create --title '🔴 Backend Deploy failing on main' \
+              --label deploy-alert --body "$body"
+            echo "::error::Backend Deploy failed ($DEPLOY_RESULT) — opened a deploy-alert issue"
+          fi
+
+      - name: Deploy green — close the deploy-alert issue
+        if: needs.deploy.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          issue=$(gh issue list --label deploy-alert --state open --limit 1 \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue close "$issue" \
+              --comment "✅ Backend Deploy is green again: $RUN_URL (commit \`$COMMIT_SHA\`)."
+            echo "Closed deploy-alert issue #$issue after a green run."
+          else
+            echo "No open deploy-alert issue — nothing to close."
+          fi
