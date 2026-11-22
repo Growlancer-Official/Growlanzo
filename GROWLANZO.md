@@ -124,6 +124,15 @@ value, so this only matters if a function starts answering 401 to service-role c
   next green run closes it. It uses the workflow token — no extra secret and no
   repository setting change: the job's own `permissions: issues: write` / `actions: read`
   block adds those scopes on top of whatever default Settings → Actions sets.
+- CI (`.github/workflows/ci.yml`) failure alerting: same contract with label
+  `ci-alert`. Scoped to `push` on `main` (PR failures stay on the PR), cancelled runs
+  ignored, and the issue names the failing job/step. Added after CI sat red for 12
+  consecutive main pushes with nobody told.
+- Pre-hydration guards (the light-theme lock and the boot splash for SPA-fallback
+  routes) are injected by `scripts/build.mjs` **after** `npx vike build`, never by a
+  Vite plugin: `closeBundle` runs before Vike writes its HTML, so a plugin there
+  silently shipped nothing (measured 2026-11-22). The build hard-fails if
+  `dist/index.html` lacks either marker.
 - Edge functions can also be deployed directly with the pinned CLI:
   `npx supabase@2 functions deploy <name> --project-ref zttwsjehcgaicziqyxpq`
   (`verify_jwt` comes from `supabase/config.toml`; only webhook/cron functions disable it).

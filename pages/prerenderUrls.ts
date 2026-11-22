@@ -1,15 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════
 // Single source of truth: which public URLs are PRE-RENDERED
 // ═══════════════════════════════════════════════════════════════════
-// This list is consumed by TWO places that MUST stay in sync:
+// This list is consumed by ONE place:
 //
 //   1. pages/+onBeforePrerenderStart.ts — tells Vike which URLs to render
 //      to static HTML at build time (instant FCP + real HTML for crawlers).
-//   2. vite.config.ts — the pre-hydration "boot splash" overlay is shown for
-//      every path NOT in this list (so a statically-prerendered page never
-//      flashes the SPA-fallback homepage shell before hydration).
 //
-// They used to be two hand-maintained arrays, which drifted: `/report` and
+// The pre-hydration boot splash does NOT read this list any more. It derives
+// the route the HTML was rendered for from `#vike_pageContext` itself (see
+// scripts/build.mjs), so it cannot drift from what Vike actually prerendered.
+//
+// A second hand-maintained copy did drift once: `/report` and
 // `/refund-policy` were linked site-wide from the footer but missing from
 // BOTH — so those two public pages were served the homepage HTML (wrong
 // <title>/canonical, a React hydration mismatch, nothing rendered until JS

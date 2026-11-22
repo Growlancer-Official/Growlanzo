@@ -12,7 +12,7 @@ import { ThemeProvider, useTheme } from '../context/ThemeContext';
  * Dark mode was removed: the site must look the same on every device, whatever
  * the OS setting or a returning visitor's stored preference says. That is a
  * guarantee with two halves, and both are asserted here:
- *   1. the pre-paint guard (injected by vite.config.ts into every built page)
+ *   1. the pre-paint guard (injected by scripts/build.mjs into every built page)
  *      strips `.dark` and pins `color-scheme: light` before anything paints;
  *   2. ThemeProvider repeats it after hydration, so a stale class can never
  *      survive a client-side render.
@@ -105,10 +105,13 @@ describe('ThemeProvider (light only)', () => {
 
   it('ships a guard that enforces light before the first paint', () => {
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-    const viteConfig = readFileSync(path.join(root, 'vite.config.ts'), 'utf8');
-    expect(viteConfig).toContain('THEME_FOUC_GUARD');
-    expect(viteConfig).toContain("classList.remove('dark')");
-    expect(viteConfig).not.toContain("classList.add('dark')");
-    expect(viteConfig).not.toContain('prefers-color-scheme');
+    // The guard is defined in scripts/build.mjs and injected into every page
+    // after Vike has written its HTML. It used to live in vite.config.ts's
+    // closeBundle plugin, which ran too early to survive (measured 2026-11-22).
+    const buildScript = readFileSync(path.join(root, 'scripts/build.mjs'), 'utf8');
+    expect(buildScript).toContain('THEME_FOUC_GUARD');
+    expect(buildScript).toContain("classList.remove('dark')");
+    expect(buildScript).not.toContain("classList.add('dark')");
+    expect(buildScript).not.toContain('prefers-color-scheme');
   });
 });

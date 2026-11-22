@@ -238,3 +238,80 @@ jobs:
           name: element-audit-results
           path: tests/e2e-artifacts/
           retention-days: 14
+
+  # ── Failure alerting ────────────────────────────────────────
+  # Same contract as the Backend Deploy alert: a red run on main opens (or
+  # appends to) a GitHub issue, and the next green run closes it. Without this,
+  # CI went red on 12 consecutive main pushes and nobody was told — the exact
+  # silent-failure shape the backend alert was added for.
+  #
+  # Scoped to `push` on main: pull-request failures are visible on the PR and
+  # must not open repository issues. Cancelled runs (concurrency
+  # cancel-in-progress) are ignored too — a superseded run is not a failure.
+  alert:
+    name: Alert (CI failure → GitHub issue)
+    needs: [typecheck, lint, build, element-audit]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - name: CI failed — open or update the ci-alert issue
+        if: contains(needs.*.result, 'failure')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          gh label create ci-alert --color D93F0B \
+            --description "CI is failing on main" --force >/dev/null
+
+          # Name the failing job(s) and step(s): the first question after a red
+          # run is which guard stopped it, and the annotation alone does not say.
+          failed_steps=$(gh run view "$GITHUB_RUN_ID" --json jobs \
+            --jq '.jobs[] | .name as $job | [.steps[] | select(.conclusion == "failure") | .name] | select(length > 0) | "\($job): \(join(", "))"' \
+            | paste -sd ';' - || true)
+
+          body=$(printf '%s\n' \
+            '**CI is red on `main`.**' \
+            '' \
+            "- Run: $RUN_URL" \
+            "- Commit: \`$COMMIT_SHA\`" \
+            "- Failed job(s)/step(s): ${failed_steps:-unknown}" \
+            '' \
+            'A red CI means typecheck, lint, unit tests, the production build or the element audit failed on `main`. Vercel deploys independently of this workflow, so the live frontend may already carry the change — treat it as unverified until a run is green. Fix the cause and push; a green run closes this issue automatically.')
+
+          issue=$(gh issue list --label ci-alert --state open --limit 1 \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body "$body"
+            echo "::error::CI failed — appended to open issue #$issue"
+          else
+            gh issue create --title '🔴 CI failing on main' \
+              --label ci-alert --body "$body"
+            echo "::error::CI failed — opened a ci-alert issue"
+          fi
+
+      - name: CI green — close the ci-alert issue
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          issue=$(gh issue list --label ci-alert --state open --limit 1 \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue close "$issue" \
+              --comment "✅ CI is green again: $RUN_URL (commit \`$COMMIT_SHA\`)."
+            echo "Closed ci-alert issue #$issue after a green run."
+          else
+            echo "No open ci-alert issue — nothing to close."
+          fi

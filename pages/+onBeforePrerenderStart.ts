@@ -8,11 +8,12 @@ import { PUBLIC_PRERENDER_URLS } from './prerenderUrls';
 // static HTML. Visitors get fully-rendered HTML instantly without needing a
 // running SSR server (like a CDN-hosted static site).
 //
-// The URL list lives in `pages/prerenderUrls.ts` because vite.config.ts's
-// boot-splash guard needs the exact same list (a page that is prerendered
-// must NOT show the pre-hydration overlay, and vice-versa). Keeping two
-// copies drifted once already: `/report` and `/refund-policy` were linked
-// site-wide from the footer but prerendered nowhere.
+// The URL list lives in `pages/prerenderUrls.ts`. It used to be duplicated in
+// vite.config.ts for the boot-splash guard; that guard now derives the rendered
+// route from the HTML's own `#vike_pageContext`, so this list has a single
+// consumer again. The old two-copy version drifted: `/report` and
+// `/refund-policy` were linked site-wide from the footer but prerendered
+// nowhere.
 //
 // Auth-protected routes (dashboard, admin, client) are NOT listed here —
 // they require client-side session checks which can't be pre-rendered. Their

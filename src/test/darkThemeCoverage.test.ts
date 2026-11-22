@@ -256,9 +256,18 @@ describe('dark theme — every light-surface utility is accounted for', () => {
   it('has one boot splash, and it is the light one', () => {
     // Light-only now: the splash no longer needs a dark twin, and a leftover
     // `html.dark #boot-overlay` rule would be a stale copy of a removed theme.
-    const vite = readRepo('vite.config.ts');
-    expect(vite).toContain('#boot-overlay');
-    expect(vite).not.toMatch(/html\.dark\s+#boot-overlay/);
+    //
+    // The splash lives in scripts/build.mjs, NOT vite.config.ts. A closeBundle
+    // plugin in vite.config ran before Vike wrote its HTML, so every build
+    // shipped zero splashes and SPA-fallback routes hydrated the homepage DOM
+    // (React #418 on four audited routes, measured 2026-11-22). The build now
+    // inspects the final dist/index.html for `__boot_splash_marker__` and
+    // fails if it is missing, so this cannot silently regress again.
+    const build = readRepo('scripts/build.mjs');
+    expect(build).toContain('#boot-overlay');
+    expect(build).toContain('__boot_splash_marker__');
+    expect(build).not.toMatch(/html\.dark\s+#boot-overlay/);
+    expect(readRepo('vite.config.ts')).not.toContain('bootSplashInjectPlugin');
   });
 
   it('carries no excuse that the remap already handles', () => {
@@ -416,13 +425,15 @@ describe('dark theme — no hardcoded near-white surfaces', () => {
 });
 
 /**
- * The theme guard that runs BEFORE React — and the reason it is duplicated.
+ * The theme guard that runs BEFORE React.
  *
- * It has to exist in two build paths (the Vite plugin that injects into every
- * prerendered page, and build.mjs's from-scratch SPA-fallback shell), so these
- * tests hold the two copies together instead of trusting them to stay in step.
+ * It has exactly one definition (scripts/build.mjs) and is injected into every
+ * page Vike emits plus the from-scratch SPA-fallback shell. It used to live in
+ * vite.config.ts too, injected from a closeBundle plugin — that hook runs
+ * BEFORE Vike writes its HTML, so both copies disappeared from the shipped
+ * pages and nothing failed (measured 2026-11-22: 0 markers in dist/index.html).
  */
-describe('theme FOUC guard — one behaviour, two build paths', () => {
+describe('theme FOUC guard — one definition, injected at build time', () => {
   const MARKER = '<!-- __theme_guard_marker__ -->';
   const guardIn = (relative: string) => {
     const text = readRepo(relative);
@@ -431,15 +442,15 @@ describe('theme FOUC guard — one behaviour, two build paths', () => {
     return text.slice(at, text.indexOf('</script>', at) + '</script>'.length);
   };
 
-  const viteGuard = guardIn('vite.config.ts');
   const buildGuard = guardIn('scripts/build.mjs');
 
-  it('is byte-identical in vite.config.ts and scripts/build.mjs', () => {
-    expect(buildGuard).toBe(viteGuard);
+  it('has exactly one definition — the one that runs after Vike writes HTML', () => {
+    expect(readRepo('vite.config.ts')).not.toContain('__theme_guard_marker__');
+    expect(readRepo('scripts/build.mjs')).toContain('injectPreHydrationGuards');
   });
 
   it('pins the site to light on every route — the site is light-only now', () => {
-    for (const guard of [viteGuard, buildGuard]) {
+    for (const guard of [buildGuard]) {
       // A stale `.dark` class (older build, saved preference) must be removed
       // before CSS paints, or a returning visitor sees a dark, half-themed page.
       expect(guard).toContain("root.classList.remove('dark')");
@@ -455,9 +466,9 @@ describe('theme FOUC guard — one behaviour, two build paths', () => {
   });
 
   it('is injected into <head>, before anything paints', () => {
-    // The plugin must target </head>, not </body>: a `<script>` at the end of
+    // The injector must target </head>, not </body>: a `<script>` at the end of
     // the body runs after the browser may already have painted the cream body.
-    expect(readRepo('vite.config.ts')).toContain("html.replace('</head>', THEME_FOUC_GUARD");
+    expect(readRepo('scripts/build.mjs')).toMatch(/replace\('<\/head>', `\$\{THEME_FOUC_GUARD\}/);
   });
 
   it('is not duplicated back into index.html, which nothing serves', () => {

@@ -82,8 +82,15 @@ function fail(msg) {
 const start = Date.now();
 
 /**
- * Theme FOUC guard, byte-identical to THEME_FOUC_GUARD in vite.config.ts
- * (src/test/darkThemeCoverage.test.ts fails if the two ever differ).
+ * Theme FOUC guard — defined ONLY here now.
+ *
+ * It used to live in vite.config.ts and be injected by a `closeBundle` plugin.
+ * That hook runs BEFORE Vike writes the prerendered HTML, so the plugin wrote
+ * into files Vike then replaced: measured 2026-11-22, every built HTML shipped
+ * 0 theme guards and 0 boot splashes, which is why CI's element audit went red
+ * with React hydration error #418 on four non-prerendered routes. Injection now
+ * happens in this script, after `npx vike build` has finished writing, and
+ * step 4 hard-fails if either marker is missing from dist/index.html.
  *
  * The Vite plugin injects it into every HTML Vike prerenders; this generator
  * writes its own shell from scratch, so it needs its own copy of the same
@@ -113,6 +120,137 @@ const THEME_FOUC_GUARD = `<!-- __theme_guard_marker__ -->
     }
   })();
 </script>`;
+
+/**
+ * Pre-hydration boot splash — injected into every built HTML file.
+ *
+ * Vike prerenders ONLY the public pages; every other path is served the
+ * prerendered HOMEPAGE HTML. Without this, React hydrates the homepage DOM
+ * against a different route's tree and throws error #418 on every device.
+ *
+ * The check is derived from the HTML itself instead of a hardcoded URL list:
+ * `<script id="vike_pageContext">` carries the route this file was rendered
+ * for. A prerendered /pricing says `routeParams["*"] = "pricing"`; the
+ * homepage shell served for /login says `""`. They disagree exactly when
+ * hydration would be wrong, so no second list can drift from the first.
+ *
+ * Clearing #root makes vike-react take its `createRoot` path (it hydrates only
+ * when #root is non-empty) and the overlay covers the gap until App.tsx calls
+ * `window.__growlancerBootReady`.
+ */
+const BOOT_SPLASH_HTML = `<!-- __boot_splash_marker__ -->
+<style>
+  #boot-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #FFF8EE;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.25s ease;
+  }
+  #boot-overlay .boot-spinner {
+    width: 44px;
+    height: 44px;
+    border: 4px solid #d1fae5;
+    border-top-color: #10b981;
+    border-radius: 50%;
+    animation: boot-spin 0.8s linear infinite;
+  }
+  @keyframes boot-spin { to { transform: rotate(360deg); } }
+</style>
+<script>
+  (function () {
+    var path = window.location.pathname;
+    if (path.length > 1 && path.charAt(path.length - 1) === '/') path = path.slice(0, -1);
+    var route = '';
+    try {
+      var ctx = document.getElementById('vike_pageContext');
+      route = (ctx && JSON.parse(ctx.textContent).routeParams['*']) || '';
+    } catch (e) {
+      route = '';
+    }
+    var renderedFor = '/' + String(route).replace(/^\\/+/, '').replace(/\\/+$/, '');
+    // The HTML was rendered for this exact URL: hydrate normally, no overlay.
+    if (renderedFor === path) return;
+    // SPA fallback: this is the homepage HTML served for another route.
+    var rootEl = document.getElementById('root');
+    if (rootEl) rootEl.innerHTML = '';
+    var div = document.createElement('div');
+    div.id = 'boot-overlay';
+    div.innerHTML = '<div class="boot-spinner"></div>';
+    document.body.appendChild(div);
+    var hidden = false;
+    var hide = function () {
+      if (hidden) return;
+      hidden = true;
+      div.style.opacity = '0';
+      div.style.pointerEvents = 'none';
+      window.setTimeout(function () {
+        if (div.parentNode) div.parentNode.removeChild(div);
+      }, 350);
+    };
+    window.__growlancerBootReady = hide;
+    // Safety net: never trap the user behind the overlay if boot fails.
+    window.setTimeout(hide, 15000);
+  })();
+</script>`;
+
+/**
+ * Writes the theme guard and the boot splash into every HTML Vike produced.
+ *
+ * Must run AFTER `npx vike build` (Vike writes its HTML at the end of the
+ * build) and BEFORE step 2 copies dist/client → dist. Idempotent via the
+ * marker comments, so a SKIP_VITE_BUILD=1 rerun does not duplicate them.
+ */
+function injectPreHydrationGuards() {
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.html')) files.push(full);
+    }
+  };
+  if (!existsSync(DIST_CLIENT)) fail('dist/client/ is missing — cannot inject the pre-hydration guards');
+  walk(DIST_CLIENT);
+  if (files.length === 0) {
+    fail(
+      'Vike produced no HTML files, so the theme guard and the boot splash\n' +
+        '  could not be injected. Refusing to build a shell that hydrates the\n' +
+        '  homepage DOM on every other route (React #418).'
+    );
+  }
+
+  let themed = 0;
+  let splashed = 0;
+  const skipped = [];
+  for (const file of files) {
+    let html = readFileSync(file, 'utf8');
+    const original = html;
+    // Some .html files are NOT pages: Google Search Console verification
+    // tokens are plain-text files with an .html extension. Skip anything that
+    // is not a full document instead of corrupting it — dist/index.html (the
+    // file every SPA fallback serves) is asserted separately in step 4a, so a
+    // real page silently losing its guards cannot pass.
+    if (!html.includes('</head>') || !html.includes('</body>')) {
+      skipped.push(file.slice(DIST_CLIENT.length + 1));
+      continue;
+    }
+    if (!html.includes('__theme_guard_marker__')) {
+      html = html.replace('</head>', `${THEME_FOUC_GUARD}\n</head>`);
+      themed++;
+    }
+    if (!html.includes('__boot_splash_marker__')) {
+      html = html.replace('</body>', `${BOOT_SPLASH_HTML}\n</body>`);
+      splashed++;
+    }
+    if (html !== original) writeFileSync(file, html);
+  }
+  ok(`injected the light theme guard into ${themed} and the boot splash into ${splashed} of ${files.length - skipped.length} page(s)`);
+  if (skipped.length > 0) ok(`skipped ${skipped.length} non-page .html file(s): ${skipped.join(', ')}`);
+}
 
 // ── Step 0: start from an EMPTY dist/ ──────────────────────────
 // Vite empties its own outDir (dist/client) but not the files sitting at the
@@ -158,6 +296,12 @@ if (process.env.SKIP_VITE_BUILD === '1') {
     fail(`Vite build failed: ${err.message}`);
   }
 }
+
+// ── Step 1b: inject the pre-hydration guards into Vike's HTML ──
+// Deliberately here and not in a vite.config closeBundle plugin: that hook runs
+// before Vike writes its HTML, so the guards were silently overwritten (every
+// build shipped 0 of them until 2026-11-22).
+injectPreHydrationGuards();
 
 // ── Step 2: Copy Vike client output → dist/ (DETERMINISTIC) ──
 // Vike (SSR/prerender) outputs the client build to dist/client/, but Vercel's
@@ -432,18 +576,6 @@ function generateFallbackIndexHtml() {
     </noscript>
 ${cssTags}
 ${THEME_FOUC_GUARD}
-    <style>
-      /* Dark theme boot splash — mirrors vite.config.ts's #boot-overlay so the
-         SPA fallback shell (served when Vike prerender is skipped) does not flash
-         the light cream theme before React applies the user's preference. */
-      html.dark #boot-overlay {
-        background: #070b14;
-      }
-      html.dark #boot-overlay .boot-spinner {
-        border-color: #123b20;
-        border-top-color: #24ba35;
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>
@@ -461,6 +593,7 @@ ${THEME_FOUC_GUARD}
     <script type="module" async>
 ${importStmts}
     </script>
+${BOOT_SPLASH_HTML}
   </body>
 </html>
 `;
@@ -480,6 +613,30 @@ if (!existsSync(DIST_HTML)) {
   );
 }
 ok(`dist/index.html exists`);
+
+// ── Step 4a: Pre-hydration guards must be in the shipped HTML ──
+// The regression this catches: the injection step runs but its output is
+// overwritten, so the site ships without the guards and every SPA-fallback
+// route hydrates the homepage DOM (React #418 on all devices) while every
+// unit test stays green. Assert the final artifact, not the intent.
+{
+  const html = readFileSync(DIST_HTML, 'utf8');
+  const required = [
+    ['light theme guard', '__theme_guard_marker__'],
+    ['boot splash', '__boot_splash_marker__'],
+  ];
+  for (const [label, marker] of required) {
+    if (!html.includes(marker)) {
+      fail(
+        `dist/index.html is missing the ${label} (${marker}).\n` +
+          `  Without it, non-prerendered routes hydrate the homepage DOM and throw\n` +
+          `  React hydration error #418. Check injectPreHydrationGuards() and the\n` +
+          `  step-3b fallback shell in scripts/build.mjs.`
+      );
+    }
+  }
+  ok('dist/index.html carries the theme guard + boot splash (pre-hydration guards ✓)');
+}
 
 // ── Step 4b: White-screen regression guard (NEVER deploy a broken shell) ──
 // Vike's client router UNCONDITIONALLY reads #vike_pageContext (and also
