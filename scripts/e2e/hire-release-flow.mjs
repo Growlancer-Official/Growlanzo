@@ -410,17 +410,32 @@ try {
   if (await startBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)) {
     await startBtn.click();
   }
-  // "Deliver Work" only renders once the freelancer has started (the server
-  // sets freelancer_started_at), so wait for the server, not just the click.
+  // Start Work is tracked by the server column freelancer_started_at; wait for
+  // that before delivery is possible, and capture the page state if it stalls.
   const started = await pollUntil(async () => {
     const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=freelancer_started_at`);
     return !!row.json?.[0]?.freelancer_started_at;
   }, { timeout: 20000 });
   check('freelancer started work on the contract', !!started);
-
-  // Reload so the page renders from the server state, then open the tab that
-  // holds the delivery control (the default tab is chat).
-  await boot(freelancerPage, `/dashboard/workspace?contract=${contractId}`);
+  if (!started) {
+    const t = await freelancerPage.locator('body').innerText().catch(() => '');
+    console.log(`· freelancer state after Start Work click: ${t.replace(/\s+/g, ' ').slice(0, 400)}`);
+    console.log(`· freelancer page URL: ${freelancerPage.url()}`);
+  }
+  // "Deliver Work" lives in the Milestones & Escrow tab, which is not the
+  // default tab. Reload straight into it so both the server state and the tab
+  // are correct for the first look.
+  await freelancerPage.locator('body').evaluate(() => {
+    window.location.href = '/dashboard/workspace?contract=' +
+      new URLSearchParams(location.search).get('contract');
+  });
+  await freelancerPage.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
+  await freelancerPage.waitForTimeout(2500);
+  const freTab = freelancerPage.getByRole('button', { name: /Milestones & Escrow/i }).first();
+  if (await freTab.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false)) {
+    await freTab.click();
+    await freelancerPage.waitForTimeout(2000);
+  }
   check('freelancer workspace opened the contract', freelancerPage.url().includes(`contract=${contractId}`));
 
   // Delivery lives inside the "Milestones & Escrow" tab, not the default
