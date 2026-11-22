@@ -1,25 +1,400 @@
 name: Backend Deploy (Supabase)
 
-# TEMPORARY verification branch (test/alert-path-verify).
-# Purpose: prove the real deploy-failure alert path — job `alert` below is a
-# verbatim copy of the one on main, but `deploy` fails on purpose so the
-# failure branch (label create + issue create/comment) actually executes with
-# the workflow GITHUB_TOKEN. No Supabase secret is used here and this file
-# never runs on main.
+# Standing rule (founder): backend changes deploy to production in real time,
+# same cadence as the frontend (Vercel). Any push touching supabase/** runs:
+#   1. Migration drift check — repo migrations must match the live DB exactly
+#      (fail-closed: out of sync = no deploy, investigate first)
+#   2. supabase db push — applies any pending migrations (no-op when in sync)
+#   3. functions deploy — every edge function redeployed from repo source
+#      (defaults: verify_jwt honored from config.toml — never loosened here)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/backend-deploy.yml'
   workflow_dispatch:
+
+concurrency:
+  group: backend-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_REF: zttwsjehcgaicziqyxpq
 
 jobs:
   deploy:
     name: Drift-check → db push → functions deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Simulated deploy failure (alert-path verification)
-        run: |
-          echo "::error::Simulated backend deploy failure — verifying the alert path."
-          exit 1
+      - uses: actions/checkout@v4
 
+      # PINNED, not `latest`. Two independent reasons, both measured:
+      #
+      # 1. `version: latest` makes the action call the GitHub releases API to
+      #    resolve the newest tag. On a shared runner IP that call is rate
+      #    limited and the whole deploy dies in one second with
+      #    "Failed to resolve latest Supabase CLI release: rate limit exceeded"
+      #    (run 44299835218, 2026-11-18). Nothing downstream ran.
+      # 2. Supabase CLI v3 REMOVED `--db-url` from `migration list` and
+      #    `db push` (it was replaced by `--remote[=<ref|branch|url>]`). The
+      # Pinned to the maintained Supabase CLI v2 line, not `latest` and not
+      # an exact old v2 tag.
+      #
+      # Reason 1 — config parsing: `v2.63.0` could not parse this repo's
+      # `supabase/config.toml` (the run died with "db has invalid keys:
+      # health_timeout … storage has invalid keys: analytics, s3_protocol, vector
+      # … experimental has invalid keys: pgdelta"). Backend Deploy #82 never got
+      # past config load, so the drift check, db push and functions deploy never
+      # ran. `v2.stable` (the latest maintained v2) parses the current config,
+      # which is why this sits on `v2.stable` rather than staying on the old
+      # 2.63.0 pin.
+      #
+      # Reason 2 — flag compatibility: the drift-check helper and the
+      # `scripts/push_migrations.mjs` path both run `supabase migration list` /
+      # `supabase db push` with `--db-url`. Supabase CLI v3 is a separate major
+      # that dropped `--db-url` in favour of `--remote=<ref|branch|url>` (hosted
+      # changes also need `--yes`), so resolving `latest` (now v3) would break the
+      # reviewed CI logic the moment the rate limit cleared. `v2.stable` keeps v2
+      # semantics on purpose. Moving to v3 is a deliberate migration: switch the
+      # helper to `--remote=<url>`, add `--yes`, and prove it against a dry run
+      # before pinning forward.
+      - uses: supabase/setup-cli@v3
+        with:
+          version: v2.stable
+
+      # Measured 2026-11-19 (Backend Deploy #82): every in-job step called
+      # `npx supabase`, which bypasses the binary the setup-cli action just
+      # installed. supabase is not a dependency of this repo, so npx fetched the
+      # npm `latest` tag on every run — and by 2026-11-19 that is v3, which
+      # rejects this repo's config.toml (unsupported keys) before it can connect.
+      # The drift gate therefore died in a few seconds on every push, so no
+      # migration and no edge function landed for days.
+      #
+      # Use the pinned v2 binary from PATH and fail loudly if that ever changes.
+      # The assertion checks for the v2 train, not one exact patch, so a
+      # `v2.stable` bump (e.g. a security fix) still passes.
+      - name: Guard — the pinned v2 CLI is the one that runs
+        run: |
+          v=$(supabase --version 2>&1 | head -1)
+          echo "supabase CLI: $v"
+          case "$v" in
+            *2.*)
+              # any v2 release is fine; `v2.stable` may move forward within v2
+              ;;
+            *)
+              echo "::error::expected a Supabase CLI v2 binary from supabase/setup-cli (version: v2.stable) on PATH, got '$v'. v3 dropped --db-url and rejects this repo's config.toml (health_timeout, storage.analytics, storage.s3_protocol, storage.vector, experimental.pgdelta), so the drift check and db push would fail."
+              exit 1
+              ;;
+          esac
+
+      - name: Guard — access token present (fail with setup instructions)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN repo secret is missing. One-time setup: Supabase Dashboard → Account → Access Tokens → generate, then add it in this repo (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      # Resolve the direct Postgres connection WITHOUT requiring a SUPABASE_DB_URL
+      # secret: derive the session-pooler URL from the existing SUPABASE_DB_PASSWORD
+      # secret + the fixed regional pooler host. The value is never echoed; it is
+      # exported for the migration steps only. Fails closed if neither source exists.
+      - name: Resolve DB connection (from SUPABASE_DB_PASSWORD — value never printed)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          if [ -n "$SUPABASE_DB_URL" ]; then
+            echo "SUPABASE_DB_URL_RESOLVED=$SUPABASE_DB_URL" >> "$GITHUB_ENV"
+            echo "DB connection source: SUPABASE_DB_URL secret"
+          elif [ -n "$SUPABASE_DB_PASSWORD" ]; then
+            encoded=$(node -e 'console.log(encodeURIComponent(process.env.SUPABASE_DB_PASSWORD))')
+            {
+              echo "SUPABASE_DB_URL_RESOLVED=postgresql://postgres.${{ env.SUPABASE_PROJECT_REF }}:${encoded}@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
+            } >> "$GITHUB_ENV"
+            echo "DB connection source: SUPABASE_DB_PASSWORD secret (URL derived)"
+          else
+            echo "::error::Neither SUPABASE_DB_URL nor SUPABASE_DB_PASSWORD repo secret is set. migration list / db push connect directly to Postgres (CI runners have no cached DB password). One-time setup: add SUPABASE_DB_PASSWORD (Project Settings → Database → database password) in this repo's Actions secrets. Never print or log its value."
+            exit 1
+          fi
+
+      # Fail-closed BEFORE anything deploys. The pentest below is the only thing
+      # that proves the deploy landed the latest locks and guards, so a deploy
+      # whose verification cannot run must not be recorded as a successful one.
+      # It used to print `::notice:: ... SKIPPED` and exit 0, which made the
+      # deploy green while its security check had never executed.
+      - name: Guard — pentest secrets present (fail-closed)
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          missing=""
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then missing="$missing SUPABASE_SERVICE_ROLE_KEY"; fi
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then missing="$missing VITE_SUPABASE_ANON_KEY"; fi
+          if [ -n "$missing" ]; then
+            echo "::error::Privilege + money-path pentest CANNOT RUN — missing repository secret(s):$missing. Failing BEFORE the deploy on purpose: no migration or function deploy is recorded as successful when its security verification was skipped."
+            echo "::error::One-time setup — add both under Settings → Secrets and variables → Actions: SUPABASE_SERVICE_ROLE_KEY (Supabase Dashboard → Project Settings → API → service_role key) and VITE_SUPABASE_ANON_KEY (the public anon key, same value the frontend ships)."
+            exit 1
+          fi
+          echo "Pentest secrets present — the deploy will be verified against production when it finishes."
+
+      # NOTE: `migration list --output json` is NOT supported by the CLI — it
+      # prints a human table. Compare REMOTE-applied versions (column 2) against
+      # repo migration files. --db-url avoids the interactive password prompt.
+      #
+      # `pre`  (before db push): only remote-only entries are drift. A migration
+      #        that exists in the repo but is not applied yet is PENDING — that is
+      #        precisely what the next step pushes, so it must not fail the gate.
+      #        (Treating it as drift made every new migration undeployable.)
+      # `post` (after db push): both directions must be empty, which proves the
+      #        push actually landed every pending migration.
+      - name: Write migration drift-check helper
+        run: |
+          cat > /tmp/driftcheck.mjs << 'EOF'
+          import fs from 'fs';
+          import { execSync } from 'child_process';
+          const mode = process.argv[2] || 'pre';
+          const dbUrl = process.env.SUPABASE_DB_URL;
+          // Redact the DB URL before anything reaches the log: it carries the
+          // database password. Measured 2026-11-18: run 77 died here in 4s with
+          // NO drift annotation at all, because stderr was discarded — so a CLI
+          // connection/auth error was indistinguishable from real drift and went
+          // undiagnosed. Keep the diagnostic, strip the credential.
+          const redact = (text) => String(text ?? '')
+            .split(dbUrl).join('[db-url]')
+            .replace(/postgres(?:ql)?:\/\/\S+/g, '[db-url]');
+          let out;
+          try {
+            out = execSync('supabase migration list --db-url ' + JSON.stringify(dbUrl), {encoding:'utf8', stdio:['ignore','pipe','pipe'], shell:true});
+          } catch (err) {
+            const detail = redact([err.stderr, err.stdout, err.message].filter(Boolean).join('\n')).trim();
+            console.error('::error::supabase migration list failed — the drift check could not run, so nothing was deployed. Redacted output follows:');
+            for (const line of detail.split(/\r?\n/).slice(-12)) console.error('::error::' + line.trim());
+            process.exit(1);
+          }
+          const remote = new Set();
+          for (const line of out.split(/\r?\n/)) {
+            if (!line.includes('|')) continue;
+            const c = line.split('|').map(s => s.trim().replace(/`/g, ''));
+            if (c.length >= 2 && /^\d{6,}$/.test(c[1])) remote.add(c[1]);
+          }
+          const files = fs.readdirSync('supabase/migrations').filter(f => f.endsWith('.sql') && f !== 'README.md');
+          const fileVersions = new Set(files.map(f => f.match(/^(\d{6,})/)?.[1]).filter(Boolean));
+          const remoteOnly = [...remote].filter(v => !fileVersions.has(v));
+          const localOnly = [...fileVersions].filter(v => !remote.has(v));
+          // Two repo files under one version is a silent deploy-killer, measured
+          // 2026-10-15: `supabase db push` matches a repo file to a live row BY
+          // VERSION, so when 20270119000000 named two different files only the
+          // first could ever match. The second looked permanently unapplied, and
+          // the attempt to apply it failed with a duplicate-key error on
+          // schema_migrations -- reporting the misleading "a migration in the
+          // local directory does not exist on the remote database". Nothing else
+          // catches it: the file is valid SQL, and the version is not drift in
+          // either direction (both files' version IS applied). Fail here, naming
+          // both files, so the fix is a renumber rather than a push flag.
+          const versionFiles = new Map();
+          for (const f of files) {
+            const v = f.match(/^(\d{6,})/)?.[1];
+            if (!v) continue;
+            versionFiles.set(v, [...(versionFiles.get(v) || []), f]);
+          }
+          const duplicates = [...versionFiles.entries()].filter(([, group]) => group.length > 1);
+          console.log('mode:', mode, '| files:', files.length, '| remote-applied:', remote.size, '| pending:', localOnly.length, '| duplicate versions:', duplicates.length);
+          for (const [v, group] of duplicates) {
+            console.error('::error::duplicate migration version ' + v + ' in repo (one version must name exactly one migration): ' + group.join(', '));
+          }
+          for (const v of remoteOnly) console.error('::error::remote-only migration (in DB, missing from repo): ' + v);
+          if (mode === 'post') {
+            for (const v of localOnly) console.error('::error::local-only migration (still not applied after db push): ' + v);
+          }
+          const drift = mode === 'post' ? (remoteOnly.length || localOnly.length) : remoteOnly.length;
+          const failed = drift || duplicates.length;
+          if (failed) {
+            if (duplicates.length) {
+              console.error('::error::resolve the duplicate version(s) above by renumbering one file to a version no migration uses — NOT by adding `db push` flags, which would hide which file is really live');
+            }
+            console.error('::error::migration drift detected — resolve with `supabase migration fetch` (adopt what is live) or a new migration file BEFORE deploying');
+            process.exit(1);
+          }
+          if (mode === 'post') {
+            console.log('Post-push OK — every repo migration is applied and nothing is live-only.');
+          } else if (localOnly.length) {
+            console.log('Pre-flight OK — ' + localOnly.length + ' migration(s) pending; db push will apply them.');
+          } else {
+            console.log('Pre-flight OK — repo and live DB already in sync.');
+          }
+          EOF
+
+      # Diagnostic: prove `supabase migration list --db-url` can actually
+      # connect + query the remote, separately from the drift logic below.
+      # The drift check step re-runs the same command, so if this fails the
+      # drift check cannot work either (auth / connection / config). Exits
+      # non-zero on failure so the job fails here with a clear step name.
+      - name: Diagnostic — migration list reaches the remote DB
+        env:
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL_RESOLVED }}
+        run: |
+          set +e
+          supabase migration list --db-url "$SUPABASE_DB_URL" > /tmp/migration_list_diag.txt 2>&1
+          ec=$?
+          echo "migration_list_exit_code=$ec"
+          echo "--- redacted output (first 25 lines) ---"
+          sed 's/postgres[ql]*:\/\/[^ @]*/[db-url]/g; s/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}/REDACTED-DATE/g' /tmp/migration_list_diag.txt | head -25
+          exit $ec
+
+      - name: Migration drift check (repo vs live DB — fail-closed)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL_RESOLVED }}
+        run: node /tmp/driftcheck.mjs pre
+
+      # Deliberately NOT `--include-all`. Measured 2026-10-15, run 38719764730:
+      # the CLI exited 1 with "Found local migration files to be inserted before
+      # the last migration on remote database. Rerun the command with
+      # --include-all flag". The tempting read was "an out-of-order migration,
+      # use the flag" -- but the real defect was that TWO repo files shared
+      # version 20270119000000, and only the lexicographically-first of them
+      # (20270119000000_harden_internship_auth_policy_and_monitor.sql) can match
+      # the live row. The other one therefore sorted as an unapplied migration
+      # forever, and pushing it tried to insert that version a second time
+      # (duplicate key on schema_migrations). `--include-all` does not fix a
+      # duplicate version: it forces the rogue file in anyway, so the deploy
+      # would have applied an unverified file while the CI line that caught the
+      # problem disappeared. Fixed at the source instead -- that file is now
+      # 20270127000000_fix_admin_credentials_rls_and_realtime.sql, which sorts
+      # after the newest applied version (20270119000027) and so applies with a
+      # plain push. The drift check above additionally fails closed on any
+      # duplicate version, so this class cannot come back silently.
+      - name: Apply pending migrations (db push — no-op when in sync)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL_RESOLVED }}
+        run: |
+          set +e
+          supabase db push --db-url "$SUPABASE_DB_URL" 2>/tmp/db_push_err.txt
+          ec=$?
+          if [ $ec -ne 0 ]; then
+            echo "::error::supabase db push failed (exit code $ec). Redacted stderr follows:"
+            sed 's/postgres[ql]*:\/\/[^ @]*/[db-url]/g; s/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}/REDACTED-DATE/g' /tmp/db_push_err.txt | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit $ec
+
+      - name: Verify migrations applied (repo == live DB)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL_RESOLVED }}
+        run: node /tmp/driftcheck.mjs post
+
+      - name: Deploy all edge functions from repo source
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -e
+          failed=0
+          for dir in supabase/functions/*/; do
+            name=$(basename "$dir")
+            if [ "$name" = "_shared" ]; then continue; fi
+            echo "::group::deploy $name"
+            if ! supabase functions deploy "$name" --project-ref "$SUPABASE_PROJECT_REF"; then
+              echo "::error::functions deploy failed: $name"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed
+
+      # Privilege-escalation + money-path pentest: throwaway accounts, real user
+      # JWTs, every escape attempt over real HTTP (PostgREST + the withdrawal
+      # edge function) — all must be refused, and the legitimate owner path at
+      # each step must still work. Runs AFTER db push so it proves the deploy
+      # landed the latest locks, and AFTER functions deploy so new RPC/guard
+      # logic is live. Any landed escape exits 1.
+      #
+      # Needs SUPABASE_SERVICE_ROLE_KEY (admin user creation + full-cascade
+      # teardown) and VITE_SUPABASE_ANON_KEY (user sign-in) — both are asserted
+      # by the pre-flight guard step at the top of this job. SUPABASE_URL is
+      # derived from the project ref — it must be the REST/edge endpoint, NOT the
+      # Postgres pooler URL the migration steps use.
+      - name: Privilege + money-path pentest (against deployed DB)
+        env:
+          SUPABASE_URL: https://${{ env.SUPABASE_PROJECT_REF }}.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          # Belt and braces: if a secret ever disappears between the pre-flight
+          # guard and here, fail rather than quietly reporting an unverified
+          # deploy. There is deliberately no skip path left in this step.
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Pentest secrets vanished after the pre-flight guard — refusing to report a green deploy with an unrun security check."
+            exit 1
+          fi
+          set +e
+          node scripts/e2e/pentest-privileges.mjs 2>/tmp/pentest_err.txt
+          pec=$?
+          if [ $pec -ne 0 ]; then
+            echo "::error::pentest failed (exit code $pec). Last 30 redacted lines of stderr:"
+            tail -30 /tmp/pentest_err.txt | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit $pec
+
+      # Whole-surface audit, run after the curated pentest above.
+      #
+      # The pentest proves a chosen set of paths in depth; this proves the REST of
+      # the surface in breadth — every private table read as an anonymous visitor,
+      # every owner-scoped table read across two signed-in users, and every
+      # anon-executable helper that takes a caller-supplied id called as anon with
+      # a real victim id. It is what caught the payout-method leak and the
+      # workspace RLS recursion, neither of which the curated list touched.
+      #
+      # It exits 1 on any finding and prints `vacuous` notes where a probe had no
+      # data to hide, so an empty table is never counted as a pass.
+      - name: Whole-surface audit (anon x cross-user x invariants)
+        env:
+          SUPABASE_URL: https://${{ env.SUPABASE_PROJECT_REF }}.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Audit secrets vanished after the pre-flight guard — refusing to report a green deploy with an unrun security check."
+            exit 1
+          fi
+          set +e
+          node scripts/e2e/surface-audit.mjs 2>/tmp/audit_err.txt
+          aec=$?
+          if [ $aec -ne 0 ]; then
+            echo "::error::surface audit failed (exit code $aec). Last 40 redacted lines of stderr:"
+            tail -40 /tmp/audit_err.txt | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit $aec
+
+  # ── Failure alert ─────────────────────────────────────────────────────────
+  # Measured 2026-11-20/21: Backend Deploy went red on ten consecutive runs
+  # (#87–#96) without anyone acting. GitHub only emails the pusher, work kept
+  # landing, and production silently kept the older function bodies while the
+  # repo claimed the fix was deployed. A red deploy has to announce itself where
+  # the work happens, not only in an inbox.
+  #
+  # No new secret is needed: the workflow token opens/comments a GitHub issue
+  # labelled `deploy-alert` with the run link, commit and failing step(s), and the
+  # next green run closes it. A repeated failure adds a comment to the SAME open
+  # issue, so the run history stays in one thread instead of a flood of issues.
+  #
+  # If this job itself fails, the cause is the token, not the deploy: Settings →
+  # Actions → General → Workflow permissions must allow read/write for the
+  # workflow token (the job-level `permissions:` below cannot exceed that
+  # ceiling). It is left failing on purpose — an alert that cannot fire must not
+  # be reported as success.
   alert:
     name: Alert (deploy failure → GitHub issue)
     needs: deploy
