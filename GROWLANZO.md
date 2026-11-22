@@ -121,8 +121,9 @@ value, so this only matters if a function starts answering 401 to service-role c
   migration and no function deploy is recorded when a guard or the pentest cannot run.
 - Backend Deploy failure alerting: the `alert` job opens (or comments on) a GitHub
   issue labelled `deploy-alert` with the run link, commit and failing step(s), and the
-  next green run closes it. It uses the workflow token, so no extra secret is needed;
-  it requires Settings → Actions → General → Workflow permissions to allow read/write.
+  next green run closes it. It uses the workflow token — no extra secret and no
+  repository setting change: the job's own `permissions: issues: write` / `actions: read`
+  block adds those scopes on top of whatever default Settings → Actions sets.
 - Edge functions can also be deployed directly with the pinned CLI:
   `npx supabase@2 functions deploy <name> --project-ref zttwsjehcgaicziqyxpq`
   (`verify_jwt` comes from `supabase/config.toml`; only webhook/cron functions disable it).
