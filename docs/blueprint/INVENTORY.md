@@ -4,21 +4,21 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **753 files** across 12 groups.
+Total tracked structure: **758 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
 | Pages | 97 |
 | Layouts | 4 |
-| Components | 53 |
+| Components | 54 |
 | Context & hooks | 10 |
-| Client libraries & services | 71 |
+| Client libraries & services | 72 |
 | Edge functions | 35 |
 | Edge shared modules | 12 |
 | Database migrations | 331 |
 | Archived migrations (not applied) | 6 |
-| Test suite | 87 |
-| Operational scripts | 43 |
+| Test suite | 89 |
+| Operational scripts | 44 |
 | CI / deploy workflows | 4 |
 
 ## Pages (97)
@@ -132,7 +132,7 @@ The four shells: public, freelancer dashboard, client dashboard, admin console.
 - `src/layouts/DashboardLayout.tsx`
 - `src/layouts/MainLayout.tsx`
 
-## Components (53)
+## Components (54)
 
 Shared UI. Feature-specific components live next to their page instead.
 
@@ -176,6 +176,7 @@ Shared UI. Feature-specific components live next to their page instead.
 - `src/components/PlatformReviewsSection.tsx`
 - `src/components/ProBadge.tsx`
 - `src/components/ProtectedRoute.tsx`
+- `src/components/RatingSummary.tsx`
 - `src/components/RazorpayCheckout.tsx`
 - `src/components/ReauthDialog.tsx`
 - `src/components/ReferralInviteCard.tsx`
@@ -205,7 +206,7 @@ Cross-page state (auth, theme, currency) and reusable data hooks.
 - `src/hooks/useProStatus.ts`
 - `src/hooks/useReferralsData.ts`
 
-## Client libraries & services (71)
+## Client libraries & services (72)
 
 All data access, business rules and formatting live here — pages call services, not Supabase directly (with few explicit exceptions).
 
@@ -255,6 +256,7 @@ All data access, business rules and formatting live here — pages call services
 - `src/lib/portfolio.ts`
 - `src/lib/portfolioImageUpload.ts`
 - `src/lib/profileCompletion.ts`
+- `src/lib/ratingDisplay.ts`
 - `src/lib/razorpay.ts`
 - `src/lib/reauth.ts`
 - `src/lib/referralCode.ts`
@@ -685,7 +687,7 @@ Kept for history only. `db push` reads the top level of `supabase/migrations`, s
 - `supabase/migrations/archived/20260806000000_restore_auto_confirm_trigger.sql`
 - `supabase/migrations/archived/20260830000000_consolidated_email_verification_final.sql`
 
-## Test suite (87)
+## Test suite (89)
 
 Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invariants have guard tests here.
 
@@ -731,6 +733,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/featureFlagsEnv.test.ts`
 - `src/test/frontendEnvLeak.test.ts`
 - `src/test/growCoins.test.ts`
+- `src/test/hireButtonResilience.test.ts`
 - `src/test/iconPackConsolidation.test.ts`
 - `src/test/kycLightVerification.test.ts`
 - `src/test/launchSurfaceFixes.test.ts`
@@ -748,6 +751,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/projectMap.test.ts`
 - `src/test/providerMismatchAndIdleTimeout.test.ts`
 - `src/test/publicMetricsHonesty.test.ts`
+- `src/test/ratingDisplay.test.ts`
 - `src/test/realtimeAiQuotaPriority.test.ts`
 - `src/test/referralCode.test.ts`
 - `src/test/referralInviteCard.test.tsx`
@@ -777,7 +781,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/typographyFonts.test.ts`
 - `src/test/waitlistPage.test.tsx`
 
-## Operational scripts (43)
+## Operational scripts (44)
 
 Build, preflight, security audit and the E2E harnesses. Nothing here is imported by the app.
 
@@ -802,6 +806,7 @@ Build, preflight, security audit and the E2E harnesses. Nothing here is imported
 - `scripts/e2e/element-audit.mjs`
 - `scripts/e2e/email-tests.mjs`
 - `scripts/e2e/exa-search-smoke.mjs`
+- `scripts/e2e/hire-release-flow.mjs`
 - `scripts/e2e/login.mjs`
 - `scripts/e2e/logout-flow.mjs`
 - `scripts/e2e/nav-flows.mjs`

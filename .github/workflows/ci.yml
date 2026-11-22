@@ -225,6 +225,21 @@ jobs:
             node scripts/e2e/logout-flow.mjs --base=http://127.0.0.1:4174 --role=$role
           done
 
+      # The money path, end to end through the UI: client posts a project,
+      # accepts a proposal (the "Accept & Hire" stuck-button regression), funds
+      # escrow from the wallet, the freelancer delivers, the client releases.
+      # Service-role assertions check the wallet math, and the script removes
+      # its own rows before the accounts are deleted below.
+      #
+      # The wallet is credited as a fixture — a card/Razorpay checkout cannot run
+      # unattended. Everything the user touches is real UI against the real
+      # backend.
+      - name: Hire → escrow → release UI flow
+        if: ${{ steps.e2e_guard.outputs.run_authenticated == 'true' }}
+        env:
+          E2E_CHROME_PATH: ${{ runner.home }}/.cache/chrome-for-testing/chrome-linux64/chrome
+        run: node scripts/e2e/hire-release-flow.mjs --base=http://127.0.0.1:4174
+
       # Teardown runs even when the audit failed: leaving test accounts live is the
       # outcome this job must never produce, so cleanup is unconditional.
       - name: Remove E2E test accounts from production

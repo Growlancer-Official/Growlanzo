@@ -244,18 +244,28 @@ export function ClientProposalsPage() {
   };
 
   const handleAccept = async (proposal: Proposal) => {
-    if (!user) return;
+    // Ignore a second click while the first hire is in flight: two calls would
+    // race to create two contracts for one proposal.
+    if (!user || actionId) return;
     setActionId(proposal.id);
     setActionError(null);
-    const result = await hireFreelancerFromProposal(proposal.id, user.id, { useEscrowRpc: true });
-    if (!result.success) {
-      setActionError((result as any).error);
+    try {
+      const result = await hireFreelancerFromProposal(proposal.id, user.id, { useEscrowRpc: true });
+      if (!result.success) {
+        setActionError(('error' in result && result.error) || 'Could not hire this freelancer');
+        return;
+      }
+      // The contract exists now. Navigate FIRST and refresh in the background —
+      // this handler used to `await fetchProposals()` before navigating, so a
+      // slow/failed refresh left the button on "Hiring…" even though hiring had
+      // already succeeded. `finally` below guarantees the button always resets.
+      navigate(`/client/workspace?contract=${result.contractId}`);
+      void fetchProposals();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not hire this freelancer');
+    } finally {
       setActionId(null);
-      return;
     }
-    await fetchProposals();
-    setActionId(null);
-    navigate(`/client/workspace?contract=${result.contractId}`);
   };
 
   const handleReject = async (proposalId: string) => {

@@ -9,6 +9,31 @@ export type HireFromProposalResult =
   | { success: true; contractId: string }
   | { success: false; error: string };
 
+/**
+ * Every notification in this file is "fire-and-forget" after the real action
+ * has already succeeded. Awaiting an unbounded edge-function call is what made
+ * "Accept & Hire" sit on "Hiring…" forever: the contract WAS created, but the
+ * `proposal-notifications` invoke never settled, so the promise never resolved
+ * and the button never reset. Bound every one of them.
+ */
+const NOTIFICATION_TIMEOUT_MS = 5_000;
+
+function withinTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 /** Accept proposal and create contract (+ escrow shell via RPC when available).
  * Also sends email notification to the freelancer via proposal-notifications edge function. */
 export async function hireFreelancerFromProposal(
@@ -99,10 +124,14 @@ export async function inviteFreelancerToProject(
  */
 export async function notifyProposalSubmitted(proposalId: string): Promise<void> {
   try {
-    const { error } = await supabase.functions.invoke('proposal-notifications', {
-      method: 'POST',
-      body: { proposal_id: proposalId, action: 'submitted' },
-    });
+    const { error } = await withinTimeout(
+      supabase.functions.invoke('proposal-notifications', {
+        method: 'POST',
+        body: { proposal_id: proposalId, action: 'submitted' },
+      }),
+      NOTIFICATION_TIMEOUT_MS,
+      'proposal-notifications submitted'
+    );
     if (error) {
       console.error('[proposal-notifications] submitted notice failed:', error.message);
     }
@@ -136,10 +165,14 @@ async function sendProjectNotification(
   extra: Record<string, unknown> = {}
 ): Promise<void> {
   try {
-    const { error } = await supabase.functions.invoke('project-notifications', {
-      method: 'POST',
-      body: { project_id: projectId, event, ...extra },
-    });
+    const { error } = await withinTimeout(
+      supabase.functions.invoke('project-notifications', {
+        method: 'POST',
+        body: { project_id: projectId, event, ...extra },
+      }),
+      NOTIFICATION_TIMEOUT_MS,
+      `project-notifications ${event}`
+    );
     if (error) {
       console.error(`[project-notifications] ${event} failed:`, error.message);
     }
@@ -162,10 +195,14 @@ export async function notifyProjectCompleted(projectId: string): Promise<void> {
 /** Call the proposal-notifications edge function to send email + in-app notification. */
 async function sendProposalNotification(proposalId: string, action: 'accept' | 'reject'): Promise<void> {
   try {
-    await supabase.functions.invoke('proposal-notifications', {
-      method: 'POST',
-      body: { proposal_id: proposalId, action },
-    });
+    await withinTimeout(
+      supabase.functions.invoke('proposal-notifications', {
+        method: 'POST',
+        body: { proposal_id: proposalId, action },
+      }),
+      NOTIFICATION_TIMEOUT_MS,
+      `proposal-notifications ${action}`
+    );
   } catch (err) {
     // Intentionally silent: proposal notification is fire-and-forget (non-critical background email).
     // The main proposal action (accept/reject) has already succeeded at this point.
