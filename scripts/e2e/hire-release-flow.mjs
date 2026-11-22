@@ -413,6 +413,14 @@ try {
   }
   check('freelancer workspace opened the contract', freelancerPage.url().includes(`contract=${contractId}`));
 
+  // Delivery lives inside the "Milestones & Escrow" tab, not the default
+  // chat tab. Open it first.
+  const freelancerMilestonesTab = freelancerPage.getByRole('button', { name: /Milestones & Escrow/i }).first();
+  if (await freelancerMilestonesTab.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)) {
+    await freelancerMilestonesTab.click();
+    await freelancerPage.waitForTimeout(800);
+  }
+
   // Contract-level delivery is the action that flips contract.status to
   // "delivered" (the client's release flow reads that). Fall back to the
   // per-milestone toggle when the button is not rendered.
@@ -442,6 +450,12 @@ try {
 
   // ── 6. CLIENT RELEASES ESCROW (UI) ────────────────────────────────────────
   await boot(clientPage, `/client/workspace?contract=${contractId}`);
+  // Release sits in the "Milestones & Escrow" tab.
+  const clientMilestonesTab = clientPage.getByRole('button', { name: /Milestones & Escrow/i }).first();
+  if (await clientMilestonesTab.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)) {
+    await clientMilestonesTab.click();
+    await clientPage.waitForTimeout(800);
+  }
   const releaseBtn = clientPage.getByRole('button', { name: /Release Escrow/i }).first();
   const releaseVisible = await releaseBtn.waitFor({ state: 'visible', timeout: STEP_TIMEOUT }).then(() => true).catch(() => false);
   check('release action is available after delivery', releaseVisible);
