@@ -409,8 +409,18 @@ try {
   const startBtn = freelancerPage.getByRole('button', { name: /Start Work/i }).first();
   if (await startBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)) {
     await startBtn.click();
-    await freelancerPage.waitForTimeout(1500);
   }
+  // "Deliver Work" only renders once the freelancer has started (the server
+  // sets freelancer_started_at), so wait for the server, not just the click.
+  const started = await pollUntil(async () => {
+    const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=freelancer_started_at`);
+    return !!row.json?.[0]?.freelancer_started_at;
+  }, { timeout: 20000 });
+  check('freelancer started work on the contract', !!started);
+
+  // Reload so the page renders from the server state, then open the tab that
+  // holds the delivery control (the default tab is chat).
+  await boot(freelancerPage, `/dashboard/workspace?contract=${contractId}`);
   check('freelancer workspace opened the contract', freelancerPage.url().includes(`contract=${contractId}`));
 
   // Delivery lives inside the "Milestones & Escrow" tab, not the default
