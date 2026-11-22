@@ -367,10 +367,36 @@ try {
   check('funded-escrow prompt is visible on the contract', fundVisible, clientPage.url());
   if (fundVisible) {
     await fundBtn.click();
+
+    // The modal has three steps: milestone selection → review → payment.
+    // Step 1 may not appear when the contract has no milestones.
+    const continueBtn = clientPage.getByRole('button', { name: /Continue to Payment/i }).first();
+    if (await continueBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false)) {
+      // Select the first fundable milestone (the checkbox has no accessible
+      // name, so it is addressed by its own class). Selecting nothing would
+      // fund the full contract, which is also fine.
+      await clientPage.evaluate(() => {
+        const box = [...document.querySelectorAll('button')].find((b) =>
+          /rounded border-2/.test(String(b.className))
+        );
+        box?.click();
+      });
+      await continueBtn.click();
+    }
+    const proceedBtn = clientPage.getByRole('button', { name: /Proceed to Payment/i }).first();
+    if (await proceedBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)) {
+      await proceedBtn.click();
+    }
+
     const walletPay = clientPage.getByRole('button', { name: /Fund Escrow with Wallet/i }).first();
     const walletVisible = await walletPay.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
     check('wallet funding option is offered', walletVisible);
-    if (walletVisible) await walletPay.click();
+    if (walletVisible) {
+      await walletPay.click();
+    } else {
+      const text = await clientPage.locator('body').innerText().catch(() => '');
+      console.log(`· funding modal text: ${text.replace(/\s+/g, ' ').slice(0, 500)}`);
+    }
   }
   const funded = await pollUntil(async () => {
     const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=escrow_funded`);
@@ -387,24 +413,42 @@ try {
   }
   check('freelancer workspace opened the contract', freelancerPage.url().includes(`contract=${contractId}`));
 
-  const deliverToggle = freelancerPage.locator('button[title^="Deliver this milestone"]').first();
-  const deliverVisible = await deliverToggle.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+  // Contract-level delivery is the action that flips contract.status to
+  // "delivered" (the client's release flow reads that). Fall back to the
+  // per-milestone toggle when the button is not rendered.
+  const deliverWork = freelancerPage.getByRole('button', { name: /Deliver Work/i }).first();
+  let deliverVisible = await deliverWork.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
   if (deliverVisible) {
-    await deliverToggle.click();
-    await freelancerPage.waitForTimeout(1500);
+    await deliverWork.click();
+    await freelancerPage.waitForTimeout(2000);
+  } else {
+    const deliverToggle = freelancerPage.locator('button[title^="Deliver this milestone"]').first();
+    deliverVisible = await deliverToggle.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    if (deliverVisible) {
+      await deliverToggle.click();
+      await freelancerPage.waitForTimeout(1500);
+    }
+  }
+  if (!deliverVisible) {
+    const text = await freelancerPage.locator('body').innerText().catch(() => '');
+    console.log(`· freelancer workspace text: ${text.replace(/\s+/g, ' ').slice(0, 500)}`);
   }
   const delivered = await pollUntil(async () => {
-    const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=status,milestones`);
+    const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=status`);
     const status = String(row.json?.[0]?.status ?? '');
-    return status === 'delivered' || status === 'completed' || row.json?.[0]?.milestones ? status || true : false;
+    return status === 'delivered' || status === 'completed' ? status : false;
   }, { timeout: 20000 });
-  check('freelancer marked the work delivered', !!delivered, { deliverVisible });
+  check('freelancer marked the work delivered', !!delivered, { deliverVisible, status: delivered || null });
 
   // ── 6. CLIENT RELEASES ESCROW (UI) ────────────────────────────────────────
   await boot(clientPage, `/client/workspace?contract=${contractId}`);
   const releaseBtn = clientPage.getByRole('button', { name: /Release Escrow/i }).first();
   const releaseVisible = await releaseBtn.waitFor({ state: 'visible', timeout: STEP_TIMEOUT }).then(() => true).catch(() => false);
   check('release action is available after delivery', releaseVisible);
+  if (!releaseVisible) {
+    const text = await clientPage.locator('body').innerText().catch(() => '');
+    console.log(`· client workspace text: ${text.replace(/\s+/g, ' ').slice(0, 500)}`);
+  }
   if (releaseVisible) {
     await releaseBtn.click();
     const confirm = clientPage.getByRole('button', { name: /^Release payment$/i }).first();
@@ -414,10 +458,13 @@ try {
   }
 
   const released = await pollUntil(async () => {
-    const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=status,escrow_funded`);
-    return String(row.json?.[0]?.status ?? '') === 'completed' || row.json?.[0]?.escrow_funded === false;
+    const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=status`);
+    const escrowRow = await rest(`/rest/v1/escrow?contract_id=eq.${contractId}&select=status`);
+    const contractStatus = String(row.json?.[0]?.status ?? '');
+    const escrowStatus = String(escrowRow.json?.[0]?.status ?? '');
+    return contractStatus === 'completed' && escrowStatus === 'released' ? { contractStatus, escrowStatus } : false;
   }, { timeout: 30000 });
-  check('contract completes and escrow is released', !!released);
+  check('contract completes and escrow is released', !!released, released || undefined);
 
   // ── 7. MONEY INVARIANTS (service role, after the UI did the work) ─────────
   const clientAfter = await walletBalance(clientId);
