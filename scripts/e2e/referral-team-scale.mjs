@@ -175,6 +175,15 @@ const coins = async (userId, reason) =>
   console.log(`Target: ${URL}\n`);
 
   // ── Seed ────────────────────────────────────────────────────────────────
+  // Deterministic emails: remove leftovers from an interrupted earlier run
+  // first. A stale referral row would answer "already referred" and poison
+  // every assertion below, which is a harness-isolation bug, not a product one.
+  const stale = (await listAuthUsers()).filter((u) => /^scale\..*@growlancer-test\.com$/i.test(u.email || ''));
+  for (const u of stale) {
+    await admin('/rest/v1/rpc/delete_user_all_data', { method: 'POST', body: { p_user_id: u.id } });
+  }
+  if (stale.length) console.log(`Removed ${stale.length} leftover scale account(s) from an earlier run.`);
+
   const client = await ensureUser(`scale.client@${DOMAIN}`, 'client', 'Scale Client');
   const client2 = await ensureUser(`scale.client2@${DOMAIN}`, 'client', 'Scale Client 2');
   const referrer = await ensureUser(`scale.referrer@${DOMAIN}`, 'freelancer', 'Scale Referrer');
