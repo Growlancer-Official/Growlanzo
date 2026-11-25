@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **760 files** across 12 groups.
+Total tracked structure: **762 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -15,10 +15,10 @@ Total tracked structure: **760 files** across 12 groups.
 | Client libraries & services | 72 |
 | Edge functions | 35 |
 | Edge shared modules | 12 |
-| Database migrations | 332 |
+| Database migrations | 333 |
 | Archived migrations (not applied) | 6 |
 | Test suite | 90 |
-| Operational scripts | 44 |
+| Operational scripts | 45 |
 | CI / deploy workflows | 4 |
 
 ## Pages (97)
@@ -340,7 +340,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/site.ts`
 - `supabase/functions/_shared/urlGuard.ts`
 
-## Database migrations (332)
+## Database migrations (333)
 
 Ordered by filename timestamp. Applied by `supabase db push --include-all` in Backend Deploy; never by hand in the dashboard.
 
@@ -676,6 +676,7 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20271118000000_restrict_client_profile_identifiers.sql`
 - `supabase/migrations/20271121000000_force_platform_review_guard_parity.sql`
 - `supabase/migrations/20271125000000_restore_repo_cron_schedules.sql`
+- `supabase/migrations/20271126000000_referral_stats_and_team_status.sql`
 
 ## Archived migrations (not applied) (6)
 
@@ -783,7 +784,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/typographyFonts.test.ts`
 - `src/test/waitlistPage.test.tsx`
 
-## Operational scripts (44)
+## Operational scripts (45)
 
 Build, preflight, security audit and the E2E harnesses. Nothing here is imported by the app.
 
@@ -819,6 +820,7 @@ Build, preflight, security audit and the E2E harnesses. Nothing here is imported
 - `scripts/e2e/probe.mjs`
 - `scripts/e2e/razorpay-chain.mjs`
 - `scripts/e2e/razorpay-webhook-rehearsal.mjs`
+- `scripts/e2e/referral-team-scale.mjs`
 - `scripts/e2e/remove-test-accounts.mjs`
 - `scripts/e2e/respan-gateway-smoke.mjs`
 - `scripts/e2e/route-smoke.mjs`
