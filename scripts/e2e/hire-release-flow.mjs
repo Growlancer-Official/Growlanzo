@@ -406,6 +406,14 @@ try {
 
   // ── 5. FREELANCER STARTS + DELIVERS (UI) ──────────────────────────────────
   await boot(freelancerPage, `/dashboard/workspace?contract=${contractId}`);
+  // Start Work lives inside the "Milestones & Escrow" tab, which is NOT the
+  // default (the workspace opens on chat). The previous run looked for it on
+  // the chat tab, never clicked, and then blamed the RPC for a null column.
+  const startTab = freelancerPage.getByRole('button', { name: /Milestones & Escrow/i }).first();
+  if (await startTab.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false)) {
+    await startTab.click();
+    await freelancerPage.waitForTimeout(1200);
+  }
   const startBtn = freelancerPage.getByRole('button', { name: /Start Work/i }).first();
   if (await startBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)) {
     await startBtn.click();
