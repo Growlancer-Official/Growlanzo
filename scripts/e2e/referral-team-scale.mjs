@@ -270,8 +270,11 @@ const coins = async (userId, reason) =>
   const kycAward = await admin('/rest/v1/rpc/award_referral_bonus_if_eligible', {
     method: 'POST', body: { p_referred_user_id: refL[0].id },
   });
-  check('KYC milestone pays 5 coins to the referee and 5 to the referrer',
-    kycAward.json?.success === true && kycAward.json?.coins === 5, kycAward.json);
+  // The verification trigger may already have settled the reward, so either a
+  // fresh 5-coin award or an 'already_awarded' answer is correct here; the
+  // ledger rows below are the real proof that both sides were paid.
+  check('KYC milestone settles for both sides',
+    kycAward.json?.success === true && (kycAward.json?.coins === 5 || kycAward.json?.already_awarded === true), kycAward.json);
   const refereeKyc = await coins(refL[0].id, 'kyc_bonus');
   const referrerKyc = await coins(referrer.id, 'kyc_bonus');
   check('both KYC ledger rows exist with 5 coins',
