@@ -474,12 +474,18 @@ try {
     const text = await freelancerPage.locator('body').innerText().catch(() => '');
     console.log(`· freelancer workspace text: ${text.replace(/\s+/g, ' ').slice(0, 500)}`);
   }
+  // Delivery is recorded as contracts.delivered_at by mark_contract_delivered;
+  // the status stays in_progress until the client releases. Poll the timestamp
+  // (the real signal) and accept a completed status as well, so a slow read or
+  // an auto-release cannot be reported as a failed delivery.
   const delivered = await pollUntil(async () => {
-    const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=status`);
-    const status = String(row.json?.[0]?.status ?? '');
-    return status === 'delivered' || status === 'completed' ? status : false;
-  }, { timeout: 20000 });
-  check('freelancer marked the work delivered', !!delivered, { deliverVisible, status: delivered || null });
+    const row = await rest(`/rest/v1/contracts?id=eq.${contractId}&select=status,delivered_at`);
+    const contract = row.json?.[0];
+    if (!contract) return false;
+    if (contract.delivered_at) return contract.delivered_at;
+    return contract.status === 'delivered' || contract.status === 'completed' ? contract.status : false;
+  }, { timeout: 25000 });
+  check('freelancer marked the work delivered', !!delivered, { deliverVisible, deliveredAt: delivered || null });
 
   // ── 6. CLIENT RELEASES ESCROW (UI) ────────────────────────────────────────
   await boot(clientPage, `/client/workspace?contract=${contractId}`);
