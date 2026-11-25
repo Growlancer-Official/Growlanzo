@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **762 files** across 12 groups.
+Total tracked structure: **763 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -15,7 +15,7 @@ Total tracked structure: **762 files** across 12 groups.
 | Client libraries & services | 72 |
 | Edge functions | 35 |
 | Edge shared modules | 12 |
-| Database migrations | 333 |
+| Database migrations | 334 |
 | Archived migrations (not applied) | 6 |
 | Test suite | 90 |
 | Operational scripts | 45 |
@@ -340,7 +340,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/site.ts`
 - `supabase/functions/_shared/urlGuard.ts`
 
-## Database migrations (333)
+## Database migrations (334)
 
 Ordered by filename timestamp. Applied by `supabase db push --include-all` in Backend Deploy; never by hand in the dashboard.
 
@@ -677,6 +677,7 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20271121000000_force_platform_review_guard_parity.sql`
 - `supabase/migrations/20271125000000_restore_repo_cron_schedules.sql`
 - `supabase/migrations/20271126000000_referral_stats_and_team_status.sql`
+- `supabase/migrations/20271126000001_referrals_status_allow_completed.sql`
 
 ## Archived migrations (not applied) (6)
 
