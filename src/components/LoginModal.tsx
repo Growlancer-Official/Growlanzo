@@ -4,7 +4,8 @@ import { AlertCircle, Clock, Loader2, ShieldCheck, Mail, Lock, LogIn, X } from '
 import { supabase, clearSupabaseAuthStorage, hasPersistedAuthSession, isStaleSessionError } from '../lib/supabase';
 import { readLogoutNotice, clearLogoutNotice, LOGOUT_NOTICE_COPY } from '../lib/logoutNotice';
 import { useAuth } from '../context/AuthContext';
-import { getPostAuthPath } from '../lib/authAction';
+import { getPostAuthPath, redirectAfterAuth } from '../lib/authAction';
+import { fetchUserProfile } from '../lib/services/authService';
 import { Modal } from './Modal';
 import { OAuthButtons } from './OAuthButtons';
 
@@ -14,9 +15,12 @@ import { OAuthButtons } from './OAuthButtons';
  * Removed because: production launch uses OAuth-only (GitHub + LinkedIn).
  * Kept temporarily so test accounts (created with email+password) can be tested.
  */
-// Dev-only: Vite statically replaces import.meta.env.DEV with `false` in a
-// production build, so this temporary password form can never reach real users.
-const TESTING_EMAIL_PASSWORD = import.meta.env.DEV;
+// Testing gate. A production build hides this form unless the deployment
+// explicitly opts in with VITE_ENABLE_EMAIL_PASSWORD_AUTH=true — the same flag
+// SignupModal already honours — so a hosted build can be tested end to end
+// without shipping password auth to real users by default.
+const TESTING_EMAIL_PASSWORD =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_EMAIL_PASSWORD_AUTH === 'true';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -261,19 +265,23 @@ export function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginModalProp
                       setEmailPasswordLoading(false);
                       return;
                     }
-                    const { error } = await supabase.auth.signInWithPassword({
+                    const { data, error } = await supabase.auth.signInWithPassword({
                       email,
                       password,
                     });
                     setEmailPasswordLoading(false);
                     if (error) {
                       setEmailPasswordError(error.message);
-                    } else {
-                      // Email/password sign-in — navigate to appropriate dashboard
-                      onClose();
-                      const role = user?.role || 'freelancer';
-                      navigate(getPostAuthPath({ role } as any));
+                      return;
                     }
+                    // Resolve the REAL profile before redirecting. On a fresh
+                    // page the context `user` is still null, so guessing
+                    // 'freelancer' would send a client to the wrong dashboard.
+                    onClose();
+                    const profile = data.user ? await fetchUserProfile(data.user.id) : null;
+                    // Full-page redirect: avoids the ProtectedRoute bounce where
+                    // the app navigates before the session is hydrated.
+                    redirectAfterAuth(profile);
                   }}
                   className="space-y-3"
                 >

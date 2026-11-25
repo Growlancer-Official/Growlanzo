@@ -25,6 +25,7 @@ function readSource(rel: string): string {
 }
 
 const LOGIN = readSource('src/components/LoginModal.tsx');
+const SIGNUP = readSource('src/components/SignupModal.tsx');
 const LAYOUT = readSource('src/layouts/MainLayout.tsx');
 const CALLBACK = readSource('src/pages/AuthCallbackPage.tsx');
 const ACTION = readSource('src/lib/authAction.ts');
@@ -33,7 +34,9 @@ describe('a signed-in visitor is never asked to sign in again', () => {
   it('the login modal resumes an existing session instead of showing providers', () => {
     // The modal must resolve the real destination and leave — not render a
     // second OAuth round trip for a session that already exists.
-    expect(LOGIN).toContain("import { getPostAuthPath } from '../lib/authAction'");
+    expect(LOGIN).toContain(
+      "import { getPostAuthPath, redirectAfterAuth } from '../lib/authAction'"
+    );
     expect(LOGIN).toMatch(/navigate\(getPostAuthPath\(user\)/);
     // Server-validated check, so a deleted account cannot "resume".
     expect(LOGIN).toContain('supabase.auth.getUser()');
@@ -41,6 +44,16 @@ describe('a signed-in visitor is never asked to sign in again', () => {
     // The old banner that kept the provider buttons in front of a signed-in
     // user is gone.
     expect(LOGIN).not.toContain('Already logged in');
+  });
+
+  it('the testing email/password gate is identical in login and signup', () => {
+    // Both forms are temporary testing surfaces. They once drifted: signup
+    // honoured VITE_ENABLE_EMAIL_PASSWORD_AUTH while login was DEV-only, so a
+    // hosted build showed a signup form that could never be logged into.
+    const gate =
+      /import\.meta\.env\.DEV \|\| import\.meta\.env\.VITE_ENABLE_EMAIL_PASSWORD_AUTH === 'true'/;
+    expect(LOGIN).toMatch(gate);
+    expect(SIGNUP).toMatch(gate);
   });
 
   it('login/signup entry points route through to the dashboard when authenticated', () => {
