@@ -30,7 +30,8 @@
     "e2e:oauth-signup": "node scripts/e2e/oauth-signup-chain.mjs",
     "e2e:auth-lifecycle": "node scripts/e2e/auth-lifecycle.mjs",
     "e2e:gateway": "node scripts/e2e/respan-gateway-smoke.mjs",
-    "e2e:exa-search": "node scripts/e2e/exa-search-smoke.mjs"
+    "e2e:exa-search": "node scripts/e2e/exa-search-smoke.mjs",
+    "test:all": "node scripts/e2e/run-all.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.71.0",
