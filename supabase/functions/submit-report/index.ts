@@ -120,7 +120,10 @@ Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(origin)
 
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { status: 204, headers: corsHeaders })
+    // 204 is a null-body status: passing a body here throws a TypeError inside
+    // the Fetch constructor, so the runtime answered 500 to every preflight and
+    // no browser could ever submit a report. The body must be null.
+    return new Response(null, { status: 204, headers: corsHeaders })
   }
 
   if (req.method !== 'POST') {
