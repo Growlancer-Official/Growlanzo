@@ -27,9 +27,10 @@ const fileEnv = ['.env.local', '.env']
   .filter((f) => { try { return fs.existsSync(f); } catch { return false; } })
   .map((f) => fs.readFileSync(f, 'utf8'))
   .join('\n');
-const URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || /VITE_SUPABASE_URL=(.+)/.exec(fileEnv)?.[1]?.trim();
-const ANON = process.env.VITE_SUPABASE_ANON_KEY || /VITE_SUPABASE_ANON_KEY=(.+)/.exec(fileEnv)?.[1]?.trim();
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY || /SUPABASE_SERVICE_ROLE_KEY=(.+)/.exec(fileEnv)?.[1]?.trim();
+const clean = (v) => v?.trim().replace(/^["']|["']$/g, '').split(/\s+/)[0];
+const URL = clean(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL) || clean(/VITE_SUPABASE_URL=(.+)/.exec(fileEnv)?.[1]);
+const ANON = clean(process.env.VITE_SUPABASE_ANON_KEY) || clean(/VITE_SUPABASE_ANON_KEY=(.+)/.exec(fileEnv)?.[1]);
+const SERVICE = clean(process.env.SUPABASE_SERVICE_ROLE_KEY) || clean(/SUPABASE_SERVICE_ROLE_KEY=(.+)/.exec(fileEnv)?.[1]);
 if (!URL || !ANON || !SERVICE) {
   console.error('Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY');
   process.exit(1);
