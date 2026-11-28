@@ -441,8 +441,7 @@ async function openContract({ client, freelancer, amount, title, skills = ['Test
   check('2.3b all ten roles resolve to exactly one distinct skill set', new Set(rolePlan.map((p) => p.key)).size === 10, rolePlan.map((p) => p.key));
 
   let allTopCorrect = true;
-  let anyWrongSuggestion = false;
-  for (const { role, key, title, skills } of rolePlan) {
+  for (const { role, key, title } of rolePlan) {
     const suggestions = role.suggested_freelancers || [];
     const top = suggestions[0];
     const expected = u[key].id;
@@ -450,18 +449,30 @@ async function openContract({ client, freelancer, amount, title, skills = ['Test
       allTopCorrect = false;
       console.log(`   ${title}: top=${top?.name} score=${top?.match_score} expected ${u[key].name}`);
     }
-    // People with zero overlap of THIS role's skills must never be suggested.
-    const lowerRequired = skills.map((s) => s.toLowerCase());
-    const zeroOverlap = suggestions.filter((s) => {
-      const meta = SKILLED.find(([k]) => u[k].id === s.freelancer_id);
-      return !meta || !meta[2].some((sk) => lowerRequired.includes(sk.toLowerCase()));
-    });
-    if (zeroOverlap.length) anyWrongSuggestion = true;
+  }
+
+  // People with zero overlap of a role's skills must never be suggested. Check
+  // the LIVE skill list of every suggested freelancer — the marketplace has
+  // real users, and only their stored skills decide eligibility.
+  const suggestedIds = [...new Set(rolePlan.flatMap(({ role }) => (role.suggested_freelancers || []).map((s) => s.freelancer_id)))];
+  const liveProfiles = suggestedIds.length
+    ? await adminRows(`/rest/v1/freelancer_profiles?select=user_id,skills&user_id=in.(${suggestedIds.join(',')})`)
+    : [];
+  const liveSkills = new Map(liveProfiles.map((p) => [p.user_id, (p.skills || []).map((s) => String(s).toLowerCase().trim())]));
+  const zeroOverlapViolations = [];
+  for (const { role } of rolePlan) {
+    const required = (role.required_skills || []).map((s) => String(s).toLowerCase().trim());
+    for (const s of role.suggested_freelancers || []) {
+      const skills = liveSkills.get(s.freelancer_id) || [];
+      if (!skills.some((sk) => required.includes(sk))) {
+        zeroOverlapViolations.push(`${role.role_title} → ${s.name} (${skills.join(', ') || 'no skills'})`);
+      }
+    }
   }
   check('2.4 each role\'s TOP match is the freelancer who really owns those skills', allTopCorrect,
     roleRows.map((r) => ({ role: r.role_title, top: r.suggested_freelancers?.[0]?.name, score: r.suggested_freelancers?.[0]?.match_score })));
-  check('2.5 a freelancer with no skill overlap is never suggested', !anyWrongSuggestion,
-    roleRows.map((r) => ({ role: r.role_title, people: (r.suggested_freelancers || []).map((s) => s.name) })));
+  check('2.5 a freelancer with no skill overlap is never suggested', zeroOverlapViolations.length === 0,
+    zeroOverlapViolations);
 
   // Real-time: a skill edit must re-match the open roles without a manual call.
   await admin(`/rest/v1/freelancer_profiles?user_id=eq.${u.t1.id}`, {
