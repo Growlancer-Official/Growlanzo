@@ -104,6 +104,7 @@ runPhase('pentest', 'node', ['scripts/e2e/pentest-privileges.mjs']);
 runPhase('surface-audit', 'node', ['scripts/e2e/surface-audit.mjs']);
 runPhase('referral-team-scale', 'node', ['scripts/e2e/referral-team-scale.mjs', ...keep]);
 runPhase('launch-coins-verification', 'node', ['scripts/e2e/launch-coins-verification.mjs', ...keep]);
+runPhase('referral-criteria-team-ai', 'node', ['scripts/e2e/referral-criteria-team-ai.mjs', ...keep]);
 
 // ── 5. production routes ────────────────────────────────────────────────────
 if (!args['skip-routes']) {

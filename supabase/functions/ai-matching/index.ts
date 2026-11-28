@@ -453,6 +453,12 @@ Deno.serve(async (req: Request) => {
       return { ...m, match_score: matchScore, ai_score: aiScore, match_reason: reason };
     });
 
+    // The AI blend changes scores, so re-rank AFTER it. Without this the
+    // response (and the row order written below) could show a lower-scored
+    // freelancer above a higher one, while the UI — which orders by
+    // match_score — silently disagreed with the API payload.
+    finalMatches.sort((a, b) => b.match_score - a.match_score);
+
     // ─── Persist matches (replaces old ones for this project) ───────────────
     await supabase
       .from('ai_matches')

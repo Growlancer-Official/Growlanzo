@@ -13,6 +13,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n');
 
 const MIGRATION = read('supabase/migrations/20271128000000_launch_referral_caps_custom_project_and_verification.sql');
+const CAP_FLAG_FIX = read('supabase/migrations/20271128000001_fix_monthly_earning_cap_flag_kind.sql');
 const FREELANCER_PAGE = read('src/pages/ReferralsPage.tsx');
 const CLIENT_PAGE = read('src/pages/ClientReferralsPage.tsx');
 const POST_PAGE = read('src/pages/ClientPostProjectPage.tsx');
@@ -54,6 +55,17 @@ describe('monthly referral earning caps', () => {
     // The referee keeps their own reward even when the referrer is capped.
     expect(projectAward).toContain("'role', 'referred'");
     expect(kycAward).toContain("'role', 'referred'");
+  });
+
+  it('allows the cap review flag the award paths actually write (never aborts a referee payout)', () => {
+    // 20270129000000 only allowed 'monthly_cap'; the launch award paths write
+    // 'monthly_earning_cap'. The CHECK violation rolled the whole award back
+    // and silently took the referee's 5 coins with it.
+    expect(CAP_FLAG_FIX).toContain('DROP CONSTRAINT IF EXISTS grow_coin_review_flags_kind_check');
+    expect(CAP_FLAG_FIX).toContain("'monthly_earning_cap'");
+    expect(CAP_FLAG_FIX).toContain("'monthly_cap'");
+    expect(CAP_FLAG_FIX).toContain('ADD CONSTRAINT grow_coin_review_flags_kind_check');
+    expect(CAP_FLAG_FIX).toContain('RAISE EXCEPTION');
   });
 
   it('removes the old five-invitation restriction entirely', () => {
