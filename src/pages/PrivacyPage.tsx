@@ -115,36 +115,30 @@ const privacySections: Section[] = [
     },
     {
       id: 'kyc',
-      title: '6. Account Verification, KYC (Coming Soon) & Verified Badge',
+      title: '6. Verification (Coming Soon) & the PRO Badge',
       icon: ShieldAlert,
       content: (
         <>
           <p className="text-slate-600 leading-relaxed mb-2">
-            Growlanzo asks every freelancer and client to complete a short account verification so the platform knows which real person is behind an account. This section explains exactly what we collect today, what the Verified badge means, and the status of full identity verification (KYC).
+            Verification is not open yet for freelancers or clients. This section explains what is collected today (nothing verification-related), the status of identity verification, and what the green PRO badge means.
           </p>
           <div className="space-y-4">
             <div>
               <h3 className="font-bold text-slate-900 text-sm">A. What We Collect Today</h3>
-              <ul className="list-disc pl-5 text-slate-600 space-y-2 mt-1 text-sm">
-                <li><strong>Full name:</strong> the name you enter on the verification screen, used so payouts and invoices match the account holder.</li>
-                <li><strong>Email confirmation:</strong> whether the email address on your account has been confirmed through the confirmation link we send you.</li>
-                <li><strong>Phone confirmation:</strong> your phone number and the time a one-time code issued by the platform was confirmed for it. A confirmed number is never displayed publicly.</li>
-                <li><strong>Verification status:</strong> the resulting status and the timestamps of the checks above, so the badge stays consistent across the platform.</li>
-              </ul>
-              <p className="text-slate-600 text-xs mt-2">
-                During the Beta we do <strong>not</strong> collect government identity numbers, government identity documents or document images, and we do not send your data to an external identity-verification provider.
+              <p className="text-slate-600 text-xs mt-1">
+                No verification data is collected at launch: no full-name verification submission, no phone code, no government identity number, no identity document or document image, and no data sent to an external identity-verification provider. The verification section in the product displays <strong>Coming Soon</strong> for both roles.
               </p>
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">B. KYC Is Coming Soon</h3>
+              <h3 className="font-bold text-slate-900 text-sm">B. Verification Is Coming Soon</h3>
               <p className="text-slate-600 text-xs mt-1">
-                Advanced identity verification (KYC) is deferred for the Beta and is shown in the product as &quot;Coming Soon&quot;. If it is introduced in a future update, this section will be updated <strong>before</strong> any additional data is collected, you will be asked for explicit consent, and any collection will be limited to what the applicable legal and payment-provider requirements demand.
+                Identity verification is deferred until the legal, privacy and provider review is complete, and is shown in the product as &quot;Coming Soon&quot;. If it is introduced in a future update, this section will be updated <strong>before</strong> any additional data is collected, you will be asked for explicit consent, and any collection will be limited to what the applicable legal and payment-provider requirements demand.
               </p>
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">C. What the Verified Badge Means</h3>
+              <h3 className="font-bold text-slate-900 text-sm">C. What the Green PRO Badge Means</h3>
               <p className="text-slate-600 text-xs mt-1">
-                <strong>The Verified badge means the account completed the three platform checks above — name, confirmed email and confirmed phone. It is not KYC verification and it is not a government-issued identity certification; it must not be represented as either.</strong> A confirmed phone number alone is never presented as KYC verification. Payment-provider compliance checks that apply to actual money movement are separate from this badge and are unaffected by it.
+                <strong>The green PRO badge means an active Premium subscription only. It is never a verification badge and it is never granted by verification status.</strong> It disappears automatically when the subscription expires or is cancelled. Payment-provider compliance checks that apply to actual money movement are separate from this badge and are unaffected by it.
               </p>
             </div>
             <div>

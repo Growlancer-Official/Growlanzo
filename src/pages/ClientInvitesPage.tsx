@@ -7,7 +7,6 @@ import { InfoTip } from '../components/InfoTip';
 import { PageSkeleton } from '../components/PageSkeleton';
 import { useToast } from '../components/Toast';
 import { ProBadge } from '../components/ProBadge';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 
 interface Invite {
   id: string;
@@ -254,8 +253,7 @@ export function ClientInvitesPage() {
                     <div className="min-w-0">
                       <h3 className="font-display font-bold text-slate-900 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                         {invite.freelancer?.name || 'Unknown Freelancer'}
-                        {invite.freelancer?.verification_status === 'verified' && <VerifiedBadge size="xs" />}
-                        {invite.freelancer?.is_pro && <ProBadge size="xs" />}
+                                                {invite.freelancer?.is_pro && <ProBadge size="xs" />}
                       </h3>
                       <p className="text-sm text-slate-500 truncate">{invite.freelancer?.email}</p>
                     </div>

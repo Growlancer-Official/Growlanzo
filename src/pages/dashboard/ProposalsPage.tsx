@@ -4,7 +4,6 @@ import { ArrowRight, Calendar, CheckCircle2, ChevronDown, Clock, FileText, Loade
 import { useAuth } from '../../context/AuthContext';
 import { InfoTip } from '../../components/InfoTip';
 import { useToast } from '../../components/Toast';
-import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { RatingSummary } from '../../components/RatingSummary';
 import { PageSkeleton } from '../../components/PageSkeleton';
 import { formatBudgetRange } from '../../utils/date';
@@ -355,8 +354,7 @@ export function ProposalsPage() {
                         <User className="w-4 h-4" />
                         Client: <span className="font-medium text-slate-700 flex items-center gap-1">
                           {proposal.project?.client?.name || 'Client'}
-                          {(proposal.project?.client as any)?.verification_status === 'verified' && <VerifiedBadge size="xs" tone="blue" />}
-                          {/* Renders nothing when the client has no reviews — a
+                                                    {/* Renders nothing when the client has no reviews — a
                               stale profile rating used to print a bare "(0)" right
                               after the name ("Client: Test Client 1" + 0). */}
                           <RatingSummary

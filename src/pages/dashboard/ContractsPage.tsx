@@ -4,7 +4,6 @@ import { AlertCircle, AlertTriangle, ArrowRight, Briefcase, Calendar, CheckCircl
 import { InfoTip } from '../../components/InfoTip';
 import { Button } from '../../components/Button';
 import { PageSkeleton } from '../../components/PageSkeleton';
-import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { useAuth } from '../../context/AuthContext';
 import { supabase, realtimeChannels } from '../../lib/supabase';
 import type { Tables } from '../../types/supabase';
@@ -644,8 +643,7 @@ export function ContractsPage() {
                         <User className="w-4 h-4" />
                         Client: <span className="font-medium text-slate-700 flex items-center gap-1">
                           {contract.profiles?.name}
-                          {contract.profiles?.verification_status === 'verified' && <VerifiedBadge size="xs" tone="blue" />}
-                        </span>
+                                                  </span>
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
@@ -1044,8 +1042,7 @@ export function ContractsPage() {
                   <span className="text-sm text-slate-500">
                     Client: <span className="font-semibold text-slate-800 flex items-center gap-1">
                       {cc.profiles?.name || '—'}
-                      {cc.profiles?.verification_status === 'verified' && <VerifiedBadge size="xs" tone="blue" />}
-                    </span>
+                                          </span>
                   </span>
                 </div>
 

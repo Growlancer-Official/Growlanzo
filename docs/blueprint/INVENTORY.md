@@ -4,7 +4,7 @@
 > `src/test/projectMap.test.ts` fails when this file is stale, so a new page,
 > function, migration or test cannot land without refreshing the map.
 
-Total tracked structure: **766 files** across 12 groups.
+Total tracked structure: **769 files** across 12 groups.
 
 | Group | Files |
 | --- | ---: |
@@ -15,10 +15,10 @@ Total tracked structure: **766 files** across 12 groups.
 | Client libraries & services | 72 |
 | Edge functions | 35 |
 | Edge shared modules | 12 |
-| Database migrations | 335 |
+| Database migrations | 336 |
 | Archived migrations (not applied) | 6 |
-| Test suite | 90 |
-| Operational scripts | 47 |
+| Test suite | 91 |
+| Operational scripts | 48 |
 | CI / deploy workflows | 4 |
 
 ## Pages (97)
@@ -149,6 +149,7 @@ Shared UI. Feature-specific components live next to their page instead.
 - `src/components/ConsentGatedAnalytics.tsx`
 - `src/components/CookieConsent.tsx`
 - `src/components/CountrySelect.tsx`
+- `src/components/CustomProjectRewardCard.tsx`
 - `src/components/EarningsChart.tsx`
 - `src/components/EmailVerificationCard.tsx`
 - `src/components/EmptyState.tsx`
@@ -188,7 +189,6 @@ Shared UI. Feature-specific components live next to their page instead.
 - `src/components/SubscriptionPayPalPayment.tsx`
 - `src/components/TipNote.tsx`
 - `src/components/Toast.tsx`
-- `src/components/VerifiedBadge.tsx`
 - `src/components/VerifyNowHeaderButton.tsx`
 
 ## Context & hooks (10)
@@ -340,7 +340,7 @@ The runtime contract every function imports: CORS, site URL, auth, rate limits, 
 - `supabase/functions/_shared/site.ts`
 - `supabase/functions/_shared/urlGuard.ts`
 
-## Database migrations (335)
+## Database migrations (336)
 
 Ordered by filename timestamp. Applied by `supabase db push --include-all` in Backend Deploy; never by hand in the dashboard.
 
@@ -679,6 +679,7 @@ Ordered by filename timestamp. Applied by `supabase db push --include-all` in Ba
 - `supabase/migrations/20271126000000_referral_stats_and_team_status.sql`
 - `supabase/migrations/20271126000001_referrals_status_allow_completed.sql`
 - `supabase/migrations/20271127000000_fix_messages_contract_membership.sql`
+- `supabase/migrations/20271128000000_launch_referral_caps_custom_project_and_verification.sql`
 
 ## Archived migrations (not applied) (6)
 
@@ -691,7 +692,7 @@ Kept for history only. `db push` reads the top level of `supabase/migrations`, s
 - `supabase/migrations/archived/20260806000000_restore_auto_confirm_trigger.sql`
 - `supabase/migrations/archived/20260830000000_consolidated_email_verification_final.sql`
 
-## Test suite (90)
+## Test suite (91)
 
 Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invariants have guard tests here.
 
@@ -758,6 +759,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/publicMetricsHonesty.test.ts`
 - `src/test/ratingDisplay.test.ts`
 - `src/test/realtimeAiQuotaPriority.test.ts`
+- `src/test/referralCapsAndCustomProject.test.ts`
 - `src/test/referralCode.test.ts`
 - `src/test/referralInviteCard.test.tsx`
 - `src/test/referralLifetimeProjectRewards.test.ts`
@@ -786,7 +788,7 @@ Vitest, jsdom, single worker (see `vitest.config.ts`). Security and money invari
 - `src/test/typographyFonts.test.ts`
 - `src/test/waitlistPage.test.tsx`
 
-## Operational scripts (47)
+## Operational scripts (48)
 
 Build, preflight, security audit and the E2E harnesses. Nothing here is imported by the app.
 
@@ -813,6 +815,7 @@ Build, preflight, security audit and the E2E harnesses. Nothing here is imported
 - `scripts/e2e/exa-search-smoke.mjs`
 - `scripts/e2e/full-sweep.mjs`
 - `scripts/e2e/hire-release-flow.mjs`
+- `scripts/e2e/launch-coins-verification.mjs`
 - `scripts/e2e/login.mjs`
 - `scripts/e2e/logout-flow.mjs`
 - `scripts/e2e/nav-flows.mjs`

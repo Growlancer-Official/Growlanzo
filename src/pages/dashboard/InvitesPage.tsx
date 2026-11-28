@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { AlertCircle, ArrowRight, Briefcase, Calendar, CheckCircle2, Clock, Loader2, Mail, MessageSquare, Star, User, Wallet, XCircle } from 'lucide-react';
 import { InfoTip } from '../../components/InfoTip';
 import { useToast } from '../../components/Toast';
-import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { PageSkeleton } from '../../components/PageSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { supabase, dbFunctions, uniqueChannelName } from '../../lib/supabase';
@@ -427,8 +426,7 @@ export function InvitesPage() {
                           <User className="w-4 h-4" />
                           Invited by <span className="font-medium text-slate-700 flex items-center gap-1">
                             {invite.profiles?.name}
-                            {invite.profiles?.verification_status === 'verified' && <VerifiedBadge size="xs" tone="blue" />}
-                            {(invite.profiles as any)?.rating && Number((invite.profiles as any).rating) > 0 && (
+                                                        {(invite.profiles as any)?.rating && Number((invite.profiles as any).rating) > 0 && (
                               <span className="flex items-center gap-1 text-xs">
                                 <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                                 <span className="font-semibold text-slate-700">{Number((invite.profiles as any).rating).toFixed(1)}</span>

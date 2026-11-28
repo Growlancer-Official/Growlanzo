@@ -26,7 +26,6 @@ import { portfolioService } from '../lib/portfolio';
 import { reviewService } from '../lib/reviews';
 import { useToast } from '../components/Toast';
 import { ProBadge } from '../components/ProBadge';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 import { InfoTip } from '../components/InfoTip';
 import { invitesService } from '../lib/dataService';
 import { useAuth } from '../context/AuthContext';
@@ -526,8 +525,7 @@ export function PublicFreelancerProfilePage() {
             <div className="text-center sm:text-left flex-1">
               <h1 className="font-display text-3xl sm:text-4xl font-bold flex items-center gap-3.5 flex-wrap justify-center sm:justify-start">
                 {displayName}
-                {profile.verification_status === 'verified' && <VerifiedBadge size="sm" />}
-                {isProFreelancer && <ProBadge size="md" />}
+                                {isProFreelancer && <ProBadge size="md" />}
               </h1>
               {profile.title && (
                 <p className="text-lg text-white/80 mt-1">{profile.title}</p>

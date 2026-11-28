@@ -6,7 +6,8 @@ import { useReferralsData } from '../hooks/useReferralsData';
 import { useGrowCoinBalance } from '../hooks/useGrowCoinBalance';
 import { GrowCoinIcon } from '../components/GrowCoinIcon';
 import { ReferralInviteCard } from '../components/ReferralInviteCard';
-import { GROW_COIN, formatCoinAmount, getReferralBonusDescription } from '../lib/growCoins';
+import { GROW_COIN, formatCoinAmount, getReferralBonusDescription, monthlyReferralCapFor } from '../lib/growCoins';
+import { CustomProjectRewardCard } from '../components/CustomProjectRewardCard';
 
 /**
  * Same four tiers as the freelancer dashboard (Starter → Growth → Pro → Elite at
@@ -53,7 +54,7 @@ export function ClientReferralsPage() {
     user?.referralCode,
     user?.role
   );
-  const { state: coins, loading: coinsLoading, error: coinsError } = useGrowCoinBalance(user?.id);
+  const { state: coins, loading: coinsLoading, error: coinsError, refresh: refreshCoins } = useGrowCoinBalance(user?.id);
 
   const totalReferrals = referralStats?.total_referrals ?? referrals.length;
   const tier = tierFromCount(totalReferrals);
@@ -79,6 +80,9 @@ export function ClientReferralsPage() {
                   ? 'Could not load your coin balance — refresh to retry.'
                   : `Min ${GROW_COIN.minRedemption} coins to use at checkout · ${formatCoinAmount(coins.available)} available`}
               </p>
+              <p className="mt-1 text-[11px] font-semibold text-amber-800/60">
+                Referral earnings cap: {monthlyReferralCapFor(user?.role)} coins this calendar month · resets on the 1st
+              </p>
             </div>
           </div>
           <Link
@@ -88,10 +92,13 @@ export function ClientReferralsPage() {
             Use coins at checkout
           </Link>
         </div>
-        <div className="relative mt-3 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-900/70">You earn <span className="font-bold">5 Grow Coins</span> when a client you referred passes identity verification — never at signup — and your referral earns <span className="font-bold">5 Grow Coins</span> at that same moment, on both screens. Referral codes are same-side: clients refer clients, freelancers refer freelancers. Every project your referred client completes keeps paying <span className="font-bold">5 coins to them and 5 coins to you</span>, with no lifetime cap. At checkout you can apply coins as a ₹1-per-coin discount on a contract or package payment, from {GROW_COIN.minRedemption} coins upward.
+        <div className="relative mt-3 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-900/70">You earn <span className="font-bold">5 Grow Coins</span> when a project completed by a client you referred is delivered and paid — never at signup — and your referral earns <span className="font-bold">5 Grow Coins</span> at that same moment, on both screens. Referral codes are same-side: clients refer clients, freelancers refer freelancers. Every project your referred client completes keeps paying <span className="font-bold">5 coins to them and 5 coins to you</span>, up to a monthly referral earning cap of <span className="font-bold">100 coins for clients</span> (199 for freelancers) that resets on the 1st. At checkout you can apply coins as a ₹1-per-coin discount on a contract or package payment, from {GROW_COIN.minRedemption} coins upward.
           <p className="mt-1 text-xs text-amber-900/70">{getReferralBonusDescription(user?.role ?? 'freelancer')}</p>
         </div>
       </section>
+
+      {/* The 100-coin client reward: one custom project posting. */}
+      <CustomProjectRewardCard availableCoins={coins.available} onRedeemed={() => void refreshCoins()} />
 
       {loading && (
         <div className="flex justify-center py-4">
@@ -184,7 +191,7 @@ export function ClientReferralsPage() {
             </div>
             <h4 className="font-bold mb-2">Grow Coins (₹ value)</h4>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Every approved referral pays <span className="font-bold">5 Grow Coins</span> to you and 5 to your referral at the same instant, and every project that referral completes pays 5 + 5 again — no lifetime cap. Open the coin rewards panel to spend them at checkout or on Premium.
+              Every approved referral pays <span className="font-bold">5 Grow Coins</span> to you and 5 to your referral at the same instant, and every project that referral completes pays 5 + 5 again, up to 100 coins per month for clients (199 for freelancers). Open the coin rewards panel to spend them at checkout, on Premium, or on a custom project posting.
             </p>
           </div>
           <div className="bg-white p-6 rounded-xl border border-slate-100 hover:border-emerald-100 transition-all group">
@@ -222,15 +229,15 @@ export function ClientReferralsPage() {
               <li className="flex items-start gap-3 text-sm">
                 <CheckCircle className="text-emerald-500 mt-0.5 w-5 h-5" />
                 <div>
-                  <p className="font-bold">Identity Verified</p>
-                  <p className="text-xs text-slate-400">The referred client must complete identity verification. A signup alone pays nothing.</p>
+                  <p className="font-bold">A Settled Project</p>
+                  <p className="text-xs text-slate-400">A referred client must deliver and pay for a project. A signup alone pays nothing.</p>
                 </div>
               </li>
               <li className="flex items-start gap-3 text-sm">
                 <CheckCircle className="text-emerald-500 mt-0.5 w-5 h-5" />
                 <div>
                   <p className="font-bold">A Real Milestone — Not a Signup</p>
-                  <p className="text-xs text-slate-400">5 coins land for both of you when their identity is approved, and again for every project they complete.</p>
+                  <p className="text-xs text-slate-400">5 coins land for both of you when a project they complete is settled — and again on every settled project.</p>
                 </div>
               </li>
             </ul>

@@ -26,9 +26,9 @@ import {
   GROW_COIN,
   formatCoinAmount,
   getReferralBonusDescription,
-  getKycBonusDescription,
   newCoinRequestKey,
   redeemGrowCoinsForPremium,
+  monthlyReferralCapFor,
 } from '../lib/growCoins';
 
 // Coin cash-out is intentionally not wired to the UI yet: the founder is
@@ -163,12 +163,12 @@ export function ReferralsPage() {
       <div className="flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 px-4 py-3">
         <GrowCoinIcon size={22} className="mt-0.5 shrink-0" />
         <p className="text-xs sm:text-sm leading-relaxed text-amber-950/85">
-          <span className="font-bold">When do you get paid?</span> Approved identity verification pays{' '}
-          <span className="font-bold">5 Grow Coins to you and 5 to them</span> — once per referral, never at signup.
-          Then every project your referred user completes keeps paying{' '}
-          <span className="font-bold">5 coins to them and 5 coins to you</span>, for as long as the referral
-          relationship exists — no lifetime cap. Nothing is paid for empty, fake, cancelled or unpaid work, which is
-          what keeps the programme honest.
+          <span className="font-bold">When do you get paid?</span> When a project your referral completes is
+          delivered and paid, <span className="font-bold">5 Grow Coins go to them and 5 to you</span> — never at
+          signup. It keeps paying on every settled project for as long as the referral relationship exists. Referral earnings are capped at <span className="font-bold">199 coins per calendar
+          month</span> for freelancers (100 for clients) and reset on the 1st — the 5-coin-per-referral reward is
+          unchanged. Nothing is paid for empty, fake, cancelled or unpaid work, which is what keeps the programme
+          honest.
         </p>
       </div>
 
@@ -310,6 +310,9 @@ export function ReferralsPage() {
                     ? `${formatCoinAmount(coins.available)} available · ${formatCoinAmount(coins.reserved)} held for an unpaid order`
                     : `${formatCoinAmount(coins.available)} available`}
               </p>
+              <p className="mt-1 text-[11px] font-semibold text-amber-800/60">
+                Referral earnings cap: {monthlyReferralCapFor(user?.role)} coins this calendar month · resets on the 1st
+              </p>
 
               {!coinsLoading && !coinsError && (
                 <div className="mt-3 max-w-sm">
@@ -381,7 +384,7 @@ export function ReferralsPage() {
                   <GrowCoinIcon size={22} />
                 </div>
                 <h4 className="font-bold mb-2">Grow Coins (₹ value)</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">Every approved referral pays 5 Grow Coins to you and 5 Grow Coins to your referral at the same instant, and every project that referral completes pays 5 + 5 again — no lifetime cap. Premium is live today; cash withdrawal is coming soon for both roles.</p>
+                <p className="text-xs text-slate-500 leading-relaxed">Every approved referral pays 5 Grow Coins to you and 5 Grow Coins to your referral at the same instant, and every project that referral completes pays 5 + 5 again. Referral earnings are capped at 199 coins per month for freelancers and 100 per month for clients; the cap resets on the 1st. Premium is live today; cash withdrawal is coming soon for both roles.</p>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center mb-2">
@@ -416,14 +419,14 @@ export function ReferralsPage() {
                   <CheckCircle className="text-emerald-500 mt-0.5 w-5 h-5" />
                   <div>
                     <p className="font-bold">A Real Milestone — Not a Signup</p>
-                    <p className="text-xs text-slate-400">5 coins land for both of you when their identity is approved, and again for every project they complete — a signup alone pays nothing.</p>
+                    <p className="text-xs text-slate-400">5 coins land for both of you when a project they complete is settled — a signup alone pays nothing.</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3 text-sm">
                   <CheckCircle className="text-emerald-500 mt-0.5 w-5 h-5" />
                   <div>
-                    <p className="font-bold">Or Identity Verified</p>
-                    <p className="text-xs text-slate-400">{getKycBonusDescription(user?.role ?? 'freelancer')}</p>
+                    <p className="font-bold">Monthly earning cap</p>
+                    <p className="text-xs text-slate-400">{monthlyReferralCapFor(user?.role)} coins per calendar month, resetting on the 1st. Rewards already earned are never removed.</p>
                   </div>
                 </li>
               </ul>

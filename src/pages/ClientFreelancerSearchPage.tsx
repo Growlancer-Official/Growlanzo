@@ -10,7 +10,6 @@ import { useCategories } from '../hooks/useCategories';
 import { getSellerLevelBadgeProps } from '../lib/sellerLevels';
 import { CategoriesSection } from '../components/CategoriesSection';
 import { ProBadge } from '../components/ProBadge';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 import { invitesService } from '../lib/dataService';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { safeLower } from '../utils/date';
@@ -402,8 +401,7 @@ export function ClientFreelancerSearchPage() {
                     <h3 className="font-bold text-slate-900 flex items-center gap-1.5">
                       {f.profile?.name || f.title || 'Freelancer'}
                       {f.profile?.is_pro && <ProBadge size="xs" />}
-                      {f.verification_status === 'verified' && <VerifiedBadge size="xs" />}
-                    </h3>
+                                          </h3>
                     {f.availability && <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />Available</span>}
                   </div>
                   {f.title && <p className="text-sm text-slate-500">{f.title}</p>}

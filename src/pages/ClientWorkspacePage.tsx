@@ -49,7 +49,6 @@ import {
 import { refundService, type RefundRequest, type RefundHistoryEvent } from '../lib/refundService'
 import { revisionService, type RevisionRequest } from '../lib/revisionService'
 import { razorpayService } from '../lib/razorpay'
-import { VerifiedBadge } from '../components/VerifiedBadge'
 import { ProBadge } from '../components/ProBadge'
 import { InfoTip } from '../components/InfoTip'
 import { ReviewModal } from '../components/ReviewModal'
@@ -834,9 +833,6 @@ export function ClientWorkspacePage() {
             <h1 className="font-display text-xl font-bold text-slate-900">Collaboration Workspace</h1>
             <p className="text-sm text-slate-500">
               Working with <span className="font-semibold text-slate-700">{selectedContract?.freelancer?.name || 'Freelancer'}</span>
-              {(selectedContract?.freelancer as any)?.verification_status === 'verified' && (
-                <VerifiedBadge size="xs" className="ml-1.5" />
-              )}
               {(selectedContract?.freelancer as any)?.is_pro && (
                 <ProBadge size="xs" className="ml-1" />
               )}

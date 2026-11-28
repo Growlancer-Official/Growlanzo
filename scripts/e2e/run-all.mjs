@@ -8,7 +8,7 @@
 //                                      escrow, release math, reviews, dispute,
 //                                      notifications, messages, admin gate
 //   3. security    pentest-privileges.mjs + surface-audit.mjs
-//   4. scale       referral-team-scale.mjs (1→5 referrals, 10-seat team project)
+//   4. scale       referral-team-scale.mjs (referral chains, 10-seat team project)
 //   5. routes      route-smoke.mjs against production (40 routes + 404 control)
 //   6. leftovers   live-DB audit: no disposable accounts/projects/contracts/wallets
 //
@@ -103,6 +103,7 @@ runPhase('full-sweep', 'node', ['scripts/e2e/full-sweep.mjs', ...keep], {
 runPhase('pentest', 'node', ['scripts/e2e/pentest-privileges.mjs']);
 runPhase('surface-audit', 'node', ['scripts/e2e/surface-audit.mjs']);
 runPhase('referral-team-scale', 'node', ['scripts/e2e/referral-team-scale.mjs', ...keep]);
+runPhase('launch-coins-verification', 'node', ['scripts/e2e/launch-coins-verification.mjs', ...keep]);
 
 // ── 5. production routes ────────────────────────────────────────────────────
 if (!args['skip-routes']) {

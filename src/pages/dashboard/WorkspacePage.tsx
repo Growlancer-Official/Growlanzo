@@ -41,7 +41,6 @@ import { refundService, type RefundRequest } from '../../lib/refundService';
 import { revisionService, type RevisionRequest } from '../../lib/revisionService';
 import { fileUploadService, type ContractFile } from '../../lib/fileUpload';
 import { normalizeEscrow } from '../../lib/contractMilestones';
-import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { InfoTip } from '../../components/InfoTip';
 import { ReviewModal } from '../../components/ReviewModal';
 import type { Tables } from '../../types/supabase';
@@ -896,9 +895,6 @@ export function WorkspacePage() {
             <h1 className="font-display text-xl font-bold text-slate-900">Collaboration Workspace</h1>
             <p className="text-sm text-slate-500 flex flex-wrap items-center gap-x-1 gap-y-0.5">
               Co-working with <span className="font-semibold text-slate-700 break-words">{selectedContract?.client?.name}</span>
-              {(selectedContract?.client as any)?.verification_status === 'verified' && (
-                <VerifiedBadge size="xs" className="ml-1.5" tone="blue" />
-              )}
               {(() => {
                 const esc = normalizeEscrow((selectedContract as any)?.escrow);
                 return esc && esc.status === 'funded' ? (

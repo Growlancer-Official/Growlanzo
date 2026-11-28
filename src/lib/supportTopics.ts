@@ -32,28 +32,19 @@ export interface SupportTopic {
 
 const verifySteps: SupportStep[] = [
   {
-    text: 'Account verification is quick (usually under a minute): your full name, a confirmed email address and a confirmed phone number. It turns on the verified badge on your profile. Advanced identity verification (KYC) is Coming Soon and is not part of the Beta. What do you need help with?',
+    text: 'Verification is **Coming Soon** for both freelancers and clients. There is no verification form to complete today, no document upload and no phone code to confirm — and nothing on Growlanzo is blocked while we finish the legal, privacy and provider review. What do you need help with?',
     options: [
-      { label: 'How do I verify my account?', next: 1 },
-      { label: 'My email or phone code did not arrive', next: 2 },
-      { label: 'What about KYC?', next: 3 },
+      { label: 'What about the green badge?', next: 1 },
+      { label: 'When will verification launch?', next: 2 },
     ],
   },
   {
-    text: 'Open **Verification** in your dashboard (or tap the shield icon). Save your full name, open the confirmation link we email you, and confirm your phone with the one-time code on the same screen. Each step updates by itself — there is no document upload in the Beta.',
-    options: [{ label: 'Open Verification page', next: 4 }, { label: 'Got it — thanks!', done: 'You\u2019re welcome! Your verified badge appears as soon as all three checks are complete. 🎉' }],
+    text: 'The green **PRO** badge now means an **active Premium subscription** only. It is never a verification badge, and verification will not grant it. When a Premium subscription expires or is cancelled, the badge disappears automatically.',
+    options: [{ label: 'Got it — thanks!', done: 'Thanks! Premium is optional and never affects ranking or visibility. ✅' }],
   },
   {
-    text: 'No email yet? Check your spam folder and request a fresh confirmation link from the Verification page. For the phone code, wait a minute before requesting another — requests are rate-limited — and include the country code, for example +919876543210.',
-    options: [{ label: 'Try again', next: 1 }, { label: 'Got it — thanks!', done: 'If the code still does not arrive, open a support ticket from your dashboard and the team will help. 📩' }],
-  },
-  {
-    text: 'Advanced identity verification (KYC) is **Coming Soon**. It will arrive in a future Growlanzo update, so there is nothing to submit today and no government-ID upload is open during the Beta. When it ships we will explain exactly what is collected and ask for your consent before any submission.',
-    options: [{ label: 'Verify my account now', next: 1 }, { label: 'Got it — thanks!', done: 'Thanks for bearing with us — account verification is all you need for Beta access today. ✅' }],
-  },
-  {
-    text: 'You can open the verification page from your dashboard menu anytime.',
-    options: [{ label: 'Done — thanks!', done: 'You\u2019re welcome! Your verified badge appears as soon as all three checks are complete. 🎉' }],
+    text: 'We do not have a launch date yet. It will ship only after legal and compliance review and a licensed verification provider are in place. When it launches we will ask for your consent first and update the Privacy Policy before collecting anything new.',
+    options: [{ label: 'Got it — thanks!', done: 'Thanks for your patience — we will announce verification in-app when it is ready. 📩' }],
   },
 ];
 
@@ -137,7 +128,7 @@ export const FREELANCER_SUPPORT_TOPICS: SupportTopic[] = [
     id: 'verification',
     title: 'Identity Verification',
     emoji: '🛡️',
-    description: 'Name, email, phone, verified badge',
+    description: 'Verification is Coming Soon',
     steps: verifySteps,
   },
   {
@@ -276,7 +267,7 @@ export const CLIENT_SUPPORT_TOPICS: SupportTopic[] = [
     id: 'verification',
     title: 'Identity Verification',
     emoji: '🛡️',
-    description: 'Name, email, phone, verified badge',
+    description: 'Verification is Coming Soon',
     steps: verifySteps,
   },
   {

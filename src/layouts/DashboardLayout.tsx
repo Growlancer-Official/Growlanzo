@@ -36,9 +36,7 @@ import { notificationService } from '../lib/notifications';
 import { NotificationsPanel } from '../components/NotificationsPanel';
 import { NotificationToastBridge } from '../components/NotificationToastBridge';
 import { ProBadge } from '../components/ProBadge';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 import { GrowCoinBadge } from '../components/GrowCoinBadge';
-import { VerifyNowHeaderButton } from '../components/VerifyNowHeaderButton';
 import { resolveDashboardSection } from '../lib/dashboardSection';
 import { isDeferredRoute } from '../lib/featureFlags';
 import { useProStatus } from '../hooks/useProStatus';
@@ -715,7 +713,6 @@ export function DashboardLayout() {
             </div>
 
             {/* Light KYC nudge — disappears in real time once verified. */}
-            <VerifyNowHeaderButton />
 
             <GrowCoinBadge userId={user?.id} role={user?.role} />
 
@@ -746,8 +743,7 @@ export function DashboardLayout() {
               <div className="text-left hidden lg:block">
                 <p className="text-sm font-bold leading-tight flex items-center gap-1.5">
                   {user?.name || 'User'}
-                  {user?.verificationStatus === 'verified' && <VerifiedBadge size="xs" />}
-                  {isPro && <ProBadge size="xs" />}
+                                    {isPro && <ProBadge size="xs" />}
                 </p>
                 <div className="flex items-center gap-1">
                   <p className="text-[10px] text-slate-500 font-medium tracking-wide">{getRatingBadge()}</p>

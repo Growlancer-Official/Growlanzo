@@ -847,7 +847,7 @@
   .dark :where(
     .bg-emerald-50\/10, .bg-emerald-50\/20, .bg-emerald-50\/40, .bg-emerald-50\/50,
     .bg-emerald-50\/60, .bg-emerald-50\/70, .bg-emerald-50\/80,
-    .bg-emerald-100\/50, .bg-emerald-100\/80
+    .bg-emerald-100\/50, .bg-emerald-100\/60, .bg-emerald-100\/80
   ) {
     background-color: rgba(36, 186, 53, 0.12);
   }
@@ -893,6 +893,11 @@
   .dark :where(.from-emerald-50, .from-teal-50, .from-green-50) {
     --tw-gradient-from: #0d2a18 var(--tw-gradient-from-position);
     --tw-gradient-to: rgba(13, 42, 24, 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .dark :where(.from-violet-50, .from-purple-50) {
+    --tw-gradient-from: #1d1838 var(--tw-gradient-from-position);
+    --tw-gradient-to: rgba(29, 24, 56, 0) var(--tw-gradient-to-position);
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
   }
   .dark :where(.to-emerald-50, .to-teal-50, .to-green-50) {

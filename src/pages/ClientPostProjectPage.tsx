@@ -11,12 +11,14 @@ import { useCategories } from '../hooks/useCategories';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { IndustrySelect } from '../components/IndustrySelect';
 import AIGenerateModal from '../components/AIGenerateModal';
+import { CUSTOM_PROJECT_REWARD_COST, createCustomProjectWithReward, newCoinRequestKey } from '../lib/growCoins';
 
 export function ClientPostProjectPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const editProjectId = searchParams.get('edit');
+  const isCustomReward = searchParams.get('custom') === '1' && !editProjectId;
   const { categories } = useCategories();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
@@ -127,6 +129,37 @@ export function ClientPostProjectPage() {
     setLoading(true);
 
     try {
+      // Custom-project reward: the server consumes the 100-coin credit and
+      // inserts the project atomically. If no unused credit exists, the RPC
+      // returns a product error and no project is created.
+      if (isCustomReward) {
+        const created = await createCustomProjectWithReward({
+          idempotencyKey: newCoinRequestKey(),
+          title: formData.title,
+          description: formData.description,
+          budget,
+          category: formData.category,
+          skills: formData.skills_required,
+          deadline: formData.deadline || null,
+          experienceLevel: formData.experience_level,
+          industry: formData.industry,
+          visibility: formData.visibility,
+        });
+
+        const projectId = created.project_id;
+        for (const catId of selectedCategoryIds) {
+          const { error: catError } = await supabase.from('project_categories').upsert({
+            project_id: projectId,
+            category_id: catId,
+          }, { onConflict: 'project_id, category_id', ignoreDuplicates: true });
+          if (catError) console.error('Failed to link project category:', catError.message);
+        }
+        await supabase.from('ai_matches').delete().eq('project_id', projectId);
+        toast.success('Custom project posted', `${CUSTOM_PROJECT_REWARD_COST} Grow Coins redeemed — your reward has been used.`);
+        navigate(`/client/matches?project_id=${projectId}`);
+        return;
+      }
+
       // Single-budget model: min === max = the one budget the client entered.
       // Keeping both columns in sync keeps AI matching, the invite-hire RPC and
       // every existing budget display working without a schema change.
@@ -217,6 +250,16 @@ export function ClientPostProjectPage() {
       // UnsubscribePage: the banner publishes --consent-banner-h while visible.
       style={{ paddingBottom: 'calc(var(--consent-banner-h, 0px) + 1rem)' }}
     >
+      {isCustomReward && (
+        <div className="mb-3 flex items-start gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-700" />
+          <p className="text-xs leading-relaxed text-violet-900">
+            <span className="font-bold">Custom project reward</span> — posting this project spends your{' '}
+            {CUSTOM_PROJECT_REWARD_COST}-coin reward. It can be used for one project only.
+          </p>
+        </div>
+      )}
+
       <div className="mb-3 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
           <Briefcase className="w-5 h-5 text-white" />
@@ -470,7 +513,7 @@ export function ClientPostProjectPage() {
             ) : (
               <>
                 <CheckCircle className="w-5 h-5" />
-                {editProjectId ? 'Update Project' : 'Post Project'}
+                {editProjectId ? 'Update Project' : isCustomReward ? 'Use reward & post project' : 'Post Project'}
                 <ArrowRight className="w-5 h-5" />
               </>
             )}

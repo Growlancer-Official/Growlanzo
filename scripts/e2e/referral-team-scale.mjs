@@ -205,14 +205,17 @@ const coins = async (userId, reason) =>
 
   const claim = (u, code) => rpc('process_referral', { p_referral_code: code, p_new_user_id: u.id, p_new_user_email: u.email }, u.token);
 
-  // ── Referral chain: 1 referrer → 5 freelancers ─────────────────────────
-  for (let i = 0; i < 5; i++) {
+  // ── Referral chain: 1 referrer → 6 freelancers ─────────────────────────
+  // The retired 5-invite cap no longer exists (launch rule 20271128): a
+  // freelancer may record as many referrals as needed to reach the 199-coin
+  // monthly EARNING cap. Invitations themselves are not capped at five.
+  for (let i = 0; i < 6; i++) {
     const r = await claim(refL[i], referrerCode);
-    check(`referral ${i + 1}/5 accepted (remaining ${4 - i})`, r.json?.success === true && r.json?.remaining_this_month === 4 - i, r.json);
+    check(`referral ${i + 1}/6 accepted`, r.json?.success === true && Number(r.json?.remaining_this_month) >= 0, r.json);
   }
 
-  const sixth = await claim(refL[5], referrerCode);
-  check('6th referral refused by the monthly cap (cap=5)', sixth.json?.success === false && sixth.json?.error_code === 'monthly_cap' && sixth.json?.cap === 5 && sixth.json?.used_this_month === 5, sixth.json);
+  const seventh = await claim(refL[6], referrerCode);
+  check('7th referral also accepted (no invitation cap)', seventh.json?.success === true, seventh.json);
 
   const dup = await claim(refL[0], referrerCode);
   check('same referee cannot be claimed twice', dup.json?.success === false && /already referred/i.test(dup.json?.error || ''), dup.json);
@@ -227,9 +230,9 @@ const coins = async (userId, reason) =>
   check('self-referral refused', self.json?.success === false, self.json);
 
   const statsRef = await row(`/rest/v1/referral_stats?select=total_referrals,valid_referrals,points&user_id=eq.${referrer.id}`, referrerL.token);
-  check('referrer stats show 5 invites, 0 valid before any contract', Number(statsRef?.total_referrals) === 5 && Number(statsRef?.valid_referrals) === 0, statsRef);
+  check('referrer stats show 7 invites, 0 valid before any contract', Number(statsRef?.total_referrals) === 7 && Number(statsRef?.valid_referrals) === 0, statsRef);
   const usedThisMonth = await rpc('referral_invites_this_month', { p_user_id: referrer.id }, referrerL.token);
-  check('invites-this-month reports 5', usedThisMonth.json === 5, usedThisMonth.json);
+  check('invites-this-month reports 7', usedThisMonth.json === 7, usedThisMonth.json);
 
   // ── Rewards: each referee completes one contract ───────────────────────
   await seedWallet(c1, 20000);
@@ -293,8 +296,8 @@ const coins = async (userId, reason) =>
   check('referral marked completed + bonus_claimed', referralRow?.status === 'completed' && referralRow?.bonus_claimed === true, referralRow);
 
   const statsAfter = await row(`/rest/v1/referral_stats?select=total_referrals,valid_referrals,points&user_id=eq.${referrer.id}`, referrerL.token);
-  check('dashboard counters move: 5 invites / 1 valid / 5 points',
-    Number(statsAfter?.total_referrals) === 5 && Number(statsAfter?.valid_referrals) === 1 && Number(statsAfter?.points) === 5, statsAfter);
+  check('dashboard counters move: 7 invites / 1 valid / 5 points',
+    Number(statsAfter?.total_referrals) === 7 && Number(statsAfter?.valid_referrals) === 1 && Number(statsAfter?.points) === 5, statsAfter);
 
   const kycRetry = await admin('/rest/v1/rpc/award_referral_bonus_if_eligible', {
     method: 'POST', body: { p_referred_user_id: refL[0].id },

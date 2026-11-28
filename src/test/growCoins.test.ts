@@ -173,10 +173,10 @@ describe('milestone bonuses — KYC 10, first project 20', () => {
   });
 
   it('announces the milestone rules on both referral surfaces', () => {
-    expect(REFERRALS_PAGE).toMatch(/5 Grow Coins to you and 5 to them/si);
-    expect(REFERRALS_PAGE).toMatch(/5 coins to them and 5 coins to you/si);
+    expect(REFERRALS_PAGE).toMatch(/5 Grow Coins go to them and 5 to you/si);
+    expect(REFERRALS_PAGE).toMatch(/5 Grow Coins go to them and 5 to you/si);
     expect(REFERRALS_PAGE).not.toMatch(/20 coins/);
-    expect(CLIENT_REFERRALS_PAGE).toMatch(/when a client you referred passes identity verification/i);
+    expect(CLIENT_REFERRALS_PAGE).toMatch(/when a project completed by a client you referred is delivered and paid/i);
     expect(CLIENT_REFERRALS_PAGE).toMatch(/5 coins to them and 5 coins to you/si);
     expect(CLIENT_REFERRALS_PAGE).not.toMatch(/20 coins/);
   });
@@ -243,8 +243,8 @@ describe('payment integration — coin count only, debit on capture', () => {
 
 describe('honest referral copy', () => {
   it('states the real trigger and never promises a signup bonus', () => {
-    expect(REFERRALS_PAGE).toMatch(/every project your referred user completes/i);
-    expect(REFERRALS_PAGE).toMatch(/never at signup/i);
+    expect(REFERRALS_PAGE).toMatch(/every settled project/i);
+    expect(REFERRALS_PAGE).toMatch(/never at\s+signup/i);
     expect(REFERRALS_PAGE).not.toMatch(/Referral counts after their first proposal/i);
   });
 

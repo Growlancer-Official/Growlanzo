@@ -8,7 +8,6 @@ import { AlertCircle, Calendar, Clock, FileText, Handshake, IndianRupee, Laptop,
 import { InfoTip } from '../components/InfoTip';
 import { ProBadge } from '../components/ProBadge';
 import { PageSkeleton } from '../components/PageSkeleton';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 
 interface Contract {
   id: string;
@@ -274,8 +273,7 @@ export function ClientContractsPage() {
                       <h3 className="font-display font-bold text-slate-900">
                         <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                           {contract.freelancer?.name || 'Unknown Freelancer'}
-                          {contract.freelancer?.verification_status === 'verified' && <VerifiedBadge size="xs" />}
-                          {contract.freelancer?.is_pro && <ProBadge size="xs" />}
+                                                    {contract.freelancer?.is_pro && <ProBadge size="xs" />}
                         </span>
                       </h3>
                       {contract.project && (

@@ -6,10 +6,9 @@ import { supabase } from './supabase';
 // Mirrors the server contract in
 // supabase/migrations/20270129000000_grow_coin_referral_rewards.sql:
 //   • 1 Grow Coin = ₹1, whole coins only.
-//   • Approved KYC pays 5 coins to the referrer AND 5 to the referred user —
-//     once per referral relationship, never on signup.
-//   • EVERY successful project completed by the referred user pays 5 + 5,
-//     repeating for life with no cap (20270302000000).
+//   • EVERY successful project completed by the referred user pays 5 + 5.
+//     Referral earnings are capped per calendar month (199 freelancer / 100
+//     client) by 20271128000000; the cap resets on the 1st.
 //   • No registration reward, personal KYC milestone, first-project bonus or
 //     monthly cap (20270303000000).
 //   • Minimum redemption is 100 coins.
@@ -27,11 +26,31 @@ export const GROW_COIN = {
   /** Retired: the one-shot 20-coin first-project bonus no longer exists. */
   firstProjectBonus: 0,
   minRedemption: 100,
-  /** Retired: the programme has no monthly cap. */
+  /** Retired legacy field. Per-role earning caps live in REFERRAL_MONTHLY_CAP. */
   monthlyBonusCap: 0,
   /** Premium (₹199/month) is priced in coins 1:1. Display fallback only. */
   premiumCost: 199,
+  /** One custom-project posting credit. */
+  customProjectCost: 100,
 } as const;
+
+/**
+ * Referral EARNING caps per calendar month (founder rule, Nov 2026).
+ * The cap applies to coins earned AS A REFERRER; the ledger-derived server
+ * functions `referral_monthly_earning_cap` / `referral_remaining_monthly_cap`
+ * are the authority. This mirror exists so the UI can show an honest number.
+ */
+export const REFERRAL_MONTHLY_CAP = {
+  freelancer: 199,
+  client: 100,
+} as const;
+
+export function monthlyReferralCapFor(role: string | null | undefined): number {
+  return role === 'client' ? REFERRAL_MONTHLY_CAP.client : REFERRAL_MONTHLY_CAP.freelancer;
+}
+
+/** Cost of one custom-project posting reward (client-only). */
+export const CUSTOM_PROJECT_REWARD_COST = GROW_COIN.customProjectCost;
 
 export type GrowCoinState = {
   balance: number;
@@ -134,7 +153,7 @@ export function getReferralBonusDescription(role: 'freelancer' | 'client' | 'adm
   const sameSide = role === 'client'
     ? 'Codes are same-side: you can only refer other clients.'
     : 'Codes are same-side: you can only refer other freelancers.';
-  return 'Approved identity verification pays 5 Grow Coins to you and 5 to your referral — once per referral, never at signup. Then every project your referred user completes keeps paying 5 coins to them and 5 coins to you, with no lifetime cap. ' + sameSide;
+  return 'Every completed and paid project by your referral pays 5 Grow Coins to them and 5 coins to you — never at signup. Referral earnings are capped per calendar month — 199 coins for freelancers and 100 coins for clients — and the cap resets on the 1st. ' + sameSide;
 }
 
 /**
@@ -144,8 +163,8 @@ export function getReferralBonusDescription(role: 'freelancer' | 'client' | 'adm
  */
 export function getFirstProjectBonusDescription(role: 'freelancer' | 'client' | 'admin'): string {
   return role === 'client'
-    ? 'Every project you complete as a client pays 5 Grow Coins to you and 5 to whoever referred you — no lifetime cap.'
-    : 'Every project you complete as a freelancer pays 5 Grow Coins to you and 5 to whoever referred you — no lifetime cap.';
+    ? 'Every project you complete as a client pays 5 Grow Coins to you and 5 to whoever referred you. Referral earnings are capped at 199 coins per month for freelancers and 100 per month for clients.'
+    : 'Every project you complete as a freelancer pays 5 Grow Coins to you and 5 to whoever referred you. Referral earnings are capped at 199 coins per month for freelancers and 100 per month for clients.';
 }
 
 /**
@@ -154,8 +173,8 @@ export function getFirstProjectBonusDescription(role: 'freelancer' | 'client' | 
  */
 export function getKycBonusDescription(role: 'freelancer' | 'client' | 'admin'): string {
   return role === 'client'
-    ? 'Approved business identity verification pays 5 Grow Coins to you and 5 to your referral — once per referral.'
-    : 'Approved identity verification pays 5 Grow Coins to you and 5 to your referral — once per referral.';
+    ? 'Every completed, paid project by your referral pays 5 Grow Coins to them and 5 to you.'
+    : 'Every completed, paid project by your referral pays 5 Grow Coins to them and 5 to you.';
 }
 
 /** Stable per-action key so a double click cannot debit twice. */
@@ -228,6 +247,72 @@ export async function redeemGrowCoinsForPremium(requestKey: string) {
   if (error) throw new Error(error.message);
   if (data?.success === false) throw new Error(data.error || 'Redemption failed');
   return data;
+}
+
+/** Client-only: 100 coins → one custom-project posting credit. */
+export async function redeemGrowCoinsForCustomProject(requestKey: string) {
+  const { data, error } = await (supabase.rpc as any)('redeem_grow_coins_for_custom_project', {
+    p_idempotency_key: requestKey,
+  });
+  if (error) throw new Error(error.message);
+  if (data?.success === false) throw new Error(data.error || 'Redemption failed');
+  return data as { success: true; coins: number; reward_id: string; balance?: number };
+}
+
+export type CustomProjectReward = {
+  id: string;
+  status: 'unused' | 'used';
+  project_id: string | null;
+  created_at: string;
+};
+
+/** The client's current custom-project reward credit, if any. */
+export async function fetchCustomProjectReward(userId: string): Promise<CustomProjectReward | null> {
+  // Generated types are refreshed after the migration deploys; the table is
+  // created by 20271128000000 and is RLS-limited to the caller's own rows.
+  const { data, error } = await (supabase as any)
+    .from('custom_project_rewards')
+    .select('id, status, project_id, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as CustomProjectReward | null) ?? null;
+}
+
+/**
+ * Atomic custom-project creation against a redeemed credit. The server locks
+ * the unused credit, inserts the project and consumes the credit in one
+ * transaction; a second call gets `success: false`.
+ */
+export async function createCustomProjectWithReward(input: {
+  idempotencyKey: string;
+  title: string;
+  description: string;
+  budget: number;
+  category: string;
+  skills: string[];
+  deadline: string | null;
+  experienceLevel: 'entry' | 'intermediate' | 'expert';
+  industry: string;
+  visibility: 'public' | 'private' | 'invite_only';
+}) {
+  const { data, error } = await (supabase.rpc as any)('create_custom_project_with_reward', {
+    p_idempotency_key: input.idempotencyKey,
+    p_title: input.title,
+    p_description: input.description,
+    p_budget: input.budget,
+    p_category: input.category || null,
+    p_skills: input.skills,
+    p_deadline: input.deadline || null,
+    p_experience_level: input.experienceLevel,
+    p_industry: input.industry || null,
+    p_visibility: input.visibility,
+  });
+  if (error) throw new Error(error.message);
+  if (data?.success === false) throw new Error(data.error || 'Could not post the custom project');
+  return data as { success: true; project_id: string; reward_id: string; coins: number };
 }
 
 export const GROW_COIN_EMPTY_STATE = EMPTY_STATE;

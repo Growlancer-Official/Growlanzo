@@ -9,7 +9,6 @@ import { InfoTip } from '../components/InfoTip';
 import { PageSkeleton } from '../components/PageSkeleton';
 import { useToast } from '../components/Toast';
 import { ProBadge } from '../components/ProBadge';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 import { formatBudgetRange } from '../utils/date';
 
 interface Proposal {
@@ -384,8 +383,7 @@ export function ClientProposalsPage() {
                     >
                       <span className="flex items-center gap-1.5">
                         {proposal.freelancer?.name || 'Unknown Freelancer'}
-                        {proposal.freelancer?.verification_status === 'verified' && <VerifiedBadge size="xs" />}
-                        {proposal.freelancer?.is_pro && <ProBadge size="xs" />}
+                                                {proposal.freelancer?.is_pro && <ProBadge size="xs" />}
                       </span>
                     </Link>
                     <div className="flex items-center gap-1.5 text-sm text-slate-500">

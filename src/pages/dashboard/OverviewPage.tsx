@@ -16,7 +16,6 @@ import {
 } from '../../lib/dataService';
 import { notificationService } from '../../lib/notifications';
 import { ProBadge } from '../../components/ProBadge';
-import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { InfoTip } from '../../components/InfoTip';
 import { useProStatus } from '../../hooks/useProStatus';
 import { ACTIVE_STATUSES, PENDING_STATUSES } from '../../lib/contractStatuses';
@@ -494,8 +493,7 @@ export function OverviewPage() {
           <div>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2 flex-wrap">
             Welcome back, {user?.name || (isFreelancer ? 'Freelancer' : 'Client')}!
-            {user?.verificationStatus === 'verified' && <VerifiedBadge size="sm" />}
-            {isFreelancer && isPro && <ProBadge size="md" />}
+                        {isFreelancer && isPro && <ProBadge size="md" />}
             <InfoTip title="Your dashboard" text="This is your personal command center — contracts, proposals, earnings, AI matches and notifications all in one place. Everything updates in real time as activity happens across the platform." />
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">

@@ -6,7 +6,6 @@ import { formatCurrency as libFormatCurrency } from '../lib/currency';
 import { requireKycForAction } from '../lib/kycGate';
 import { reviewService } from '../lib/reviews';
 import { useToast } from '../components/Toast';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 import { ProBadge } from '../components/ProBadge';
 import { razorpayService } from '../lib/razorpay';
 import { useAuth } from '../context/AuthContext';
@@ -718,8 +717,7 @@ export function ServiceDetailPage() {
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-900 flex items-center gap-1.5 flex-wrap">
                       {service.freelancer.name || 'Freelancer'}
-                      {service.freelancer.verification_status === 'verified' && <VerifiedBadge size="xs" />}
-                      {service.freelancer.is_pro && <ProBadge size="xs" />}
+                                            {service.freelancer.is_pro && <ProBadge size="xs" />}
                     </p>
                     {service.freelancer.professional?.title && (
                       <p className="text-xs text-slate-500">{service.freelancer.professional.title}</p>

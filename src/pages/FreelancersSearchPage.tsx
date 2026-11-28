@@ -8,7 +8,6 @@ import { CategoriesSection } from '../components/CategoriesSection';
 import { useToast } from '../components/Toast';
 import { TipNote } from '../components/TipNote';
 import { ProBadge } from '../components/ProBadge';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 import { safeLower } from '../utils/date';
 
 interface FreelancerResult {
@@ -423,8 +422,7 @@ export function FreelancersSearchPage() {
                         <h2 className="font-bold text-slate-900 truncate group-hover:text-emerald-600 transition-colors">
                           {freelancer.profile?.name || 'Freelancer'}
                         </h2>
-                        {freelancer.verification_status === 'verified' && <VerifiedBadge size="xs" />}
-                        {freelancer.profile?.is_pro && <ProBadge size="xs" />}
+                                                {freelancer.profile?.is_pro && <ProBadge size="xs" />}
                         {freelancer.availability && (
                           <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full flex-shrink-0">
                             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />

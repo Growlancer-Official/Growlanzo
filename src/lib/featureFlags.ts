@@ -43,28 +43,33 @@ export const KYC_COMING_SOON = {
   title: 'KYC Verification',
   status: 'Coming Soon',
   description:
-    'Full identity verification (government ID and document checks) is not part of the Growlanzo Beta. Everything available today is unlocked through the account verification above — your name, a confirmed email and a confirmed phone.',
+    'Identity verification for freelancers and clients is not open yet. We are completing the legal, privacy and provider review required before collecting identity documents.',
   reasons: [
-    'We are an early-stage platform and are completing the legal and compliance review that collecting government IDs requires.',
+    'We are an early-stage platform and are completing the legal and compliance review that collecting identity documents requires.',
     'Document checks need a licensed identity-verification provider, and that integration is still being set up.',
-    'So we do not collect ID documents we cannot protect and process properly yet — no Aadhaar, PAN, passport or bank documents are requested in the Beta.',
+    'So we do not collect ID documents we cannot protect and process properly yet — no Aadhaar, PAN, passport or bank documents are requested.',
   ],
   reassurance:
-    'Nothing is blocked for you: hiring, applying, contracts and payouts all work with account verification. When KYC launches we will ask for your consent first and update the Privacy Policy before collecting anything new.',
+    'Nothing is blocked for you: hiring, applying, contracts, escrow and payouts keep working. When verification launches we will ask for your consent first and update the Privacy Policy before collecting anything new.',
 } as const;
 
 /**
- * ACCOUNT verification is ON for both roles — the light three-criteria check
- * (name + confirmed email + confirmed phone). It is deliberately NOT KYC and is
- * never labelled as such: a confirmed phone number must never read as "KYC
- * verified".
+ * ACCOUNT verification is OFF at launch for BOTH roles. The founder decision
+ * (Nov 2026) is that the entire verification section — account checks and
+ * document KYC — is presented as "Coming Soon" until the legal/privacy/provider
+ * review is complete.
  *
- * `src/pages/dashboard/IdentityVerificationPage.tsx` is the single screen both
- * roles share; it writes nothing itself and lets `refresh_light_kyc` derive
- * `profiles.verification_status` from the auth record. This switch controls the
- * ENTRY POINTS only: the sidebar link, the header chip and the routes.
+ * While this is `false`:
+ *   - the shared screen renders only the Coming Soon presentation;
+ *   - no form, upload, OTP request or status write is reachable;
+ *   - the server submission RPCs are revoked from app roles, so the API cannot
+ *     be called directly either (migration 20271128000000);
+ *   - no verification badge is displayed anywhere; the green PRO badge belongs
+ *     exclusively to an active Premium subscription.
+ *
+ * Flipping this back on is a product + legal decision, not a config tweak.
  */
-export const IDENTITY_VERIFICATION_ENABLED = true;
+export const IDENTITY_VERIFICATION_ENABLED = false;
 
 /**
  * Whether an unverified identity blocks critical money actions (orders, escrow

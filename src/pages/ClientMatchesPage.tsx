@@ -9,7 +9,6 @@ import { CheckCircle2, IndianRupee, MapPin, RefreshCw, Send, Sparkles, Star, Use
 import { InfoTip } from '../components/InfoTip';
 import { useToast } from '../components/Toast';
 import { ProBadge } from '../components/ProBadge';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 
 export function ClientMatchesPage() {
   const { user } = useAuth();
@@ -412,8 +411,7 @@ export function ClientMatchesPage() {
                 <div>
                   <h3 className="font-display font-bold text-slate-900 flex items-center gap-1.5">
                     {match.freelancer.name || 'Unknown'}
-                    {match.freelancer.verification_status === 'verified' && <VerifiedBadge size="xs" />}
-                    {match.freelancer.is_pro && <ProBadge size="xs" />}
+                                        {match.freelancer.is_pro && <ProBadge size="xs" />}
                   </h3>
                   <div className="flex items-center gap-1 text-sm text-slate-500">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />

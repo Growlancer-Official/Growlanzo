@@ -34,9 +34,7 @@ import { supabase, realtimeChannels } from '../lib/supabase';
 import { notificationService } from '../lib/notifications';
 import { NotificationsPanel } from '../components/NotificationsPanel';
 import { NotificationToastBridge } from '../components/NotificationToastBridge';
-import { VerifiedBadge } from '../components/VerifiedBadge';
 import { GrowCoinBadge } from '../components/GrowCoinBadge';
-import { VerifyNowHeaderButton } from '../components/VerifyNowHeaderButton';
 import { resolveDashboardSection } from '../lib/dashboardSection';
 import { isDeferredRoute } from '../lib/featureFlags';
 import { BrandLogo } from '../components/BrandLogo';
@@ -625,7 +623,6 @@ export function ClientDashboardLayout() {
             </div>
 
             {/* Light KYC nudge — disappears in real time once verified. */}
-            <VerifyNowHeaderButton />
 
             <GrowCoinBadge userId={user?.id} role={user?.role} />
 
@@ -656,8 +653,7 @@ export function ClientDashboardLayout() {
               <div className="text-left hidden lg:block">
                 <p className="text-sm font-bold leading-tight truncate max-w-[120px] flex items-center gap-1.5">
                   <span className="truncate">{user?.name || 'Client'}</span>
-                  {user?.verificationStatus === 'verified' && <VerifiedBadge size="xs" tone="blue" />}
-                </p>
+                                  </p>
                 {clientStats && clientStats.rating > 0 && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <span className="text-[10px] text-emerald-600">★</span>
